@@ -15,7 +15,7 @@ class SearchInput(BaseModel):
     country: Optional[str] = None
 
 
-class IndeedParser:
+class IndeedApifyParser:
     """Parse raw Indeed dataset items produced by an Apify actor into JobPostings.
 
     The parser relies on :class:`~models.collection_service.IndeedRaw` to validate

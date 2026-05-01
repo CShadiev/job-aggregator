@@ -12,9 +12,9 @@ class _Config(BaseModel):
     model_config = ConfigDict(frozen=True)
 
     APIFY_API_KEY: str
-    APIFY_BASE_URL: str
+    APIFY_BASE_URL: str = "https://api.apify.com/v2"
 
-    ARBEITNOW_BASE_URL: str
+    ARBEITNOW_BASE_URL: str = "https://www.arbeitnow.com/api/job-board-api"
 
 
 class ConfigProvider:

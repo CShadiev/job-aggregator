@@ -3,7 +3,7 @@
 from datetime import datetime
 from typing import Protocol
 
-from models.collection_service import JobPosting
+from models.collection_service import CollectionResult
 
 
 class ICollector(Protocol):
@@ -22,7 +22,7 @@ class ICollector(Protocol):
         """
         ...
 
-    async def collect_jobs(self, min_date: datetime | None = None) -> list[JobPosting]:
+    async def collect_jobs(self, min_date: datetime | None = None) -> CollectionResult:
         """Collect job postings from the source.
 
         Args:
@@ -30,6 +30,7 @@ class ICollector(Protocol):
                 be returned.
 
         Returns:
-            List of :class:`~models.collection_service.JobPosting` objects.
+            CollectionResult object containing validated JobPostings and invalid entries.
+            Job postings are sorted by posted_at in reverse chronological order.
         """
         ...

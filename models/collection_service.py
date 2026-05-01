@@ -95,3 +95,23 @@ class IndeedRaw(BaseModel):
     scrapedAt: datetime
     searchInput: Optional[SearchInput] = None
     isExpired: Optional[bool] = None
+
+
+class InvalidEntry(BaseModel):
+    """Invalid entry with ValidationError."""
+
+    entry: dict
+    """Invalid entry."""
+
+    error: str
+    """Validation error message."""
+
+
+class CollectionResult(BaseModel):
+    """Result of a collection operation."""
+
+    postings: list[JobPosting]
+    """List of validated JobPosting objects."""
+
+    invalid_entries: list[InvalidEntry]
+    """List of invalid entries with validation error messages."""
