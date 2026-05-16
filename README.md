@@ -42,10 +42,12 @@ flowchart TD
     Q --> KN["AI: Key Normalization (batch)"]
     KN --> DD[Cross-source Deduplication]
     DD --> ENR["AI: Description Enrichment (batch, optional)"]
-    ENR --> FIT["AI: Fit Assessment & Ranking (batch)"]
 
-    FIT --> DB[(Job Descriptions)]
-    FIT --> AS[(Assessments & Rankings)]
+    ENR --> DB[(Job Descriptions)]
+    ENR --> FILT[Hard Requirement Filter]
+
+    FILT --> AIFIT["AI: Fit Assessment (batch)"]
+    AIFIT --> AS[(Assessments & Rankings)]
 
     DB --> API[FastAPI Server]
     AS --> API
@@ -77,9 +79,9 @@ A Celery task chain that transforms and validates each batch of collected jobs b
 |---|---|
 | Key normalization | Consistent job title and company name across sources |
 | Cross-source deduplication | Collapse duplicate postings from different providers |
-| Description enrichment *(optional)* | Extract structured properties from free-text descriptions |
-| Fit assessment & ranking | Score each job against all candidate profiles; write assessments to a separate collection |
-| Persistence | Write jobs and assessments to the database |
+| Description enrichment *(optional)* | Extract structured properties from free-text descriptions; enriched records are persisted to the job descriptions store and **also** forwarded to the fit assessment pipeline |
+| Hard requirement filter | Discard jobs that fail mandatory criteria (language, required technologies, years of experience, etc.) before any AI scoring |
+| AI fit assessment | Score each surviving job against all candidate profiles; write results to a separate assessments store |
 
 ### AI agent — key normalization
 
@@ -89,9 +91,12 @@ A PydanticAI agent that standardizes job titles and company names across sources
 
 A PydanticAI agent that extracts structured properties from job description text — for example, tech stack, required seniority, and years of experience. Enables personalized candidate feeds without per-candidate fit scoring on every job.
 
-### AI agent — fit assessment and ranking
+### Fit assessment pipeline
 
-A PydanticAI agent that runs as part of the processing pipeline. After deduplication and optional enrichment, it fetches all candidate profiles and scores each incoming job against them. Results are written to a separate assessments collection so that job records and fit scores remain independently queryable.
+A two-step pipeline that runs in parallel with job persistence after enrichment.
+
+1. **Hard requirement filter** — rule-based pre-filter that drops jobs failing mandatory criteria (posting language, required technologies, minimum years of experience, etc.) before any AI call is made.
+2. **AI fit assessment** — a PydanticAI agent that fetches all candidate profiles and scores each job that passed the filter. Results are written to a separate assessments collection so that job records and fit scores remain independently queryable.
 
 ### API server (`FastAPI`)
 
@@ -123,8 +128,12 @@ flowchart TD
     F --> G[Cross-source deduplication by normalized keys + time window]
     G --> H{Enrichment enabled?}
     H -->|Yes| I[Celery: extract structured properties from descriptions — batch]
-    H -->|No| K
+    H -->|No| J
 
-    I --> K[Celery: fit assessment — fetch candidate profiles, score each job — batch]
-    K --> J[(Persist jobs and assessments to database)]
+    I --> J[(Persist jobs to database)]
+    I --> L[Hard requirement filter — language, technologies, experience, etc.]
+    H -->|No| L
+
+    L --> M[Celery: AI fit assessment — fetch candidate profiles, score each job — batch]
+    M --> N[(Assessments persisted to separate table)]
 ```
