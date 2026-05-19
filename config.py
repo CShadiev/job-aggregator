@@ -16,6 +16,11 @@ class _Config(BaseModel):
 
     ARBEITNOW_BASE_URL: str = "https://www.arbeitnow.com/api/job-board-api"
 
+    DEDUPLICATION_BATCH_SIZE: int = 50
+    DEDUPLICATION_MAX_RETRIES: int = 3
+
+    FIT_ASSESSMENT_MAX_RETRIES: int = 3
+
 
 class ConfigProvider:
     '''
