@@ -15,7 +15,7 @@ Your task is to normalize job titles and company names to facilitate search and 
 ### For Company Names:
 - Remove common legal suffixes (Inc., Ltd., GmbH, AG, LLC, Corp., etc.)
 - Normalize common abbreviations (e.g., "&" → "and")
-- Handle special characters consistently (e.g., remove accents)
+- Handle special characters consistently (e.g., remove accents, hyphens, etc.)
 - Preserve the core company identifier
 
 ### For Job Titles:

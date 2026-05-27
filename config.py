@@ -21,6 +21,11 @@ class _Config(BaseModel):
 
     FIT_ASSESSMENT_MAX_RETRIES: int = 3
 
+    DEBUG_MODE: bool = False
+    LOG_DIR: str = "logs"
+
+    OPENAI_API_KEY: str
+
 
 class ConfigProvider:
     '''

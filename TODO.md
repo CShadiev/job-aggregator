@@ -7,8 +7,8 @@
 	- [x] focus on hard requirements
 	- [x] create ATS score
 - [x] write tests for Arbeitnow collector
-- [ ] write tests for deduplication service
-- [ ] write tests for assessment fit service
+- [x] write tests for deduplication service
+- [ ] write tests for fit assessment service
 - [ ] write collector for linkedin job ads and recruiter posts
 - [ ] adjusted CV
 - [ ] cover letter generator (with preview mode)

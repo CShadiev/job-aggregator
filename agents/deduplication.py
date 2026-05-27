@@ -9,6 +9,7 @@ from models.collection_service import JobPosting
 from models.deduplication import FailedJobPosting, NormalizedBatch, NormalizationResult
 
 _PROMPT_TEMPLATE_PATH = Path(__file__).parent / "prompt_templates" / "normalize_job.md"
+CONFIG = ConfigProvider.get_config()
 
 
 class DeduplicationAgent:
@@ -21,15 +22,14 @@ class DeduplicationAgent:
         )
         self._prompt_template = _PROMPT_TEMPLATE_PATH.read_text(encoding="utf-8")
 
-    async def normalize(self, postings: list[JobPosting]) -> NormalizationResult:
+    async def normalize(
+            self, postings: list[JobPosting], batch_size: int = CONFIG.DEDUPLICATION_BATCH_SIZE) -> NormalizationResult:
         """
         Normalize job titles and company names for each posting.
 
         Postings are split into fixed-size batches (``DEDUPLICATION_BATCH_SIZE``)
         and processed concurrently.
         """
-        config = ConfigProvider.get_config()
-        batch_size = config.DEDUPLICATION_BATCH_SIZE
 
         batches = [postings[i:i + batch_size] for i in range(0, len(postings), batch_size)]
 
@@ -75,13 +75,14 @@ class DeduplicationAgent:
 
         for entry in normalized.jobs:
             original = temp_map.get(entry.id)
-            if original is None:
+            if original is None or entry.id in seen_ids:
                 continue
             seen_ids.add(entry.id)
             processed.append(
-                original.model_copy(update={
-                    "title_normalized": entry.title,
-                    "company_normalized": entry.company, }))
+                original.model_copy(
+                    update={
+                        "title_normalized": entry.title.lower(),
+                        "company_normalized": entry.company.lower(), }))
 
         for temp_id, posting in temp_map.items():
             if temp_id not in seen_ids:
