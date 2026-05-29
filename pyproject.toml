@@ -9,6 +9,7 @@ dependencies = [
     "loguru>=0.7.3",
     "pydantic>=2.13.3",
     "pydantic-ai>=1.97.0",
+    "pymongo>=4.17.0",
 ]
 
 [dependency-groups]

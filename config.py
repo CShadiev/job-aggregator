@@ -30,6 +30,13 @@ class _Config(BaseModel):
 
     OPENAI_API_KEY: str
 
+    MONGODB_URI: str = "mongodb://localhost:27017"
+    MONGODB_DATABASE: str = "job_aggregator"
+    MONGODB_JOBS_COLLECTION: str = "jobs"
+    MONGODB_CHECKPOINTS_COLLECTION: str = "checkpoints"
+    MONGODB_PROCESSING_COLLECTION: str = "job_processing"
+    MONGODB_FAILED_COLLECTION: str = "failed_entries"
+
 
 class ConfigProvider:
     '''
