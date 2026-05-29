@@ -50,7 +50,7 @@ class ApifyCollector:
         """
         return self.source_tag
 
-    async def collect(self, min_date: datetime | None = None) -> CollectionResult:
+    async def collect_jobs(self, min_date: datetime | None = None) -> CollectionResult:
         """Run Apify task, download dataset, and parse job postings.
 
         Args:

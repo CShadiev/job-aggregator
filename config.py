@@ -15,6 +15,10 @@ class _Config(BaseModel):
     APIFY_BASE_URL: str = "https://api.apify.com/v2"
 
     ARBEITNOW_BASE_URL: str = "https://www.arbeitnow.com/api/job-board-api"
+    ARBEITNOW_MAX_PAGES: int = 10
+
+    APIFY_INDEED_TASK_ID: str | None = None
+    APIFY_STEPSTONE_TASK_ID: str | None = None
 
     DEDUPLICATION_BATCH_SIZE: int = 50
     DEDUPLICATION_MAX_RETRIES: int = 3

@@ -6,7 +6,7 @@ from datetime import datetime
 from aiohttp import ClientSession
 
 from config import ConfigProvider
-from models.collection_service import JobPosting
+from models.collection_service import CollectionResult, JobPosting
 
 
 class ArbeitnowCollector:
@@ -28,6 +28,21 @@ class ArbeitnowCollector:
         self._source = "arbeitnow"
         self.base_url = config.ARBEITNOW_BASE_URL
         self.client = client or ClientSession()
+
+    def get_source_name(self) -> str:
+        """Return the unique identifier of the data source."""
+        return self._source
+
+    async def collect_jobs(self, min_date: datetime | None = None) -> CollectionResult:
+        """Collect job postings from the source (``ICollector`` entry point).
+
+        Uses *min_date* as the pagination stop condition when provided; otherwise
+        fetches up to :attr:`~config._Config.ARBEITNOW_MAX_PAGES` pages.
+        """
+        config = ConfigProvider.get_config()
+        max_pages = None if min_date else config.ARBEITNOW_MAX_PAGES
+        postings = await self.collect(min_date=min_date, max_pages=max_pages)
+        return CollectionResult(postings=postings, invalid_entries=[])
 
     async def collect(
         self,
