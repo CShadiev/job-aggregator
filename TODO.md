@@ -8,9 +8,8 @@
 	- [x] create ATS score
 - [x] write tests for Arbeitnow collector
 - [x] write tests for deduplication service
-- [ ] write integration tests for fit assessment service
-- [ ] implement repository for job descriptionse
-- [ ] design and implement a simple orchestration layer
+- [x] implement repository for job descriptions
+- [x] design and implement a simple orchestration layer
 
 - [ ] write collector for linkedin job ads and recruiter posts
 - [ ] adjusted CV
