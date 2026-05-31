@@ -1,0 +1,351 @@
+[
+    {
+        "_id": "69e0ab1ba8992e613c7a3f11",
+        "uid": "indeed:04bdb1ae22382508",
+        "source": "indeed",
+        "title": "AI Developer (Agents & Automation) (m/f/d)",
+        "company": "neuland.ai AG",
+        "location": "Home Office",
+        "country": "DE",
+        "remote": false,
+        "url": "https://de.indeed.com/viewjob?jk=04bdb1ae22382508",
+        "tags": [
+            "python developer"
+        ],
+        "description_raw": "Ziel der Rolle\n\nWir gehen über reine Prototypen hinaus und bauen produktionsreife KI-Systeme, die echten Mehrwert liefern. Unsere Lösungen automatisieren komplexe Workflows, unterstützen fundierte Entscheidungen und verändern nachhaltig, wie Organisationen arbeiten.\nWir suchen einen AI Engineer (m/f/d), der sich an der Schnittstelle von verteilten Systemen, KI-Architektur und realer Automatisierung bewegt – und dort nicht nur Konzepte entwirft, sondern sie auch zuverlässig in die Produktion bringt. Du fühlst dich wohl damit, Systeme zu bauen, die unter echten Bedingungen laufen: skalierbar, robust und eng integriert in bestehende Prozesse.\n\nDeine Aufgaben\n\nEntwicklung und Implementierung von KI-gestützten Features wie intelligenten Agenten, Wissensassistenten und Automatisierungstools\nAufbau und Weiterentwicklung von Agentenfähigkeiten (z. B. Tool-Nutzung, Memory, Kontextmanagement und Task-Ausführung)\nEntwicklung von Retrieval-Augmented-Generation-(RAG)-Pipelines sowie Integration von Wissensabruf über Vektordatenbanken\nIntegration von LLM-Anbietern (z. B. OpenAI, Azure OpenAI, Anthropic sowie Open-Source-Modelle) in Produktfeatures\nAufbau von Datenpipelines zur Anbindung von KI-Systemen an interne Wissensquellen, externe APIs und Enterprise-Systeme\nImplementierung von Streaming-Antworten, Hintergrundverarbeitung und Mechanismen zur Task-Ausführung in KI-Workflows\nEvaluation und Benchmarking von KI-Tools, Modellen und Prompting-Strategien zur Verbesserung von Performance und Zuverlässigkeit\nMonitoring und Optimierung des KI-Verhaltens durch Logging, Testing, Evaluation und iterative Verbesserungen\nOptimierung von KI-Features hinsichtlich Latenz, Kosten und praktischer Nutzbarkeit\nMitwirkung an der kontinuierlichen Weiterentwicklung von KI-Funktionalitäten und der Erprobung neuer Technologien\n\nDein Profil\n\nMehrjährige Backend-Erfahrung in Python (mindestens 5 Jahre)\nErfahrung im Design skalierbarer, verteilter Systeme und asynchroner Architekturen\nPraktische Erfahrung mit KI-Agenten-Frameworks (z. B. LangChain, LlamaIndex oder vergleichbar)\nTiefes Verständnis von RAG-Architekturen, Embeddings, Vektorsuche und Wissensabruf\nErfahrung mit Voice AI, Streaming-Inferenz oder Echtzeitsystemen\nErfahrung in der Integration von LLM-APIs sowie im Aufbau zuverlässiger KI-Workflows\nVertrautheit mit PostgreSQL, Caching-Layern sowie Queue-Systemen (z. B. Celery, Redis, RabbitMQ)\nAusgeprägtes Engineering-Mindset: Testing, Monitoring, Logging, Security und Performance-Optimierung\nFähigkeit, experimentelle KI-Ansätze in stabile, produktionsreife Features zu überführen\nNice to have\n\nErfahrung mit graphbasierten Reasoning-Systemen und Knowledge Graphs\nErfahrung mit Frameworks zur Modellevaluation sowie Strategien zur Prompt-Optimierung\nErfahrung im Bereich Context Engineering\nErfahrung in der Kostenoptimierung beim Einsatz von LLMs im großen Maßstab\nErfahrung mit Docker, Cloud-Plattformen (Azure, GCP, AWS) und CI/CD-Pipelines\n\nWas wir bieten\n\nImpact: Aufbau intelligenter Systeme, die den Einsatz von KI in Unternehmen neu definieren\nInnovation: Arbeit mit modernsten Frameworks und Modell-Ökosystemen\nKultur: Kollaboratives, kreatives und eigenverantwortliches Team\nFlexibilität: Remote-first und flexible Arbeitszeiten\nWachstum: Zugang zu KI-Ressourcen, Tools und Weiterbildungen\nBeteiligung: Virtual Stock Option Plan (VSOP)\n\nÜber uns\n\nneuland.ai ist ein innovatives deutsches Unternehmen mit umfassender KI-Expertise und Digitaltransformation. Basierend auf unserer umfangreichen Erfahrung aus zahlreichen KI-Projekten haben wir den neuland.ai HUB entwickelt - die vertrauenswürdige KI-Plattform „Made in Germany“. Mit unseren eigenentwickelten und zum Patent angemeldeten Technologien ist der neuland.ai HUB mehr als eine Plattform: Er ist der sichere Raum für souveräne, kontextgenaue KI-Nutzung in Wirtschaft, Politik und Wissenschaft.\n\nUnser Commitment zu Diversität:\nneuland.ai lebt von unterschiedlichen Perspektiven. Wir bewerten dich nach deinen Fähigkeiten und deiner Leidenschaft – unabhängig von Herkunft, Geschlecht, Alter, Religion oder Identität. Um unser Team noch vielfältiger aufzustellen, werden Kandidat:innen aus unterrepräsentierten Gruppen bei gleicher Eignung bevorzugt eingestellt. Trau dich und bewirb dich, auch wenn du (noch) nicht 100 % der Anforderungen erfüllst!",
+        "job_types": [
+            "Vollzeit"
+        ],
+        "posted_at": "2026-04-15T19:18:55.738Z",
+        "collected_at": "2026-04-16T09:23:47.066Z",
+        "updated_at": "2026-04-16T09:23:47.066Z",
+        "fit_assessment": {
+            "applicant_name": "Chingiz Shadiev",
+            "overall_score": 7.6,
+            "recommendation": "GOOD_FIT",
+            "skill_fit": {
+                "score": 8,
+                "weight": 0.4,
+                "strengths": [
+                    "7+ years Python backend; strong with FastAPI, REST, Docker, CI/CD",
+                    "Hands-on with agentic AI: LangChain, LangGraph, CrewAI; RAG systems and vector databases",
+                    "LLM/RAG foundations via IBM RAG & Agentic AI certificate; familiarity with prompting and tool use",
+                    "Datastores: PostgreSQL and MongoDB; messaging with RabbitMQ; experience with real-time data processing",
+                    "Cloud & DevOps: AWS (certified), GitHub Actions, containerization; security practices (Auth0, RBAC, IP whitelisting, encryption)"
+                ],
+                "gaps": [
+                    "Voice AI and streaming inference not evidenced",
+                    "Caching/task frameworks (Redis, Celery) not explicitly used",
+                    "No clear examples of production LLM provider integrations at scale (OpenAI/Azure/Anthropic)",
+                    "LLM evaluation/monitoring frameworks and prompt optimization strategies not highlighted",
+                    "Knowledge graphs/graph reasoning not listed"
+                ],
+                "assessment": "Strong technical match for building production-grade AI agent/RAG features on Python backends and distributed systems. Clear expertise with queues, APIs, security, and end-to-end delivery. Minor gaps around voice/streaming, Redis/Celery, and demonstrated large-scale LLM ops/evaluation."
+            },
+            "experience_fit": {
+                "score": 7,
+                "weight": 0.4,
+                "strengths": [
+                    "Meets/Exceeds 5+ years requirement; end-to-end platform delivery as sole technical lead",
+                    "Designed multi-tier, distributed, message-driven systems (RabbitMQ) with containerization and CI/CD",
+                    "Built automation-heavy, real-time integrations (broker APIs) and reporting pipelines",
+                    "Security-first mindset and production hardening experience; suitable for taking prototypes to production"
+                ],
+                "gaps": [
+                    "Less direct evidence of shipping enterprise AI-agent features at scale with LLM cost/latency tuning",
+                    "No explicit Voice AI or streaming inference track record",
+                    "Client-facing consulting in Germany may benefit from German language for some stakeholders"
+                ],
+                "assessment": "Experience is highly transferable to the role’s mandate (productionizing intelligent agents/RAG and integrating with enterprise systems). Some ramp-up likely around large-scale LLM workflows (streaming, evals, cost tuning) and potential client-facing language expectations."
+            },
+            "goals_alignment": {
+                "score": 8,
+                "weight": 0.2,
+                "strengths": [
+                    "Clear interest in AI agents/RAG (recent IBM Agentic AI specialization) and automation",
+                    "Enjoys end-to-end ownership and productionizing—matches role focus beyond prototyping",
+                    "Remote-first within Germany aligns with Berlin residence; AWS certification signals growth mindset"
+                ],
+                "concerns": [
+                    "Posting in German; team/client language expectations unclear while German is in-progress",
+                    "Role may skew more AI/LLM-ops heavy than previous full-stack balance—ensure that focus fits preferences"
+                ],
+                "assessment": "Strong alignment with building real, production AI systems and continuous learning in the AI space. Location and work style fit. Minor language uncertainty and potential shift toward deeper LLM operations to confirm."
+            },
+            "key_insights": {
+                "deal_breakers": [],
+                "unique_advantages": [
+                    "Rare blend of full-stack, distributed systems, and security practices—useful for reliable AI agents in production",
+                    "RabbitMQ and real-time integration experience strengthens credibility on orchestration/asynchronous workflows",
+                    "AWS Certified Developer; comfort with CI/CD and infra—accelerates deployment hardening",
+                    "Financial and operational automation background demonstrates measurable impact and disciplined engineering"
+                ],
+                "learning_required": [
+                    "Hands-on with Redis/Celery (or equivalent) for caching/task execution",
+                    "Implement streaming token responses and real-time inference patterns",
+                    "Production-grade integrations with OpenAI/Azure/Anthropic incl. evals, guardrails, and monitoring",
+                    "Prompt optimization and model evaluation frameworks; cost/latency optimization at scale",
+                    "Optional: Knowledge graphs/graph-based reasoning; Voice AI stacks"
+                ]
+            },
+            "recommendation_summary": "Good fit overall. Strong Python/backend and distributed systems background with hands-on agentic/RAG foundations. Primary gaps are around streaming/voice, Redis/Celery, and demonstrated large-scale LLM ops/evaluation. No explicit deal-breakers; language is a minor uncertainty since the post is in German but doesn’t state a German requirement. Apply and emphasize production wins, agent/RAG work, RabbitMQ orchestration, and AWS credentials; be ready with examples of LLM integrations and a plan for streaming/evaluation.",
+            "application_priority": "HIGH",
+            "cover_letter_angles": [
+                "Highlight end-to-end delivery: taking systems from architecture to production with security, CI/CD, and monitoring",
+                "Show concrete agent/RAG work (LangChain/LangGraph, vector DBs), including tool-use, memory, and retrieval patterns",
+                "Emphasize distributed/asynchronous experience with RabbitMQ and real-time integrations; relate to task execution pipelines",
+                "Underscore AWS cert and cloud deployment experience; mention Docker and GitHub Actions for reliable releases",
+                "Address LLM integrations explicitly (OpenAI/Azure/Anthropic) with examples or quick prototypes; outline eval/guardrails strategy",
+                "Acknowledge German-learning status; confirm comfort working in English and with German stakeholders",
+                "Note rapid upskilling in Redis/Celery and streaming responses; propose a 30-60-90 plan to close gaps"
+            ],
+            "description_breakdown": {
+                "location": "Home Office (Remote-first in Germany)",
+                "company_name": "neuland.ai AG",
+                "industry": "Enterprise AI platform / AI agents & automation",
+                "role": "AI Developer (Agents & Automation)",
+                "condensed_description": "Build and productionize AI agents and RAG features: tool-use, memory, context management; integrate LLM providers; design data/processing pipelines with queues & streaming; monitor/evaluate/tune for latency, cost, and reliability; contribute to evolving AI capabilities."
+            }
+        },
+        "applied": false,
+        "skipped": false,
+        "cover_letter_key": null,
+        "company_normalized": "neuland ai",
+        "title_normalized": "ai developer agents and automation",
+        "cover_letter_task_id": null
+    },
+    {
+        "_id": "69e51770427b4d9e156d4545",
+        "uid": "apify:60c1c753cf98a723655ea3ae0a2335eba85fd98ce885b2af560a1b94c43c8a00",
+        "source": "apify",
+        "title": "Senior Full Stack Developer React/FastAPI/Django (Frontend-Affinity) (m/f/d)",
+        "company": "Mika Onlinehandel und -media GmbH",
+        "location": "Berlin",
+        "country": "DE",
+        "remote": false,
+        "url": "https://www.stepstone.de/stellenangebote--Senior-Full-Stack-Developer-React-FastAPI-Django-Frontend-Affinity-m-f-d-Berlin-Mika-Onlinehandel-und-media-GmbH--13859416-inline.html",
+        "tags": [
+            "python developer"
+        ],
+        "description_raw": "<h4>Introduction</h4><p>mika is revolutionizing financial management for small businesses with an AI-powered platform that combines automated accounting, proactive insights, and conversational AI. We're on a mission to make expert financial navigation and compliance accessible to every small business owner – dramatically reducing costs and bureaucratic burden. We're a small, senior team shipping fast, and every line of code we ship matters.</p><p>Our stack: FastAPI &amp; Django backend, React frontend (Material UI, react-query), PostgreSQL, AWS. We build agentic AI systems that do real accounting work.</p><h4>Your tasks</h4><h2>Tasks</h2><p>We need a Senior Full-Stack Developer who leans frontend – someone who makes our product <em>look and feel</em> as good as it works under the hood.</p><p>You'll own features end-to-end. That means you think through the entire user flow, edge cases, error states, and architecture <em>before</em> you start building. You work with high autonomy and take real ownership – we trust you to make good decisions and deliver clean solutions.</p><p>Concretely, you'll:</p><ul><li>Drive <strong>frontend improvements</strong> – not just fixing bugs but proactively elevating UX and visual quality on a regular cadence</li><li>Build and own <strong>complex full-stack features</strong> in our accounting platform</li><li>Use <strong>Claude Code, Cursor, or similar AI engineering tools</strong> as your primary development workflow – we are a senior team where everyone writes high-quality code at a high pace, and this is only possible through the use of the latest coding tools. You'll get access to all the subscriptions you need to work efficiently</li><li>Adapt and extend our Python/FastAPI &amp; Django backend where needed (CRUD-level changes and beyond)</li><li>Contribute to <strong>code quality and architecture decisions</strong> in a small senior team</li></ul><h4>Requirements</h4><ul><li>Professional experience in software development with a proven track record of owning and delivering complex projects.</li><li>Expertise in React to build high-quality, accessible, and production-ready user interfaces.</li><li>A sharp eye for design that ensures layouts and components are implemented with pixel-perfect accuracy.</li><li>Hands-on skill with AI-assisted engineering using tools like Cursor, Claude Code, Codex, or GitHub Copilot. You have already built real things with those tools.</li><li>The ability to work across the stack by independently navigating and extending a Python/FastAPI backend.</li><li>A systems-thinking mindset to map out full features, edge cases, and failure modes before writing any code.</li><li>Fluency in English, while any knowledge of German is a welcome bonus.</li></ul><p>Nice to have:</p><ul><li>Background in agentic AI systems or LLM-powered products.</li><li>Familiarity with B2B fintech, PostgreSQL, or German accounting standards like DATEV.</li></ul><h4>Benefits</h4><ul><li>A small team of strong, senior engineers who respect each other's time.</li><li>Real autonomy and ownership from day one.</li><li>Work that's genuinely hard and interesting – German tax law + AI agents is not a solved problem.</li><li>Competitive salary and a product that's actually used by real customers daily.</li><li>Almost no meetings – on average 95% focus time per day.</li><li>100% Remote option, option to work abroad and no minimum required office attendence.</li><li>Fully flexible working hours apart from Daily Standup.</li><li>Berlin location preferred but remote possible.</li></ul>",
+        "job_types": [],
+        "posted_at": "2026-04-18T05:03:22.383Z",
+        "collected_at": "2026-04-19T13:41:17.546Z",
+        "updated_at": "2026-04-19T13:41:17.546Z",
+        "fit_assessment": {
+            "applicant_name": "Chingiz Shadiev",
+            "overall_score": 8.2,
+            "recommendation": "STRONG_FIT",
+            "skill_fit": {
+                "score": 8,
+                "weight": 0.4,
+                "strengths": [
+                    "React + TypeScript with Redux Toolkit and TanStack Query (react-query)",
+                    "Python/FastAPI backend experience with SQLAlchemy and REST APIs",
+                    "PostgreSQL, MongoDB; strong AWS + Docker + CI/CD exposure",
+                    "Built full-stack platforms end-to-end; familiarity with design systems (Ant Design)",
+                    "Agentic AI/RAG tooling familiarity (LangChain, LangGraph, CrewAI) aligning with product direction"
+                ],
+                "gaps": [
+                    "No explicit Django experience listed",
+                    "Pixel-perfect UI implementation and accessibility focus not clearly evidenced",
+                    "Material UI not listed (used Ant Design instead)",
+                    "Hands-on daily use of AI coding assistants (Cursor/Claude Code/Copilot) not explicitly stated",
+                    "German accounting/DATEV knowledge (nice-to-have) not present"
+                ],
+                "assessment": "Strong technical match to core stack (React/TS, FastAPI, PostgreSQL, AWS). Gaps are primarily framework variants (Django, MUI) and emphasis on frontend polish/accessibility and AI-assisted coding workflow; all appear learnable quickly given background."
+            },
+            "experience_fit": {
+                "score": 8,
+                "weight": 0.4,
+                "strengths": [
+                    "7+ years full-stack; end-to-end ownership as sole technical lead",
+                    "Small, senior-team environments; high autonomy and shipping fast",
+                    "Finance/fintech-adjacent domain: investment fund platform, broker API integrations",
+                    "Security, RBAC, reporting automation; complex product delivery across stack"
+                ],
+                "gaps": [
+                    "Direct accounting/tax product experience and German standards (DATEV) missing",
+                    "Frontend-leaning leadership with design excellence not explicitly demonstrated",
+                    "Production-shipped agentic AI features not clearly evidenced beyond training/tools"
+                ],
+                "assessment": "Experience closely aligns with senior, autonomous full-stack role and finance domain. The main experience gap is specific to SMB accounting/tax and a strong UI/design polish track record, but prior fintech and E2E delivery suggest fast ramp-up."
+            },
+            "goals_alignment": {
+                "score": 9,
+                "weight": 0.2,
+                "strengths": [
+                    "Berlin-based; role prefers Berlin but allows remote",
+                    "Mission intersects finance + AI—strong personal overlap",
+                    "High autonomy, minimal meetings, senior peer group match prior preferences",
+                    "Opportunity to build agentic AI systems aligns with recent learning/certifications"
+                ],
+                "concerns": [
+                    "Role emphasizes frontend affinity and visual polish; ensure this matches personal preference to lean frontend",
+                    "Expectation to use AI coding assistants as primary workflow—may require habit change"
+                ],
+                "assessment": "Very strong alignment on mission (finance + AI), team style (senior, autonomous), and location. Frontend-leaning emphasis should be acceptable if candidate is comfortable prioritizing UI quality and adopting AI coding tools daily."
+            },
+            "key_insights": {
+                "deal_breakers": [],
+                "unique_advantages": [
+                    "Rare finance + engineering profile; directly relevant to fintech/accounting platform",
+                    "Proven end-to-end delivery as sole technical lead",
+                    "Recent IBM Agentic AI certificate and AWS Developer certification",
+                    "Berlin-based, fluent English"
+                ],
+                "learning_required": [
+                    "Ramp up on Django conventions and MUI components/theming",
+                    "Demonstrate pixel-perfect UI, accessibility, and design QA practices",
+                    "Adopt Cursor/Claude Code/Copilot as primary workflow; showcase examples",
+                    "Deepen PostgreSQL-specific features (migrations, perf, indexing) if needed",
+                    "Gain exposure to German accounting/DATEV formats and workflows"
+                ]
+            },
+            "recommendation_summary": "Overall a strong fit. Core stack alignment and fintech background outweigh learnable gaps (Django/MUI, accessibility polish, AI coding assistant workflow). If comfortable leaning into frontend quality and adopting AI-assisted development daily, proceed with a high-priority application.",
+            "application_priority": "HIGH",
+            "cover_letter_angles": [
+                "Finance + engineering: built an investment fund platform end-to-end; understand compliance/financial data flows",
+                "Frontend affinity: shipped React/TS portals with complex data viz (Recharts) and design systems (AntD); eager to drive UX polish and accessibility",
+                "Backend strength: FastAPI/SQLAlchemy services, auth (Auth0), RBAC, and API integrations—able to own features E2E",
+                "AI alignment: hands-on with LangChain/LangGraph/CrewAI; excited to build agentic systems for real accounting work",
+                "Velocity and ownership: sole technical lead experience; thrive in small senior teams with minimal meetings; Berlin-based with immediate availability"
+            ],
+            "description_breakdown": {
+                "location": "Berlin (remote possible, Berlin preferred)",
+                "company_name": "Mika Onlinehandel und -media GmbH",
+                "industry": "AI-powered accounting/fintech for SMBs",
+                "role": "Senior Full-Stack Developer (React/FastAPI/Django) with frontend affinity",
+                "condensed_description": "Own and deliver complex full-stack features with a strong emphasis on React UI/UX quality; extend Python FastAPI/Django backend; use AI coding assistants (Cursor/Claude Code/Copilot) to ship fast; contribute to architecture in a small, senior team building agentic AI accounting systems on AWS/PostgreSQL."
+            }
+        },
+        "applied": true,
+        "skipped": false,
+        "cover_letter_key": null,
+        "company_normalized": "mika onlinehandel und media",
+        "title_normalized": "senior full stack developer react fastapi django",
+        "cover_letter_task_id": null,
+        "job_id": "apify:60c1c753cf98a723655ea3ae0a2335eba85fd98ce885b2af560a1b94c43c8a00"
+    },
+    {
+        "_id": "6a168cf4fd1378e5bc37b90e",
+        "uid": "indeed:76639a421ee55812",
+        "source": "indeed",
+        "title": "Senior Consultant / Developer | Software-Entwicklung Full-Stack Webentwicklung (all genders)",
+        "company": "cronos Unternehmensberatung GmbH",
+        "location": "48163 Münster",
+        "country": "DE",
+        "remote": false,
+        "url": "https://de.indeed.com/viewjob?jk=76639a421ee55812",
+        "tags": [
+            "python developer"
+        ],
+        "description_raw": "IT mit Leidenschaft und Leidenschaft für IT\n\nDu suchst nach einer Möglichkeit, deine Begeisterung für Technologie in einem inspirierenden Umfeld einzubringen? Werde Senior Consultant / Developer (all genders) bei cronos! Bei uns kannst du Verantwortung übernehmen und gemeinsam mit uns wachsen, in einem Umfeld voller Vielfalt, Innovation und Wertschätzung.\n\nWer wir sind\n\nGestalte die digitale Zukunft – werde Teil der cronos Gruppe! Die cronos Gruppe ist seit über 30 Jahren ein führender IT-Dienstleister und Berater für digitale Innovationen. Mit unserer Leidenschaft für IT, Expertise in vielfältigen Branchen und einem klaren Fokus auf Qualität unterstützen wir unsere Kund:innen bei der digitalen Transformation. Unsere Unternehmensgruppe umfasst Spezialisten in den Bereichen Digital Consulting, Automatisierung, Customer Experience, IT-Management und innovative Services – und genau hier kommst du ins Spiel!\n\nDeine Aufgaben\nDu bist verantwortlich für die Full-Stack Entwicklung von Webanwendungen vom CSS bis zur Datenbank und von der Konzeption der Anwendung bis zum Deployment auf der Produktion\nDu arbeitest in agilen Teams\nDu kümmerst dich um den Entwurf und die Umsetzung von User Interfaces unter Berücksichtigung von UI/UX-Best-Practices\nDu berätst professionell unsere Kund:innen bei Digitalisierungsvorhaben\nDu übernimmst bei Bedarf auch die (Teil-) Projektleitung oder Projektkoordination\nDein Profil\nAbgeschlossenes Studium (MINT), Berufsausbildung (Fachinformatiker:in Anwendungsentwicklung) oder eine vergleichbare Qualifikation\nBranchenkenntnissen in der Energieversorgung sind von Vorteil\nIdealerweise bringst du Erfahrung in unseren Kern-Technologien mit (Java, Spring Boot, TypeScript, Angula, HTML5, CSS, SCSS/ SQL, Postgres, Git, Docker, Kubernetes, SAP BTP, Azure Cloud, AWS, GCP)\nDir sind hohe Qualität und Clean Code Prinzipien wichtig\nGerne auch Erfahrungen in anderen Technologien (z.B. Thymeleaf, Vue.js, React, Keycloak, Node.js, Kotlin, Python o.a.)\nInteresse an fachlichen Prozessen und Fähigkeit dich in neue Domänen einzuarbeiten\nGrundsätzliches Interesse am Bereich der Energie- und Versorgungswirtschaft\nKeine Berührungsängste mit SAP-Systemen\nKommunikationsstärke sowie eine ausgeprägte Beratungskompetenz und hohe Kundenorientierung\nGelegentliche Reisen innerhalb des deutschsprachigen Raumes sind für dich selbstverständlich\nSehr gute Deutschkenntnisse in Wort und Schrift für direkten Kundenkontakt\nDeine Benefits\nOnboarding: Es erwarten dich eine umfängliche Einarbeitung, Ausbildung und Events gemeinsam mit vielen anderen cronologen:innen.\nMobilität: Mit unserer Reisestelle und Benefits, wie z.B. Dienstwagen,1. Klasse Bahnticket und Jobrad bleibst du sowohl geschäftlich als auch privat mobil.\nFlexibilität: Dich erwartet ein gesunder Mix aus Projektarbeit bei unseren Kund:innen vor Ort, Office-Arbeit am nächstgelegenen cronos Standort und Remote-Anteil aus deinem Mobile Office.\nTheorie & Praxis: Learning on the Job erweitert durch E-Learning-Angebote, Weiterbildungen und Zertifizierungen.\nAusstattung: High End IT-Ausstattung von Lenovo, Apple und Samsung.\nkununu: „Most Wanted Employer“ und ”Top Company” seit 2022 für außergewöhnliche Unternehmenskultur mit Open Door Policy, Mentoring und flachen Hierarchien.\nMonatlicher 50€ hrmony Gutschein für Fitness-Center, Streaming, Shopping und vieles mehr.\nDein Team\n\nDu wirst Teil der cronos digital consulting - führend in der Beratung und Implementierung innovativer SAP-Lösungen für Energieversorgungsunternehmen in der DACH-Region. Mit tiefem Branchenwissen, technologischem Fortschritt und einem starken Team helfen wir unseren Kund:innen, ihre Prozesse zu optimieren und nachhaltigen Mehrwert zu schaffen. Werde Teil eines Unternehmens, das Innovation und Kundenorientierung vereint und mit Leidenschaft für den Erfolg arbeitet.",
+        "job_types": [],
+        "posted_at": "2026-05-26T12:40:26.928Z",
+        "collected_at": "2026-05-27T06:18:34.180Z",
+        "updated_at": "2026-05-27T06:18:34.180Z",
+        "fit_assessment": {
+            "applicant_name": "Chingiz Shadiev",
+            "overall_score": 4.6,
+            "recommendation": "WEAK_FIT",
+            "skill_fit": {
+                "score": 4,
+                "weight": 0.4,
+                "strengths": [
+                    "TypeScript + React (modern FE patterns)",
+                    "AWS (certified), Docker, CI/CD (GitHub Actions)",
+                    "PostgreSQL/SQL and MongoDB",
+                    "Python/FastAPI (listed as acceptable 'other tech')",
+                    "Git, REST APIs, security/RBAC"
+                ],
+                "gaps": [
+                    "Java & Spring Boot (core)",
+                    "Angular (core FE)",
+                    "Kubernetes (core infra)",
+                    "SAP BTP and broader SAP ecosystem (core domain)",
+                    "Very good German for direct client communication",
+                    "Azure/GCP experience depth",
+                    "CSS/SCSS depth if pixel-perfect UI work is expected"
+                ],
+                "assessment": "You cover some adjacent skills (TS/React, AWS, Docker, SQL) and bring strong Python backend depth. However, the role’s center of gravity is Java/Spring + Angular with SAP BTP and Kubernetes in an SAP/energy context. Combined with the German-language requirement, this is a substantial skills gap for a senior consultant/developer role."
+            },
+            "experience_fit": {
+                "score": 6,
+                "weight": 0.4,
+                "strengths": [
+                    "~9 years building and shipping full‑stack systems end‑to‑end",
+                    "Agile delivery, CI/CD, security/auth (Auth0, RBAC)",
+                    "Freelance/consulting exposure and client interaction",
+                    "Deployed and maintained production systems; measurable business impact"
+                ],
+                "gaps": [
+                    "No prior SAP projects; no SAP BTP exposure",
+                    "No energy/utility sector experience",
+                    "Limited evidence of Java/Spring/K8s projects",
+                    "Client-facing consulting likely in German; no history of German-language delivery"
+                ],
+                "assessment": "Seniority and full‑stack delivery experience align with the role level and consulting mindset. But there’s a significant domain/tooling shift (SAP/energy, Java/Angular/K8s) and the need to operate in German with customers, which raises the ramp time and risk."
+            },
+            "goals_alignment": {
+                "score": 3,
+                "weight": 0.2,
+                "strengths": [
+                    "Enjoys full‑stack ownership and end‑to‑end delivery",
+                    "Open interest in learning new domains/technologies"
+                ],
+                "concerns": [
+                    "Role explicitly requires very good German; candidate is A1—deal‑breaker for client‑facing consulting",
+                    "Primary stack is Java/Spring/Angular + SAP BTP vs. candidate’s Python/React/AI focus and fintech interests",
+                    "Location: Münster with on‑site client work across DACH; candidate is Berlin‑based and may prefer Berlin/remote",
+                    "Consulting travel cadence may conflict with Berlin preference"
+                ],
+                "assessment": "Mission/tech/domain alignment is limited (SAP/energy vs. Python/AI/fintech interests). The German requirement and non‑Berlin on‑site expectations materially reduce alignment."
+            },
+            "key_insights": {
+                "deal_breakers": [
+                    "Sehr gute Deutschkenntnisse in Wort und Schrift für direkten Kundenkontakt (candidate A1)",
+                    "Core stack centered on Java/Spring/Angular + SAP BTP; candidate lacks these",
+                    "Role not remote‑first; expects on‑site work at client locations and office presence—relocation or frequent travel likely"
+                ],
+                "unique_advantages": [
+                    "9 years of end‑to‑end full‑stack delivery with measurable impact",
+                    "Strong TypeScript/React and secure API backend experience",
+                    "AWS Certified Developer – Associate; solid DevOps basics (Docker, CI/CD)",
+                    "SQL/PostgreSQL strength and experience with MongoDB"
+                ],
+                "learning_required": [
+                    "German to B2–C1 for client‑facing consulting",
+                    "Java and Spring Boot proficiency",
+                    "Angular and SCSS for enterprise FE",
+                    "Kubernetes fundamentals and ops practices",
+                    "SAP BTP and SAP ecosystem fundamentals",
+                    "Energy/utility sector processes and terminology"
+                ]
+            },
+            "recommendation_summary": "Given the mandatory German proficiency and core stack/domain mismatch (Java/Spring/Angular, SAP BTP, energy), this is a weak fit today despite strong general full‑stack experience. Pursue only if you intend to pivot to SAP/Java consulting and commit to rapid German upskilling and relocation/travel; otherwise, prioritize Python/React roles aligned with your strengths in Berlin/remote.",
+            "application_priority": "LOW",
+            "cover_letter_angles": [
+                "Acknowledge German gap candidly; outline concrete plan/timeline to reach B2–C1 (courses, timeline, practice) if you still choose to apply.",
+                "Position your strengths in building secure, scalable web platforms end‑to‑end (React/TS frontends, Python APIs, CI/CD, Docker, cloud).",
+                "Highlight experience with Postgres/SQL, Auth0/RBAC, and enterprise integrations—transferable to complex SAP/enterprise environments.",
+                "Stress consulting mindset: requirements discovery, stakeholder communication, measurable impact on operations.",
+                "Express high motivation to cross‑train in Java/Spring, Angular, Kubernetes, and SAP BTP; cite rapid learning history and certifications (AWS).",
+                "Underscore flexibility for travel and working at client sites if you’re genuinely open to it."
+            ],
+            "description_breakdown": {
+                "location": "Münster, DE (with on‑site client work across DACH + some remote)",
+                "company_name": "cronos Unternehmensberatung GmbH",
+                "industry": "IT consulting – SAP solutions for energy utilities (DACH)",
+                "role": "Senior Consultant / Developer – Full‑Stack Webentwicklung",
+                "condensed_description": "Consulting + full‑stack delivery of web apps (Java/Spring + Angular) in SAP/energy utilities context; client‑facing in German, agile teams, possible project leadership; deployment on modern cloud/K8s with SAP BTP exposure."
+            }
+        },
+        "applied": false,
+        "skipped": false,
+        "cover_letter_key": null,
+        "company_normalized": "cronos unternehmensberatung",
+        "title_normalized": "senior consultant developer full stack web developer",
+        "cover_letter_task_id": null
+    }
+]

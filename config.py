@@ -17,8 +17,8 @@ class _Config(BaseModel):
     ARBEITNOW_BASE_URL: str = "https://www.arbeitnow.com/api/job-board-api"
     ARBEITNOW_MAX_PAGES: int = 10
 
-    APIFY_INDEED_TASK_ID: str | None = None
-    APIFY_STEPSTONE_TASK_ID: str | None = None
+    APIFY_INDEED_TASK_ID: str = "hopeful_quarter~indeed-scraper-task"
+    APIFY_STEPSTONE_TASK_ID: str = "hopeful_quarter~stepstone-job-scraper-task"
 
     DEDUPLICATION_BATCH_SIZE: int = 50
     DEDUPLICATION_MAX_RETRIES: int = 3
@@ -30,12 +30,24 @@ class _Config(BaseModel):
 
     OPENAI_API_KEY: str
 
-    MONGODB_URI: str = "mongodb://localhost:27017"
+    MONGODB_HOST: str = "localhost"
+    MONGODB_PORT: int = 27017
+    MONGODB_USER: str
+    MONGODB_PASSWORD: str
+
     MONGODB_DATABASE: str = "job_aggregator"
     MONGODB_JOBS_COLLECTION: str = "jobs"
     MONGODB_CHECKPOINTS_COLLECTION: str = "checkpoints"
     MONGODB_PROCESSING_COLLECTION: str = "job_processing"
     MONGODB_FAILED_COLLECTION: str = "failed_entries"
+    MONGODB_USER_PROFILES_COLLECTION: str = "user_profiles"
+    MONGODB_ASSESSMENTS_COLLECTION: str = "assessments"
+
+    S3_ENDPOINT_URL: str
+    S3_ACCESS_KEY: str
+    S3_SECRET_KEY: str
+    S3_REGION: str
+    S3_BUCKET_NAME: str
 
 
 class ConfigProvider:

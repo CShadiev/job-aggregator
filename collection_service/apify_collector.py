@@ -103,12 +103,14 @@ class ApifyCollector:
                 validated_entries.append(self.apify_parser.parse_job(entry))
             except ValidationError as e:
                 invalid_entries.append(InvalidEntry(entry=entry, error=str(e)))
+        if validated_entries:
+            validated_entries = sorted(validated_entries, key=lambda x: x.posted_at, reverse=True)
 
-        if min_date:
-            validated_entries = sorted([job for job in validated_entries if job.posted_at > min_date],
-                                       key=lambda x: x.posted_at, reverse=True)
+        if validated_entries and min_date:
+            earliest_date = validated_entries[-1].posted_at
+            validated_entries = [job for job in validated_entries if job.posted_at > min_date]
+
             if validated_entries:
-                earliest_date = validated_entries[0].posted_at
                 if earliest_date > min_date:
                     raise MissingEntriesError(earliest_date, min_date)
 

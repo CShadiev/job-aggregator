@@ -1,12 +1,14 @@
 from datetime import datetime, timezone
-from typing import Union
+from typing import Sequence, Union
 
 from pymongo import AsyncMongoClient, UpdateOne
 
 from config import ConfigProvider
 from models.collection_service import InvalidEntry, JobPosting
 from models.deduplication import FailedJobPosting
+from models.fit_assessment import FitAssessment
 from models.pipeline import PipelineStage
+from models.users import UserProfile
 from models.validators import ts_validator
 
 config = ConfigProvider.get_config()
@@ -43,6 +45,8 @@ class MongoJobsRepository:
         self._checkpoints = db[config.MONGODB_CHECKPOINTS_COLLECTION]
         self._processing = db[config.MONGODB_PROCESSING_COLLECTION]
         self._failed = db[config.MONGODB_FAILED_COLLECTION]
+        self._user_profiles = db[config.MONGODB_USER_PROFILES_COLLECTION]
+        self._assessments = db[config.MONGODB_ASSESSMENTS_COLLECTION]
 
     async def get_checkpoint(self, source_id: str) -> datetime | None:
         doc = await self._checkpoints.find_one({"_id": source_id}, projection={"checkpoint": 1, "_id": 0})
@@ -56,6 +60,12 @@ class MongoJobsRepository:
             {"$set": {"checkpoint": _to_utc(checkpoint)}},
             upsert=True,
         )
+
+    async def store_assessment(self, assessment: FitAssessment, username: str, job_uid: str) -> None:
+        await self._assessments.insert_one({
+            "username": username,
+            "job_uid": job_uid,
+            "assessment": assessment.model_dump(mode="json"), })
 
     async def get_existing_uids(self, uids: set[str]) -> set[str]:
         if not uids:
@@ -156,7 +166,7 @@ class MongoJobsRepository:
             return
         await self._processing.delete_many({"uid": {"$in": list(uids)}})
 
-    async def store_failed(self, stage: str, failures: list[FailedEntry]) -> None:
+    async def store_failed(self, stage: str, failures: Sequence[FailedEntry]) -> None:
         """Record pipeline failures and remove the jobs from processing."""
         if not failures:
             return
@@ -178,3 +188,12 @@ class MongoJobsRepository:
                 "error": error,
                 "failed_at": now, })
         await self._failed.insert_many(failed_docs)
+
+    async def get_user_profiles(self) -> list[UserProfile]:
+        cursor = self._user_profiles.find()
+        return [UserProfile.model_validate(doc) async for doc in cursor]
+
+    async def store_processed_jobs(self, postings: Sequence[JobPosting]) -> None:
+        if not postings:
+            return
+        await self._jobs.insert_many([posting.model_dump() for posting in postings])

@@ -56,6 +56,8 @@ class CollectionService:
             _result = await collector.collect_jobs(checkpoint)
             collection_result.postings.extend(_result.postings)
             collection_result.invalid_entries.extend(_result.invalid_entries)
+            if _result.postings:
+                await self.repo.set_checkpoint(collector.get_source_name(), _result.postings[0].posted_at)
         return collection_result
 
     async def normalize(self, postings: list[JobPosting]) -> NormalizationResult:

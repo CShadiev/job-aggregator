@@ -1,6 +1,7 @@
 """Parser that converts raw Stepstone (via Apify) dataset items into JobPostings."""
 
 from datetime import datetime, timezone
+import hashlib
 
 from models.collection_service import JobPosting
 
@@ -36,19 +37,24 @@ class StepstoneParser:
             A content-hash approach (title + company + date) is planned as a
             replacement to avoid leaking source-internal identifiers.
         """
-        uid = f"stepstone:{raw['id']}"  # TODO: change this to derive from title and company
+        title = raw.get("title", None)
+        company = raw.get("company", None)
+        date_posted = raw.get("date_posted", None)
+        if title and company and date_posted:
+            uid = f"stepstone:{hashlib.sha256(f'{title}{company}{date_posted}'.encode()).hexdigest()}"
+        else:
+            uid = None
         return JobPosting.model_validate({
             "uid": uid,
             "source": self.source_tag,
-            "title": raw["title"],
-            "company": raw["company"],
+            "title": raw.get("title", None),
+            "company": raw.get("company", None),
             "location": raw.get("location", None),
             "remote": raw.get("remote", False),
-            "url": raw["url"],
+            "url": raw.get("url", None),
             "tags": [t.lower() for t in raw.get("tags", ["python developer"])],
-            "description_raw": raw["description_html"] or "",
+            "description_raw": raw.get("description_html", None),
             "job_types": [t.lower() for t in raw.get("job_types", [])],
             "posted_at": raw["date_posted"],
             "collected_at": datetime.now(tz=timezone.utc),
-            "updated_at": datetime.now(tz=timezone.utc),
-        })
+            "updated_at": datetime.now(tz=timezone.utc), })

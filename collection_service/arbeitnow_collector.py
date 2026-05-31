@@ -8,6 +8,10 @@ from aiohttp import ClientSession
 from config import ConfigProvider
 from models.collection_service import CollectionResult, JobPosting
 
+from logger_provider import LoggerProvider
+
+log = LoggerProvider.get_logger()
+
 
 class ArbeitnowCollector:
     """Collect job postings from the Arbeitnow public REST API.
@@ -33,6 +37,10 @@ class ArbeitnowCollector:
         """Return the unique identifier of the data source."""
         return self._source
 
+    async def filter_jobs(self, postings: list[JobPosting]) -> list[JobPosting]:
+        """Filter job postings to only include those that are relevant to the user."""
+        return [posting for posting in postings if "python" in posting.description_raw.lower()]
+
     async def collect_jobs(self, min_date: datetime | None = None) -> CollectionResult:
         """Collect job postings from the source (``ICollector`` entry point).
 
@@ -41,7 +49,11 @@ class ArbeitnowCollector:
         """
         config = ConfigProvider.get_config()
         max_pages = None if min_date else config.ARBEITNOW_MAX_PAGES
+        log.info("Collecting jobs from Arbeitnow", min_date=min_date)
         postings = await self.collect(min_date=min_date, max_pages=max_pages)
+        log.info(f"Collected {len(postings)} jobs from Arbeitnow")
+        postings = await self.filter_jobs(postings)
+        log.info(f"{len(postings)} jobs after filtering")
         return CollectionResult(postings=postings, invalid_entries=[])
 
     async def collect(
@@ -75,11 +87,10 @@ class ArbeitnowCollector:
 
         page = (skip_pages or 0) + 1
         page_count = 0
-        # TODO: handle too many requests error
         while True:
             response = await self.client.get(url, params={"page": page})
 
-            if response.status == 429:
+            if response.status in [429, 403]:
                 await asyncio.sleep(30)
                 continue
 
