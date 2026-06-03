@@ -9,6 +9,9 @@ from config import ConfigProvider
 from collection_service.apify_parser_protocol import IApifyParser
 from collection_service.exceptions import CollectionTimeoutError, MissingEntriesError, CollectionAPIError
 from models.collection_service import CollectionResult, InvalidEntry, JobPosting
+from logger_provider import LoggerProvider
+
+log = LoggerProvider.get_logger()
 
 
 class ApifyCollector:
@@ -67,6 +70,9 @@ class ApifyCollector:
             MissingEntriesError: If the collection is incomplete (earliest entry is later than min_date).
         """
 
+        log.info(
+            "Collecting jobs from Apify ({source_tag}, {task_id}, {min_date})", source_tag=self.source_tag,
+            task_id=self.task_id, min_date=min_date)
         url = ""
         try:
             if self.run_apify_task:
@@ -90,12 +96,16 @@ class ApifyCollector:
                     timeout=ClientTimeout(total=self.api_timeout_seconds),
                 )
         except ServerTimeoutError as e:
+            log.error(
+                "Collection timed out ({url}, {timeout_seconds})", url=url, timeout_seconds=self.api_timeout_seconds)
             raise CollectionTimeoutError(url, self.api_timeout_seconds) from e
 
         if response.status not in (200, 201):
+            log.error("Collection API error ({status}, {text})", status=response.status, text=await response.text())
             raise CollectionAPIError(response.status, await response.text())
 
         data = await response.json()
+        log.info("Collected {n} jobs from Apify", n=len(data))
         invalid_entries = []
         validated_entries: list[JobPosting] = []
         for entry in data:
