@@ -19,6 +19,7 @@ class _Config(BaseModel):
 
     APIFY_INDEED_TASK_ID: str = "hopeful_quarter~indeed-scraper-task"
     APIFY_STEPSTONE_TASK_ID: str = "hopeful_quarter~stepstone-job-scraper-task"
+    APIFY_LINKEDIN_TASK_ID: str = "hopeful_quarter~linkedin-scraper-task"
 
     DEDUPLICATION_BATCH_SIZE: int = 50
     DEDUPLICATION_MAX_RETRIES: int = 3
