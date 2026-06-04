@@ -57,7 +57,7 @@ async def test_collect_returns_valid_result():
 async def test_raises_missing_entries_error_if_min_date_lower_than_earliest_entry():
     async with get_apify_collector() as apify_collector:
         with pytest.raises(MissingEntriesError):
-            await apify_collector.collect_jobs(min_date=ts("2026-01-01T00:00:00Z"))
+            await apify_collector.collect_jobs(min_date=ts("2000-01-01T00:00:00Z"))
 
 
 async def test_returns_invalid_entries():
