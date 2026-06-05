@@ -3,7 +3,7 @@ from typing import Optional
 from pydantic import BaseModel, ConfigDict
 
 
-class _Config(BaseModel):
+class Config(BaseModel):
     '''
     Settings class for application configuration.
     Implements environment variable loading and validation.
@@ -43,6 +43,7 @@ class _Config(BaseModel):
     MONGODB_FAILED_COLLECTION: str = "failed_entries"
     MONGODB_USER_PROFILES_COLLECTION: str = "user_profiles"
     MONGODB_ASSESSMENTS_COLLECTION: str = "assessments"
+    MONGODB_JOB_APPLICATIONS_COLLECTION: str = "job_applications"
 
     S3_ENDPOINT_URL: str
     S3_ACCESS_KEY: str
@@ -50,16 +51,26 @@ class _Config(BaseModel):
     S3_REGION: str
     S3_BUCKET_NAME: str
 
+    AUTH0_DOMAIN: str
+    AUTH0_CLIENT_ID: str
+    AUTH0_CLIENT_SECRET: str
+    AUTH0_AUDIENCE: str
+
+    FASTAPI_HOST: str = "0.0.0.0"
+    FASTAPI_PORT: int = 8000
+    FASTAPI_RELOAD: bool = False
+    FASTAPI_ROOT_PATH: str = ""
+
 
 class ConfigProvider:
     '''
     Singleton class for providing application configuration.
     Implements lazy loading of configuration from environment variables.
     '''
-    __config: Optional[_Config] = None
+    __config: Optional[Config] = None
 
     @classmethod
-    def get_config(cls) -> _Config:
+    def get_config(cls) -> Config:
         '''
         Get the application configuration.
         Configuration is only loaded once, subsequent calls return the
@@ -70,7 +81,7 @@ class ConfigProvider:
         return cls.__config
 
     @classmethod
-    def __load_config(cls) -> _Config:
+    def __load_config(cls) -> Config:
         '''
         Load the application configuration from environment variables.
         '''
@@ -78,10 +89,10 @@ class ConfigProvider:
         try:
             from dotenv import load_dotenv  # pyright: ignore[reportMissingImports]
             load_dotenv(override=True)
-            config = _Config.model_validate(os.environ)
+            config = Config.model_validate(os.environ)
             return config
         except ImportError:
             # if the dotenv package is not installed,
             #   load the config from the environment variables
-            config = _Config.model_validate(os.environ)
+            config = Config.model_validate(os.environ)
             return config

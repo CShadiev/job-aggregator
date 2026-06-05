@@ -5,6 +5,7 @@ from collection_service.collection_service import CollectionService
 from collection_service.apify_collector import ApifyCollector
 from collection_service.arbeitnow_collector import ArbeitnowCollector
 from collection_service.indeed_apify_parser import IndeedApifyParser
+from collection_service.linkedin_apify_parser import LinkedinApifyParser
 from collection_service.stepstone_parser import StepstoneParser
 from repository.mongo_jobs_repository import MongoJobsRepository
 from agents.deduplication import DeduplicationAgent
@@ -72,13 +73,21 @@ async def assess_jobs(
         cv_file = cv_dir / "cv.pdf"
         cv_file.write_bytes(cv)
         log.info(f"Assessing CV for user {user_profile.username}")
-        for posting in postings:
-            assessment = await fit_assessment_agent.assess(user_profile=user_profile, job=posting, cv=cv_file)
-            await repository.store_assessment(assessment, user_profile.username, posting.uid)
-        cv_file.unlink()
+        semaphore = asyncio.Semaphore(10)
+        async with semaphore:
+            async with asyncio.TaskGroup() as tg:
+                tasks = [
+                    tg.create_task(fit_assessment_agent.assess(user_profile=user_profile, job=posting, cv=cv_file))
+                    for posting in postings]
 
-    await repository.remove_from_processing(set([p.uid for p in postings]))
-    log.info(f"Removed {len(postings)} jobs from processing")
+            assessments = [task.result() for task in tasks]
+            for assessment, posting in zip(assessments, postings):
+                await repository.store_assessment(assessment, user_profile.username, posting.uid)
+
+        cv_file.unlink()
+        await repository.store_processed_jobs(postings)
+        await repository.remove_from_processing(set([p.uid for p in postings]))
+        log.info(f"Removed {len(postings)} jobs from processing")
 
 
 async def main():
@@ -101,6 +110,9 @@ async def main():
             ApifyCollector(
                 client_session=client_session, task_id=config.APIFY_STEPSTONE_TASK_ID, source_tag="stepstone",
                 apify_parser=StepstoneParser(source_tag="stepstone"), run_apify_task=False),
+            ApifyCollector(
+                client_session=client_session, task_id=config.APIFY_LINKEDIN_TASK_ID, source_tag="linkedin",
+                apify_parser=LinkedinApifyParser(source_tag="linkedin"), run_apify_task=False),
             ArbeitnowCollector(client=client_session), ]
         collection_service = CollectionService(collectors=collectors, repo=repository, agent=deduplication_agent)
         await collect_jobs(repository, collection_service)
@@ -110,8 +122,11 @@ async def main():
 
 
 if __name__ == "__main__":
+    import time
     try:
-        asyncio.run(main())
+        while True:
+            asyncio.run(main())
+            time.sleep(5)
     except Exception as e:
         log.error(f"Error: {e}")
         raise e

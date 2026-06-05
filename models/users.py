@@ -4,6 +4,14 @@ from typing import Optional
 from pydantic import BaseModel, ConfigDict, Field
 
 
+class User(BaseModel):
+    """User model for the authenticated user."""
+
+    sub: str  # auth0 user id
+    username: str
+    email: str | None = None
+
+
 class Contact(BaseModel):
     """Public contact details for a user profile."""
 
@@ -165,3 +173,36 @@ class UserProfile(BaseModel):
     roleFitSignals: RoleFitSignals
     languages: list[Language]
     username: str
+
+
+class LoginRequest(BaseModel):
+    '''
+    Request model for user login.
+    '''
+    username: str
+    password: str
+
+
+class LoginResponse(BaseModel):
+    '''
+    Response model for successful login.
+    '''
+    access_token: str
+    id_token: str
+    token_type: str
+    expires_in: int
+    refresh_token: str | None = None
+
+
+class LogoutRequest(BaseModel):
+    '''
+    Request model for user logout.
+    '''
+    refresh_token: str | None = None
+
+
+class RefreshTokenRequest(BaseModel):
+    '''
+    Request model for refreshing a token.
+    '''
+    refresh_token: str
