@@ -233,13 +233,14 @@ class MongoJobsRepository:
         request: UpdateJobStatusRequest,
     ) -> None:
         """Create or partially update the user's application status for *job_uid*."""
-        if request.active is None and request.stage is None:
+        if request.active is None and request.stage is None and request.skipped is None:
             return
 
         existing = await self._applications.find_one({"username": username, "job_uid": job_uid})
         defaults = JobApplicationStatus(username=username, job_uid=job_uid)
         current_active = existing["active"] if existing else defaults.active
         current_stage = ApplicationStage(existing["stage"]) if existing else defaults.stage
+        current_skipped = existing.get("skipped", defaults.skipped) if existing else defaults.skipped
 
         await self._applications.update_one(
             {"username": username, "job_uid": job_uid},
@@ -248,7 +249,8 @@ class MongoJobsRepository:
                     "username": username,
                     "job_uid": job_uid,
                     "active": request.active if request.active is not None else current_active,
-                    "stage": (request.stage if request.stage is not None else current_stage).value, }},
+                    "stage": (request.stage if request.stage is not None else current_stage).value,
+                    "skipped": request.skipped if request.skipped is not None else current_skipped, }},
             upsert=True,
         )
 
@@ -317,7 +319,10 @@ def _build_job_feed_pipeline(
             "$addFields": {
                 "has_application": {"$gt": [{"$size": "$application"}, 0]},
                 "status_active": {"$arrayElemAt": ["$application.active", 0]},
-                "status_stage": {"$arrayElemAt": ["$application.stage", 0]}, }, }, ])
+                "status_stage": {"$arrayElemAt": ["$application.stage", 0]},
+                "status_skipped": {
+                    "$ifNull": [{"$arrayElemAt": ["$application.skipped", 0]}, False],
+                }, }, }, ])
 
     application_match: dict = {}
     if query.active_only:
@@ -325,6 +330,11 @@ def _build_job_feed_pipeline(
         application_match["status_active"] = True
     if query.application_stage is not None:
         application_match["status_stage"] = query.application_stage.value
+    if query.skipped:
+        application_match["has_application"] = True
+        application_match["status_skipped"] = True
+    else:
+        application_match["status_skipped"] = False
     if application_match:
         stages.append({"$match": application_match})
 
@@ -346,6 +356,7 @@ def _to_job_feed_item(doc: dict, username: str) -> JobFeedItem:
             job_uid=doc["job_uid"],
             active=doc["status_active"],
             stage=ApplicationStage(doc["status_stage"]),
+            skipped=doc.get("status_skipped", False),
         )
     return JobFeedItem(
         job=JobPosting.model_validate(doc["job"]),

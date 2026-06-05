@@ -31,6 +31,7 @@ class JobFeedQuery(BaseModel):
     exclude_deal_breakers: bool = False
     application_stage: Optional[ApplicationStage] = None
     active_only: bool = False
+    skipped: bool = False
     sort_by: JobFeedSortField = JobFeedSortField.PROFILE_ATS_MATCH_SCORE
     sort_order: SortOrder = SortOrder.DESC
 
@@ -40,6 +41,7 @@ class UpdateJobStatusRequest(BaseModel):
 
     active: Optional[bool] = None
     stage: Optional[ApplicationStage] = None
+    skipped: Optional[bool] = False
 
 
 class JobFeedItem(BaseModel):

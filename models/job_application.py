@@ -27,3 +27,7 @@ class JobApplicationStatus(BaseModel):
         description="The current stage of the application process.",
         default=ApplicationStage.APPLIED,
     )
+    skipped: bool = Field(
+        description="Whether the user has skipped this job.",
+        default=False,
+    )
