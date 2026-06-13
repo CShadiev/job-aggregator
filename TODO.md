@@ -11,6 +11,7 @@
 - [x] implement repository for job descriptions
 - [x] design and implement a simple orchestration layer
 
-- [ ] write collector for linkedin job ads and recruiter posts
+- [x] write collector for linkedin job ads and recruiter posts
+
 - [ ] adjusted CV
 - [ ] cover letter generator (with preview mode)
