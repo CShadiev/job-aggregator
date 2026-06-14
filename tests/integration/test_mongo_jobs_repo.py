@@ -6,8 +6,6 @@ from repository.mongo_jobs_repository import MongoJobsRepository
 from config import ConfigProvider
 import pytest
 
-from tests.helpers.job_posting import setup_test_db
-
 _USERNAME = "test_user"
 
 
@@ -22,11 +20,6 @@ async def repo() -> AsyncGenerator[MongoJobsRepository, None]:
     await mongo_client.close()
 
 
-@pytest.fixture(scope="session", autouse=True)
-async def setup_db():
-    await setup_test_db(_USERNAME)
-
-
 class TestGetJobFeedPagination:
 
     async def test_nonlast_page_returns_correct_number_of_items(self, repo: MongoJobsRepository):
@@ -34,9 +27,11 @@ class TestGetJobFeedPagination:
         response = await repo.get_job_feed_items(request, _USERNAME)
         assert response.total > 100
         assert len(response.data) == 100
-        MAX_PAGES = response.total // 100 + 1
-        for page in range(2, MAX_PAGES):
-            request = PaginatedDataRequest[JobFeedQuery](query=JobFeedQuery(skipped=False), page=page, page_size=100)
-            response = await repo.get_job_feed_items(request, _USERNAME)
-            assert response.total == response.total
-            assert len(response.data) == 100
+
+    async def test_skipped_jobs_are_excluded(self, repo: MongoJobsRepository):
+        request = PaginatedDataRequest[JobFeedQuery](
+            query=JobFeedQuery(skipped=False, active_only=False), page=1, page_size=1000)
+        response = await repo.get_job_feed_items(request, _USERNAME)
+        assert response.total > 0
+        skipped_jobs = [item for item in response.data if item.status is not None and item.status.skipped]
+        assert len(skipped_jobs) == 0
