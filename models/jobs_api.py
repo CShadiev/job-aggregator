@@ -30,6 +30,7 @@ class JobFeedQuery(BaseModel):
     min_profile_ats_match_score: Optional[float] = Field(default=None, ge=0, le=100)
     exclude_deal_breakers: bool = False
     application_stage: Optional[ApplicationStage] = None
+    applied: bool = False
     active_only: bool = False
     skipped: bool = False
     sort_by: JobFeedSortField = JobFeedSortField.PROFILE_ATS_MATCH_SCORE
