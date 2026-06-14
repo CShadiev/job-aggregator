@@ -247,22 +247,12 @@ class MongoJobsRepository:
             return
 
         existing = await self._applications.find_one({"username": username, "job_uid": job_uid})
-        defaults = JobApplicationStatus(username=username, job_uid=job_uid)
-        current_active = existing["active"] if existing else defaults.active
-        current_stage = ApplicationStage(existing["stage"]) if existing else defaults.stage
-        current_skipped = existing.get("skipped", defaults.skipped) if existing else defaults.skipped
+        status = JobApplicationStatus.model_validate(existing) if existing else JobApplicationStatus(
+            username=username, job_uid=job_uid)
+        status = status.model_copy(update=request.model_dump(exclude_unset=True))
 
-        await self._applications.update_one(
-            {"username": username, "job_uid": job_uid},
-            {
-                "$set": {
-                    "username": username,
-                    "job_uid": job_uid,
-                    "active": request.active if request.active is not None else current_active,
-                    "stage": (request.stage if request.stage is not None else current_stage).value,
-                    "skipped": request.skipped if request.skipped is not None else current_skipped, }},
-            upsert=True,
-        )
+        await self._applications.update_one({"username": username, "job_uid": job_uid}, {"$set": status.model_dump()},
+                                            upsert=True)
 
 
 def _build_job_feed_pipeline(
