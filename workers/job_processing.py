@@ -126,7 +126,7 @@ if __name__ == "__main__":
     try:
         while True:
             asyncio.run(main())
-            time.sleep(5)
+            time.sleep(60 * 60 * 12)
     except Exception as e:
         log.error(f"Error: {e}")
         raise e
