@@ -37,6 +37,7 @@ class Config(BaseModel):
     MONGODB_PASSWORD: str
 
     MONGODB_DATABASE: str = "job_aggregator"
+    MONGODB_TEST_DATABASE: str = "job_aggregator_test"
     MONGODB_JOBS_COLLECTION: str = "jobs"
     MONGODB_CHECKPOINTS_COLLECTION: str = "checkpoints"
     MONGODB_PROCESSING_COLLECTION: str = "job_processing"

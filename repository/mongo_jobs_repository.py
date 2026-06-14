@@ -44,8 +44,9 @@ class MongoJobsRepository:
     def __init__(
         self,
         client: AsyncMongoClient,
+        database: str | None = None,
     ) -> None:
-        db = client[config.MONGODB_DATABASE]
+        db = client[database or config.MONGODB_DATABASE]
         self._jobs = db[config.MONGODB_JOBS_COLLECTION]
         self._checkpoints = db[config.MONGODB_CHECKPOINTS_COLLECTION]
         self._processing = db[config.MONGODB_PROCESSING_COLLECTION]
@@ -72,6 +73,12 @@ class MongoJobsRepository:
             "username": username,
             "job_uid": job_uid,
             "assessment": assessment.model_dump(mode="json"), })
+
+    async def store_many_assessments(self, assessments: list[tuple[FitAssessment, str, str]]) -> None:
+        await self._assessments.insert_many([{
+            "username": username,
+            "job_uid": job_uid,
+            "assessment": assessment.model_dump(mode="json"), } for assessment, username, job_uid in assessments])
 
     async def get_existing_uids(self, uids: set[str]) -> set[str]:
         if not uids:
@@ -226,6 +233,9 @@ class MongoJobsRepository:
 
         return PaginatedDataResponse(data=items, page=request.page, page_size=request.page_size, total=total)
 
+    async def insert_many_job_application_statuses(self, statuses: list[JobApplicationStatus]) -> None:
+        await self._applications.insert_many([status.model_dump() for status in statuses])
+
     async def update_job_application_status(
         self,
         job_uid: str,
@@ -321,8 +331,7 @@ def _build_job_feed_pipeline(
                 "status_active": {"$arrayElemAt": ["$application.active", 0]},
                 "status_stage": {"$arrayElemAt": ["$application.stage", 0]},
                 "status_skipped": {
-                    "$ifNull": [{"$arrayElemAt": ["$application.skipped", 0]}, False],
-                }, }, }, ])
+                    "$ifNull": [{"$arrayElemAt": ["$application.skipped", 0]}, False], }, }, }, ])
 
     application_match: dict = {}
     if query.active_only:
