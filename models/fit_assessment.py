@@ -29,3 +29,17 @@ class FitAssessment(BaseModel):
 
     summary: str
     """Short narrative summary of the overall fit assessment."""
+
+
+class CoverLetterSection(BaseModel):
+    title: str
+    content: list[str]
+
+
+class CoverLetterContent(BaseModel):
+    name: str
+    title: str
+    email: str
+    linkedin: dict[str, str]
+    website: dict[str, str]
+    sections: list[CoverLetterSection]

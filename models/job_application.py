@@ -14,6 +14,12 @@ class ApplicationStage(StrEnum):
     RECEIVED_OFFER = "received_offer"
 
 
+class CoverLetterPdfKey(BaseModel):
+    """Key of the cover letter in the object storage."""
+    source_hash: str
+    value: str
+
+
 class JobApplicationStatus(BaseModel):
     """Status of a user's application to a specific job posting."""
 
@@ -30,4 +36,12 @@ class JobApplicationStatus(BaseModel):
     skipped: bool = Field(
         description="Whether the user has skipped this job.",
         default=False,
+    )
+    cover_letter_key: str | None = Field(
+        description="The key of the cover letter in the object storage.",
+        default=None,
+    )
+    cover_letter_pdf_key: CoverLetterPdfKey | None = Field(
+        description="The key of the cover letter PDF in the object storage.",
+        default=None,
     )

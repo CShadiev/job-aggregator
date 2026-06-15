@@ -15,6 +15,7 @@ from logger_provider import LoggerProvider
 from api.routes import jobs
 from api.routes import users
 from repository.mongo_jobs_repository import MongoJobsRepository
+from repository.object_storage import ObjectStorage
 
 log = LoggerProvider.get_logger()
 
@@ -32,8 +33,9 @@ async def lifespan(_: FastAPI):
         password=config.MONGODB_PASSWORD)
     auth0_client = Auth0ClientWrapper(config)
     jobs_repository = MongoJobsRepository(mongo_client)
+    object_storage = ObjectStorage()
     log.info("Dependencies initialized, application ready")
-    yield {"jobs_repository": jobs_repository, "auth0_client": auth0_client}
+    yield {"jobs_repository": jobs_repository, "auth0_client": auth0_client, "object_storage": object_storage}
     log.info("FastAPI application shutting down")
 
 

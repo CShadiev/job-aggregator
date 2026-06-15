@@ -42,7 +42,7 @@ class FitAssessmentAgent:
         job: JobPosting,
     ) -> FitAssessment:
         """Assess fit for *job* using *user_profile* and CV (*cv* as path or PDF bytes)."""
-        prompt = self._build_prompt(user_profile, job)
+        prompt = self._build_assessment_prompt(user_profile, job)
         user_content: list[str | BinaryContent] = [
             prompt,
             self._cv_content(cv), ]
@@ -50,7 +50,7 @@ class FitAssessmentAgent:
         result = await self.agent.run(user_content)
         return result.output
 
-    def _build_prompt(self, user_profile: UserProfile, job: JobPosting) -> str:
+    def _build_assessment_prompt(self, user_profile: UserProfile, job: JobPosting) -> str:
         profile_json = user_profile.model_dump_json(indent=2)
         job_payload = json.dumps(
             job.model_dump(mode="json", include=set(_JOB_FIELDS)),

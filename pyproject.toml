@@ -12,6 +12,7 @@ dependencies = [
     "expiringdict>=1.2.2",
     "fastapi>=0.136.3",
     "fastapi-cli>=0.0.24",
+    "fpdf2>=2.8.7",
     "loguru>=0.7.3",
     "pydantic>=2.13.3",
     "pydantic-ai>=1.97.0",

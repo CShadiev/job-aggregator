@@ -38,17 +38,29 @@ class ObjectStorage:
         upload_log.info("Cover letter PDF uploaded")
         return object_key
 
-    def upload_coverletter_md(self, username: str, job_id: str, file_path: str) -> str:
-        object_key = f'{self.ROOT}/{username}/cover_letters/{job_id}.md'
+    def upload_coverletter_json(self, username: str, job_id: str, file_path: str) -> str:
+        object_key = f'{self.ROOT}/{username}/cover_letters/{job_id}.json'
         upload_log = log.bind(username=username, job_id=job_id, object_key=object_key)
-        upload_log.debug("Uploading cover letter markdown to S3")
+        upload_log.debug("Uploading cover letter JSON to S3")
         self.s3_client.upload_file(file_path, self.bucket_name, object_key)
-        upload_log.info("Cover letter markdown uploaded")
+        upload_log.info("Cover letter JSON uploaded")
         return object_key
 
     def get_coverletter(self, username: str, job_id: str, file_path: str) -> str:
         object_key = f'{self.ROOT}/{username}/cover_letters/{job_id}.pdf'
         log.bind(username=username, job_id=job_id, object_key=object_key).debug("Downloading cover letter from S3")
+        self.s3_client.download_file(self.bucket_name, object_key, file_path)
+        return file_path
+
+    def get_coverletter_md(self, username: str, job_id: str, file_path: str) -> str:
+        object_key = f'{self.ROOT}/{username}/cover_letters/{job_id}.md'
+        log.bind(username=username, job_id=job_id, object_key=object_key).debug("Downloading cover letter from S3")
+        self.s3_client.download_file(self.bucket_name, object_key, file_path)
+        return file_path
+
+    def get_coverletter_json(self, username: str, job_id: str, file_path: str) -> str:
+        object_key = f'{self.ROOT}/{username}/cover_letters/{job_id}.json'
+        log.bind(username=username, job_id=job_id, object_key=object_key).debug("Downloading cover letter JSON from S3")
         self.s3_client.download_file(self.bucket_name, object_key, file_path)
         return file_path
 

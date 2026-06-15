@@ -1,0 +1,38 @@
+{
+  "name": "Chingiz Shadiev",
+  "title": "Full-Stack Developer",
+  "email": "ch.shadiev@gmail.com",
+  "linkedin": {
+    "display": "linkedin.com/in/chingizshadiev"
+  },
+  "website": {
+    "display": "cshadiev.dev"
+  },
+  "sections": [
+    {
+      "title": "",
+      "content": [
+        "Dear YO IT Consulting Team,",
+        "I am applying for the Python Backend Engineer (Remote) contractor role. YO IT Consulting’s work training and evaluating next‑generation AI systems through real software engineering tasks appeals to me because it emphasizes clear technical judgment, trade‑off analysis, and practical fixes — exactly the activities I’ve led as a sole technical architect. With 7+ years delivering production APIs and end‑to‑end platforms, I read unfamiliar code quickly, explain engineering decisions in writing, and implement pragmatic fixes that improve reliability and developer experience."
+      ]
+    },
+    {
+      "title": "My Background",
+      "content": [
+        "I have 7+ years of experience across fintech, construction, and energy domains as a full‑stack developer and technical lead. Most recently at Merizon Group I was the sole technical architect for a unified portfolio management platform: Python/FastAPI backend, React + TypeScript frontend, MongoDB, containerized with Docker, Auth0 for auth, and integrations with broker APIs (MetaTrader/MetaAPI, Tastytrade) to deliver real‑time processing and automated reporting. I designed the multi‑tier architecture, implemented role‑based access and data encryption, and produced the operational deployment workflow. At Perviy DSK I led the web development department, building FastAPI services, SQLAlchemy data layers, RabbitMQ integrations and CI/CD pipelines that connected to MS SQL Server and MongoDB, which taught me how to evaluate and improve heterogeneous codebases and integrations."
+      ]
+    },
+    {
+      "title": "Technical Fit",
+      "content": [
+        "This role’s requirements map directly to my experience. I’ve built and reviewed production Python services and RESTful APIs (FastAPI, Pydantic), and I’m comfortable diagnosing issues in unfamiliar backends and explaining tradeoffs between scalability, maintainability, and performance. I have hands‑on experience with Docker and CI/CD (GitHub Actions), and I hold the AWS Certified Developer – Associate credential (Nov 2025), which supports work in cloud environments the role prefers. I’ve worked with MongoDB and MS SQL Server in production, integrated message brokers (RabbitMQ), and implemented authentication and security controls (Auth0, IP whitelisting, DB encryption). I also have practical frontend experience (React, TypeScript, Redux Toolkit) that helps when evaluating full‑stack interactions and developer experience. For AI‑related evaluation tasks I completed IBM’s RAG and Agentic AI Professional Certificate and have working familiarity with LangChain/RAG concepts, which lets me judge where engineering work is needed versus where model/infra changes are required."
+      ]
+    },
+    {
+      "title": "Practical Details",
+      "content": [
+        "I hold an Opportunity Card (Chancenkarte) for Germany and do not require visa sponsorship; the card permits part‑time work immediately (limit 20 hours/week). I’m available for a 10–12 hour/week contractor engagement and can begin promptly."
+      ]
+    }
+  ]
+}

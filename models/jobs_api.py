@@ -1,11 +1,10 @@
 from enum import StrEnum
-from typing import Optional
 
 from pydantic import BaseModel, Field
 
 from models.collection_service import JobPosting
 from models.fit_assessment import FitAssessment
-from models.job_application import ApplicationStage, JobApplicationStatus
+from models.job_application import ApplicationStage, CoverLetterPdfKey, JobApplicationStatus
 
 
 class JobFeedSortField(StrEnum):
@@ -22,14 +21,14 @@ class SortOrder(StrEnum):
 class JobFeedQuery(BaseModel):
     """Filter and sort parameters for the paginated job feed."""
 
-    remote: Optional[bool] = None
+    remote: bool | None = None
     sources: list[str] = Field(default_factory=list)
     tags: list[str] = Field(default_factory=list)
-    location: Optional[str] = None
-    min_cv_ats_match_score: Optional[float] = Field(default=None, ge=0, le=100)
-    min_profile_ats_match_score: Optional[float] = Field(default=None, ge=0, le=100)
+    location: str | None = None
+    min_cv_ats_match_score: float | None = Field(default=None, ge=0, le=100)
+    min_profile_ats_match_score: float | None = Field(default=None, ge=0, le=100)
     exclude_deal_breakers: bool = False
-    application_stage: Optional[ApplicationStage] = None
+    application_stage: ApplicationStage | None = None
     applied: bool = False
     active_only: bool = False
     skipped: bool = False
@@ -40,9 +39,11 @@ class JobFeedQuery(BaseModel):
 class UpdateJobStatusRequest(BaseModel):
     """Partial update payload for a user's application status on a job."""
 
-    active: Optional[bool] = None
-    stage: Optional[ApplicationStage] = None
-    skipped: Optional[bool] = False
+    active: bool | None = None
+    stage: ApplicationStage | None = None
+    skipped: bool = False
+    cover_letter_key: str | None = None
+    cover_letter_pdf_key: CoverLetterPdfKey | None = None
 
 
 class JobFeedItem(BaseModel):

@@ -1,12 +1,16 @@
 import asyncio
 from pathlib import Path
 from aiohttp import ClientSession
+from agents.cover_letter_generation import CoverLetterGenerationAgent
 from collection_service.collection_service import CollectionService
 from collection_service.apify_collector import ApifyCollector
 from collection_service.arbeitnow_collector import ArbeitnowCollector
 from collection_service.indeed_apify_parser import IndeedApifyParser
 from collection_service.linkedin_apify_parser import LinkedinApifyParser
 from collection_service.stepstone_parser import StepstoneParser
+from models.generics import PaginatedDataRequest
+from models.jobs_api import JobFeedItem, JobFeedQuery, UpdateJobStatusRequest
+from models.users import UserProfile
 from repository.mongo_jobs_repository import MongoJobsRepository
 from agents.deduplication import DeduplicationAgent
 from agents.fit_assessment import FitAssessmentAgent
@@ -90,6 +94,40 @@ async def assess_jobs(
         log.info(f"Removed {len(postings)} jobs from processing")
 
 
+async def _generate_cover_letter_task(
+        agent: CoverLetterGenerationAgent, job: JobFeedItem, object_storage: ObjectStorage, user_profile: UserProfile,
+        repository: MongoJobsRepository):
+
+    cover_letter = await agent.generate(user_profile, job.job, job.fit)
+    file_path = Path("tmp") / Path(user_profile.username) / f"{job.job.uid}.json"
+    try:
+        file_path.write_text(cover_letter.model_dump_json(indent=2))
+        object_key = object_storage.upload_coverletter_json(
+            username=user_profile.username, job_id=job.job.uid, file_path=str(file_path))
+        await repository.update_job_application_status(
+            job_uid=job.job.uid, username=user_profile.username,
+            request=UpdateJobStatusRequest(cover_letter_key=object_key))
+    finally:
+        file_path.unlink()
+
+
+async def generate_cover_letters(repository: MongoJobsRepository, object_storage: ObjectStorage):
+    agent = CoverLetterGenerationAgent(
+        model=OpenAIChatModel(model_name="gpt-5-mini", provider=OpenAIProvider(api_key=config.OPENAI_API_KEY)))
+    semaphore = asyncio.Semaphore(10)
+    user_profiles = await repository.get_user_profiles()
+    for user_profile in user_profiles:
+        log.info(f"Generating cover letters for user {user_profile.username}")
+        paginated_data = await repository.get_job_feed_items(
+            PaginatedDataRequest(query=JobFeedQuery(min_profile_ats_match_score=0.8, applied=False), page_size=100),
+            username=user_profile.username)
+        jobs = [job for job in paginated_data.data if job.status is None]
+        log.info(f"Found {len(jobs)} jobs to generate cover letters for user {user_profile.username}")
+        async with semaphore:
+            tasks = [_generate_cover_letter_task(agent, job, object_storage, user_profile, repository) for job in jobs]
+            await asyncio.gather(*tasks)
+
+
 async def main():
 
     mongo_client = AsyncMongoClient(
@@ -119,6 +157,7 @@ async def main():
         await normalize_jobs(repository, collection_service)
         await deduplicate_jobs(repository, collection_service)
         await assess_jobs(repository, fit_assessment_agent, object_storage)
+        await generate_cover_letters(repository, object_storage)
 
 
 if __name__ == "__main__":

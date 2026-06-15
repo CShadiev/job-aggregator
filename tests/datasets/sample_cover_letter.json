@@ -1,0 +1,39 @@
+{
+  "name": "Ada Lindqvist",
+  "title": "Senior Backend Engineer",
+  "email": "ada.lindqvist@example.com",
+  "linkedin": {
+    "display": "linkedin.com/in/adalindqvist"
+  },
+  "website": {
+    "display": "ada.dev"
+  },
+  "sections": [
+    {
+      "title": "",
+      "content": [
+        "Dear Lumen AI Team,",
+        "I’m applying for the Senior AI Backend Engineer role to help build production AI assistants for enterprise teams. Lumen AI’s focus on reliable, end-to-end assistant workflows matches the work I’ve done taking AI features from prototype to production. I want to contribute that experience to designing scalable Python/FastAPI services and dependable RAG pipelines for your customers."
+      ]
+    },
+    {
+      "title": "My Background",
+      "content": [
+        "I have 8 years of backend experience building distributed Python services and production AI features. At Helios Data I led the design of an event-driven document-processing platform and built a retrieval-augmented assistant over the company knowledge base using Python, FastAPI, PostgreSQL, AWS and LangChain, which cut manual document triage time by 60%. That project covered API design, embeddings and vector search, on-call ownership, and rollout to production. Earlier at Nordic Fintech I built broker API integrations, real-time reporting pipelines and hardened auth/RBAC, which solidified my work on integrations and reliability required for enterprise-grade assistant workflows."
+      ]
+    },
+    {
+      "title": "Technical Fit",
+      "content": [
+        "Your stack and requirements map directly to my day-to-day: 8 years of Python (asyncio, FastAPI) and production PostgreSQL work; AWS experience running services on ECS, Lambda and RDS; containerization with Docker; and a current AWS Certified Developer – Associate. I’ve built RAG pipelines and agentic assistants with LangChain, embeddings and vector search over internal data stores, and integrated LLM calls into backend workflows with retries, rate limiting and observability.",
+        "I own CI/CD pipelines and testing for services I ship, and I’ve implemented monitoring and on-call practices for critical pipelines. My event-driven architecture experience (Helios and earlier RabbitMQ work) supports building scalable ingestion and retrieval paths for assistants. I’m comfortable instrumenting latency and cost tradeoffs when calling different LLM providers and deploying fallbacks for reliability."
+      ]
+    },
+    {
+      "title": "Practical Details",
+      "content": [
+        "I am an EU citizen based in Berlin and authorized to work in Germany without sponsorship. I’m open to the Berlin or remote-first arrangement and can begin immediately in a full-time capacity."
+      ]
+    }
+  ]
+}
