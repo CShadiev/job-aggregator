@@ -119,7 +119,7 @@ async def generate_cover_letters(repository: MongoJobsRepository, object_storage
     for user_profile in user_profiles:
         log.info(f"Generating cover letters for user {user_profile.username}")
         paginated_data = await repository.get_job_feed_items(
-            PaginatedDataRequest(query=JobFeedQuery(min_profile_ats_match_score=0.8, applied=False), page_size=100),
+            PaginatedDataRequest(query=JobFeedQuery(min_profile_ats_match_score=80, applied=False), page_size=100),
             username=user_profile.username)
         jobs = [job for job in paginated_data.data if job.status is None]
         log.info(f"Found {len(jobs)} jobs to generate cover letters for user {user_profile.username}")
