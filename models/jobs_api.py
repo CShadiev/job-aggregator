@@ -40,6 +40,7 @@ class UpdateJobStatusRequest(BaseModel):
     """Partial update payload for a user's application status on a job."""
 
     active: bool | None = None
+    applied: bool | None = None
     stage: ApplicationStage | None = None
     skipped: bool = False
     cover_letter_key: str | None = None
