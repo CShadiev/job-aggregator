@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field
 class ApplicationStage(StrEnum):
     """Pipeline stage for an individual job application."""
 
+    NOT_APPLIED = "not_applied"
     APPLIED = "applied"
     HIRING_MANAGER_INTERVIEW = "hiring_manager_interview"
     TECHNICAL_INTERVIEW = "technical_interview"
@@ -31,7 +32,7 @@ class JobApplicationStatus(BaseModel):
     )
     stage: ApplicationStage = Field(
         description="The current stage of the application process.",
-        default=ApplicationStage.APPLIED,
+        default=ApplicationStage.NOT_APPLIED,
     )
     skipped: bool = Field(
         description="Whether the user has skipped this job.",
