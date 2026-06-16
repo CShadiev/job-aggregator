@@ -326,13 +326,11 @@ def _build_job_feed_pipeline(
                     "$ifNull": [{"$arrayElemAt": ["$application.skipped", 0]}, False], }, }, }, ])
 
     application_match: dict = {}
+    application_match["application.applied"] = query.applied
     if query.active_only:
         application_match["status_active"] = True
     if query.application_stage is not None:
-        if not query.applied:
-            application_match["status_stage"] = {"$ne": ApplicationStage.NOT_APPLIED.value}
-        else:
-            application_match["status_stage"] = query.application_stage.value
+        application_match["status_stage"] = query.application_stage.value
     application_match["status_skipped"] = query.skipped
     if application_match:
         stages.append({"$match": application_match})

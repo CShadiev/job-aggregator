@@ -46,3 +46,7 @@ class JobApplicationStatus(BaseModel):
         description="The key of the cover letter PDF in the object storage.",
         default=None,
     )
+    applied: bool = Field(
+        description="Whether the user has applied to this job.",
+        default=False,
+    )
