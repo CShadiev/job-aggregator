@@ -1,6 +1,7 @@
 """Parser that converts raw LinkedIn (via Apify) dataset items into JobPostings."""
 
 from models.collection_service import JobPosting
+from urllib.parse import unquote
 
 
 class LinkedinApifyParser:
@@ -25,8 +26,8 @@ class LinkedinApifyParser:
         Returns:
             A validated :class:`~models.collection_service.JobPosting` instance.
         """
-        uid = f"linkedin:{raw['uid']}"
-
+        uid_parsed = unquote(raw['url'])
+        uid = f"linkedin:{uid_parsed}"
         return JobPosting.model_validate({
             **raw,
             "uid": uid, })

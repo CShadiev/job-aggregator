@@ -243,6 +243,7 @@ class MongoJobsRepository:
         request: UpdateJobStatusRequest,
     ) -> None:
         """Create or partially update the user's application status for *job_uid*."""
+        log.info(f"Updating job application status for {username} and {job_uid} with request {request}")
         if request.active is None and request.stage is None and request.skipped is None:
             return
 
@@ -251,8 +252,9 @@ class MongoJobsRepository:
             username=username, job_uid=job_uid)
         status = status.model_copy(update=request.model_dump(exclude_unset=True))
 
-        await self._applications.update_one({"username": username, "job_uid": job_uid}, {"$set": status.model_dump()},
-                                            upsert=True)
+        result = await self._applications.update_one({"username": username, "job_uid": job_uid},
+                                                     {"$set": status.model_dump()}, upsert=True)
+        log.info(f"Modified count: {result.modified_count}")
 
 
 def _build_job_feed_pipeline(
