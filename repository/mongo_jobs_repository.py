@@ -8,7 +8,7 @@ from models.collection_service import InvalidEntry, JobPosting
 from models.deduplication import FailedJobPosting
 from models.fit_assessment import FitAssessment
 from models.generics import PaginatedDataRequest, PaginatedDataResponse
-from models.job_application import ApplicationStage, JobApplicationStatus
+from models.job_application import JobApplicationStatus
 from models.jobs_api import JobFeedItem, JobFeedQuery, JobFeedSortField, SortOrder, UpdateJobStatusRequest
 from models.pipeline import PipelineStage
 from models.users import UserProfile
@@ -319,7 +319,6 @@ def _build_job_feed_pipeline(
                 "as": "application", }, },
         {
             "$addFields": {
-                "has_application": {"$gt": [{"$size": "$application"}, 0]},
                 "status_active": {"$arrayElemAt": ["$application.active", 0]},
                 "status_stage": {"$arrayElemAt": ["$application.stage", 0]},
                 "status_skipped": {
@@ -347,14 +346,9 @@ def _build_job_feed_pipeline(
 
 def _to_job_feed_item(doc: dict, username: str) -> JobFeedItem:
     status = None
-    if doc.get("has_application"):
-        status = JobApplicationStatus(
-            username=username,
-            job_uid=doc["job_uid"],
-            active=doc["status_active"],
-            stage=ApplicationStage(doc["status_stage"]),
-            skipped=doc.get("status_skipped", False),
-        )
+    application = doc.get("application")
+    if application:
+        status = JobApplicationStatus.model_validate(application[0])
     return JobFeedItem(
         job=JobPosting.model_validate(doc["job"]),
         fit=FitAssessment.model_validate(doc["assessment"]),

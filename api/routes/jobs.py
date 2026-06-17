@@ -1,5 +1,5 @@
 from pathlib import Path
-from fastapi import APIRouter
+from fastapi import APIRouter, Response
 
 from api.deps import AppCurrentUser, AppJobsRepository, AppObjectStorage
 from logger_provider import LoggerProvider
@@ -45,7 +45,7 @@ async def get_cover_letter(job_uid: str, user: AppCurrentUser, object_storage: A
 
 
 @router.get("/{job_uid}/cover-letter-pdf")
-async def get_cover_letter_pdf(job_uid: str, user: AppCurrentUser, object_storage: AppObjectStorage) -> bytes:
+async def get_cover_letter_pdf(job_uid: str, user: AppCurrentUser, object_storage: AppObjectStorage) -> Response:
     """
     Get the cover letter PDF for a job.
     """
@@ -53,7 +53,7 @@ async def get_cover_letter_pdf(job_uid: str, user: AppCurrentUser, object_storag
         json_path = object_storage.get_coverletter_json(user.username, job_uid, "tmp/cover_letter.json")
         cover_letter_content = CoverLetterContent.model_validate_json(Path(json_path).read_text())
         generate_cover_letter(cover_letter_content, "tmp/cover_letter.pdf")
-        return Path("tmp/cover_letter.pdf").read_bytes()
+        return Response(content=Path("tmp/cover_letter.pdf").read_bytes(), media_type="application/pdf")
     finally:
         Path("tmp/cover_letter.json").unlink(missing_ok=True)
         Path("tmp/cover_letter.pdf").unlink(missing_ok=True)
