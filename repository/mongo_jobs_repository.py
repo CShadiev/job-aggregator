@@ -218,12 +218,8 @@ class MongoJobsRepository:
     ) -> PaginatedDataResponse[JobFeedItem]:
         """Return a paginated job feed for *username* by joining assessments, jobs, and application status."""
         pipeline = _build_job_feed_pipeline(request, username)
-        log.info(f"Pipeline: {pipeline}")
-        log.info(f"Length of pipeline: {len(pipeline)}")
-        log.info(f"Pipeline: {pipeline[5]}")
         cursor = await self._assessments.aggregate(pipeline)
         result = await cursor.to_list(length=1)
-        log.info(f"Result: {result}")
         if not result:
             return PaginatedDataResponse(data=[], page=request.page, page_size=request.page_size, total=0)
 
