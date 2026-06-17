@@ -11,6 +11,7 @@ from config import ConfigProvider
 from auth_service import Auth0ClientWrapper
 from pymongo import AsyncMongoClient
 from logger_provider import LoggerProvider
+import os
 
 from api.routes import jobs
 from api.routes import users
@@ -34,6 +35,7 @@ async def lifespan(_: FastAPI):
     auth0_client = Auth0ClientWrapper(config)
     jobs_repository = MongoJobsRepository(mongo_client)
     object_storage = ObjectStorage()
+    os.makedirs("tmp", exist_ok=True)
     log.info("Dependencies initialized, application ready")
     yield {"jobs_repository": jobs_repository, "auth0_client": auth0_client, "object_storage": object_storage}
     log.info("FastAPI application shutting down")
