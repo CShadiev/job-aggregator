@@ -6,6 +6,10 @@ from collection_service.repository_protocol import IRepository
 from models.collection_service import CollectionResult, InvalidEntry, JobPosting
 from models.deduplication import NormalizationResult
 
+from logger_provider import LoggerProvider
+
+log = LoggerProvider.get_logger()
+
 
 class CollectionService:
     """Orchestrates the job-posting ingestion pipeline.
@@ -49,15 +53,21 @@ class CollectionService:
             Checkpoints are *not* updated here; advancing them is the
             responsibility of the downstream storage handler.
         """
-        # TODO: handle gaps in records (i.e. no overlap in timestamps)
         collection_result = CollectionResult(postings=[], invalid_entries=[])
         for collector in self.collectors:
             checkpoint = await self.repo.get_checkpoint(collector.get_source_name())
             _result = await collector.collect_jobs(checkpoint)
             collection_result.postings.extend(_result.postings)
             collection_result.invalid_entries.extend(_result.invalid_entries)
+            log.info(
+                "collected {n_collected_jobs} jobs from {source_name}, failed to parse {n_failed_jobs} jobs",
+                n_collected_jobs=len(_result.postings), n_failed_jobs=len(_result.invalid_entries),
+                source_name=collector.get_source_name(), event="collect")
             if _result.postings:
                 await self.repo.set_checkpoint(collector.get_source_name(), _result.postings[0].posted_at)
+                log.info(
+                    "set checkpoint for {source_name} to {checkpoint}", event="checkpoint_set",
+                    source_name=collector.get_source_name(), checkpoint=_result.postings[0].posted_at)
         return collection_result
 
     async def normalize(self, postings: list[JobPosting]) -> NormalizationResult:

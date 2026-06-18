@@ -57,17 +57,18 @@ async def deduplicate_jobs(repository: MongoJobsRepository, collection_service: 
     log.info(f"Deduplicating {len(postings)} jobs")
     unique_postings = await collection_service.deduplicate(postings)
     duplicated_postings = [p for p in postings if p.uid not in [p.uid for p in unique_postings]]
+    log.info(
+        "Removed {n_duplicated_jobs} duplicated jobs from processing, {n_unique_jobs} unique jobs remaining",
+        event="deduplicated_jobs", n_duplicated_jobs=len(duplicated_postings), n_unique_jobs=len(unique_postings))
     await repository.remove_from_processing(set([p.uid for p in duplicated_postings]))
-    log.info(f"Removed {len(duplicated_postings)} duplicated jobs from processing")
     await repository.mark_ready_for_assessment([p.uid for p in unique_postings])
-    log.info(f"Marked {len(unique_postings)} jobs as ready for assessment")
 
 
 async def assess_jobs(
         repository: MongoJobsRepository, fit_assessment_agent: FitAssessmentAgent, object_storage: ObjectStorage):
 
     user_profiles = await repository.get_user_profiles()
-    postings = await repository.get_assessment_feed()
+    postings = await repository.get_assessment_feed(limit=100)
 
     for user_profile in user_profiles:
         log.info(f"Assessing {len(postings)} jobs for user {user_profile.username}")
@@ -91,7 +92,10 @@ async def assess_jobs(
         cv_file.unlink()
         await repository.store_processed_jobs(postings)
         await repository.remove_from_processing(set([p.uid for p in postings]))
-        log.info(f"Removed {len(postings)} jobs from processing")
+        log.info(
+            "Assessed {n_assessed_jobs} jobs for user {username}, {n_high_fit_jobs} jobs with fit score >= 80",
+            n_assessed_jobs=len(assessments), username=user_profile.username,
+            n_high_fit_jobs=len([a for a in assessments if a.profile_ats_match_score >= 80]), event="assessed_jobs")
 
 
 async def _generate_cover_letter_task(
@@ -122,7 +126,6 @@ async def generate_cover_letters(repository: MongoJobsRepository, object_storage
             PaginatedDataRequest(query=JobFeedQuery(min_profile_ats_match_score=80, applied=False), page_size=100),
             username=user_profile.username)
         jobs = [job for job in paginated_data.data if job.status is None]
-        log.info(f"Found {len(jobs)} jobs to generate cover letters for user {user_profile.username}")
         async with semaphore:
             tasks = [_generate_cover_letter_task(agent, job, object_storage, user_profile, repository) for job in jobs]
             await asyncio.gather(*tasks)
@@ -162,10 +165,12 @@ async def main():
 
 if __name__ == "__main__":
     import time
+    log.info("{service}: Starting job processing", service="main_worker", event="started", success=1)
     try:
         while True:
             asyncio.run(main())
             time.sleep(60 * 60 * 12)
     except Exception as e:
-        log.error(f"Error: {e}")
+        log.exception(
+            "{service}: Error in job processing", service="main_worker", event="error", success=0, exc_info=True)
         raise e
