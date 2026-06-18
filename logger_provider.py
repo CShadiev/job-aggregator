@@ -36,7 +36,7 @@ class LoggerProvider:
         diagnose=config.DEBUG_MODE,
         serialize=True,
     )
-    __logger = logger
+    __logger = logger.bind(app="job-aggregator")
 
     @classmethod
     def get_logger(cls) -> loguru.Logger:
