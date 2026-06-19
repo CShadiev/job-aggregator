@@ -73,6 +73,9 @@ class MongoJobsRepository:
             "username": username,
             "job_uid": job_uid,
             "assessment": assessment.model_dump(mode="json"), })
+        # create default job application status for the job
+        job_application_status = JobApplicationStatus(username=username, job_uid=job_uid)
+        await self._applications.insert_one(job_application_status.model_dump())
 
     async def store_many_assessments(self, assessments: list[tuple[FitAssessment, str, str]]) -> None:
         await self._assessments.insert_many([{
