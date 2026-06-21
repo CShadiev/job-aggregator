@@ -2,7 +2,6 @@ from config import ConfigProvider
 from logger_provider import LoggerProvider
 from repository.mongo_jobs_repository import AsyncMongoClient
 from pymongo import UpdateOne
-from urllib.parse import unquote
 
 log = LoggerProvider.get_logger()
 
@@ -20,11 +19,14 @@ async def clean_uids():
     existing_jobs = await mdb.get_collection(config.MONGODB_JOBS_COLLECTION).find({"source": "linkedin"}).to_list()
 
     for job in existing_jobs:
-        uid, uid_parsed = job['uid'], unquote(job['uid'])
-        if uid != uid_parsed:
-            job_updates.append(UpdateOne({'_id': job['_id']}, {'$set': {'uid': uid_parsed}}))
-            status_updates.append(UpdateOne({"job_uid": uid}, {'$set': {'job_uid': uid_parsed}}))
-            assessment_updates.append(UpdateOne({"job_uid": uid}, {'$set': {'job_uid': uid_parsed}}))
+        if 'https://' not in job['uid']:
+            continue
+
+        uid = job['uid']
+        uid_parsed = uid.split('/')[-1]
+        job_updates.append(UpdateOne({'_id': job['_id']}, {'$set': {'uid': uid_parsed}}))
+        status_updates.append(UpdateOne({"job_uid": uid}, {'$set': {'job_uid': uid_parsed}}))
+        assessment_updates.append(UpdateOne({"job_uid": uid}, {'$set': {'job_uid': uid_parsed}}))
 
     log.info(f"Found {len(job_updates)} job ids to update")
     for update in job_updates[:10]:

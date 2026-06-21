@@ -26,7 +26,7 @@ class LinkedinApifyParser:
         Returns:
             A validated :class:`~models.collection_service.JobPosting` instance.
         """
-        uid_parsed = unquote(raw['url'])
+        uid_parsed = unquote(raw['uid'])
         uid = f"linkedin:{uid_parsed}"
         return JobPosting.model_validate({
             **raw,
