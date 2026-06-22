@@ -101,18 +101,27 @@ async def assess_jobs(
 async def _generate_cover_letter_task(
         agent: CoverLetterGenerationAgent, job: JobFeedItem, object_storage: ObjectStorage, user_profile: UserProfile,
         repository: MongoJobsRepository):
-
+    _log = log.bind(event="generate_cover_letter", job_uid=job.job.uid)
+    _log.info("Generating cover letter")
     cover_letter = await agent.generate(user_profile, job.job, job.fit)
+    _log.info("Cover letter generated")
     file_path = Path("tmp") / Path(user_profile.username) / f"{job.job.uid}.json"
     try:
+        _log.info("Storing cover letter")
         file_path.write_text(cover_letter.model_dump_json(indent=2))
         object_key = object_storage.upload_coverletter_json(
             username=user_profile.username, job_id=job.job.uid, file_path=str(file_path))
+        _log.info("Cover letter stored")
         await repository.update_job_application_status(
             job_uid=job.job.uid, username=user_profile.username,
             request=UpdateJobStatusRequest(cover_letter_key=object_key))
+        _log.info("Job application status updated")
+    except Exception as e:
+        _log.exception("Error updating job application status", exc_info=True)
+        raise e
     finally:
         file_path.unlink()
+        _log.info("Cover letter file deleted")
 
 
 async def generate_cover_letters(repository: MongoJobsRepository, object_storage: ObjectStorage):
