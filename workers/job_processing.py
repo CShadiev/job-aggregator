@@ -134,7 +134,8 @@ async def generate_cover_letters(repository: MongoJobsRepository, object_storage
         paginated_data = await repository.get_job_feed_items(
             PaginatedDataRequest(query=JobFeedQuery(min_profile_ats_match_score=80, applied=False), page_size=100),
             username=user_profile.username)
-        jobs = [job for job in paginated_data.data if job.status is None]
+        jobs = [job for job in paginated_data.data if job.status and job.status.cover_letter_key is None]
+        log.info(f"Generating cover letters for {len(jobs)} jobs")
         async with semaphore:
             tasks = [_generate_cover_letter_task(agent, job, object_storage, user_profile, repository) for job in jobs]
             await asyncio.gather(*tasks)
