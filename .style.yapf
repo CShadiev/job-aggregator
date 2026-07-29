@@ -1,6 +1,6 @@
 [style]
 based_on_style = pep8
-column_limit = 120
+column_limit = 100
 DEDENT_CLOSING_BRACKETS = false
 SPLIT_BEFORE_NAMED_ASSIGNS = false
 SPLIT_ALL_COMMA_SEPARATED_VALUES = false
