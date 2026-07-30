@@ -1,9 +1,7 @@
 import pytest
 from pathlib import Path
-from pydantic_ai.models.openai import OpenAIChatModel
-from pydantic_ai.providers.openai import OpenAIProvider
 from agents.cover_letter_generation import CoverLetterGenerationAgent
-from config import ConfigProvider
+from agents.model_factory import Model, ModelFactory
 from models.fit_assessment import CoverLetterContent
 from tests.datasets.cover_letter_sample import (
     make_sample_fit_assessment,
@@ -23,8 +21,7 @@ def get_sample_cover_letter_content():
 
 @pytest.mark.priced
 async def test_cover_letter_generation_happy_path():
-    config = ConfigProvider.get_config()
-    model = OpenAIChatModel(model_name="gpt-5-mini", provider=OpenAIProvider(api_key=config.OPENAI_API_KEY))
+    model = ModelFactory.get_model(Model.GROK_4_5)
     agent = CoverLetterGenerationAgent(model=model)
 
     result = await agent.generate(

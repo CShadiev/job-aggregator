@@ -19,7 +19,9 @@ class Config(BaseModel):
 
     APIFY_INDEED_TASK_ID: str = "hopeful_quarter~indeed-scraper-task"
     APIFY_STEPSTONE_TASK_ID: str = "hopeful_quarter~stepstone-job-scraper-task"
-    APIFY_LINKEDIN_TASK_ID: str = "hopeful_quarter~linkedin-scraper-task"
+    APIFY_LINKEDIN_TASK_ID: str = "hopeful_quarter~linkedin-scraper-task"  # DE
+    APIFY_LINKEDIN_UK_TASK_ID: str = "hopeful_quarter~linkedin-scraper-united-kingdom"
+    APIFY_LINKEDIN_PL_TASK_ID: str = "hopeful_quarter~linkedin-scraper-poland"
 
     DEDUPLICATION_BATCH_SIZE: int = 50
     DEDUPLICATION_MAX_RETRIES: int = 3
@@ -30,6 +32,8 @@ class Config(BaseModel):
     LOG_DIR: str = "logs"
 
     OPENAI_API_KEY: str
+    DEEPINFRA_API_KEY: str
+    GROK_API_KEY: str
 
     MONGODB_HOST: str = "localhost"
     MONGODB_PORT: int = 27017

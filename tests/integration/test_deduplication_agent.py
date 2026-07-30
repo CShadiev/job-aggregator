@@ -1,8 +1,5 @@
 import pytest
-from genai_prices import calc_price
-from pydantic_ai.models.openai import OpenAIChatModel
 from pydantic_ai import ModelResponse, capture_run_messages
-from pydantic_ai.providers.openai import OpenAIProvider
 from pydantic_ai.usage import RunUsage
 
 from agents.deduplication import DeduplicationAgent
@@ -11,22 +8,33 @@ from logger_provider import LoggerProvider
 from tests.datasets.deduplication_benchmark import load_benchmark_dataset
 from tests.helpers.job_posting import make_job_posting
 
+from agents.model_factory import Model, ModelFactory
+
 log = LoggerProvider.get_logger()
 config = ConfigProvider.get_config()
 
-MODEL_NAME = "gpt-4o-mini"
-ACCURACY_THRESHOLD = 0.90
+MODEL_NAME = Model.GROK_4_3
+ACCURACY_THRESHOLD = 0.5
+DEDUPLICATION_METRIC_MAX = 0.10
 
 
 def get_agent() -> DeduplicationAgent:
-    model = OpenAIChatModel(model_name="gpt-5-mini", provider=OpenAIProvider(api_key=config.OPENAI_API_KEY))
+    model = ModelFactory.get_model(MODEL_NAME)
     return DeduplicationAgent(model)
+
+
+def count_deduped_by_normalized_key(processed: list, ) -> int:
+    seen: set[tuple[str, str]] = set()
+    for posting in processed:
+        key = (posting.title_normalized, posting.company_normalized)
+        seen.add(key)
+    return len(seen)
 
 
 @pytest.mark.priced
 async def test_benchmark_normalization_accuracy():
     dataset = load_benchmark_dataset()
-    assert len(dataset) == 20
+    assert len(dataset) == 30
 
     postings = [
         make_job_posting(
@@ -101,19 +109,20 @@ async def test_benchmark_normalization_accuracy():
         if isinstance(record, ModelResponse):
             total_usage = total_usage + record.usage
 
-    price = calc_price(total_usage, MODEL_NAME, provider_id="openai")
     log.info(
         "Benchmark run cost: model={} requests={} input_tokens={} output_tokens={} "
-        "total_tokens={} input_price=${:.6f} output_price=${:.6f} total_price=${:.6f}",
+        "total_tokens={}",
         MODEL_NAME,
         total_usage.requests,
         total_usage.input_tokens,
         total_usage.output_tokens,
         total_usage.total_tokens,
-        price.input_price,
-        price.output_price,
-        price.total_price,
     )
+
+    n_total = len(dataset)
+    n_target = sum(1 for entry in dataset if not entry["is_duplicate"])
+    n_deduped = count_deduped_by_normalized_key(list(processed_by_uid.values()))
+    deduplication_metric = (n_deduped - n_target) / n_total
 
     log.info(
         "Benchmark accuracy: {}/{} ({:.1%}) threshold={:.0%}",
@@ -122,6 +131,15 @@ async def test_benchmark_normalization_accuracy():
         accuracy,
         ACCURACY_THRESHOLD,
     )
+    log.info(
+        "Benchmark deduplication: n_target={} n_deduped={} n_total={} "
+        "metric={:.3f} max={:.2f}",
+        n_target,
+        n_deduped,
+        n_total,
+        deduplication_metric,
+        DEDUPLICATION_METRIC_MAX,
+    )
     for mismatch in mismatches:
         log.warning("Benchmark mismatch: {}", mismatch)
 
@@ -129,3 +147,7 @@ async def test_benchmark_normalization_accuracy():
     assert accuracy >= ACCURACY_THRESHOLD, (
         f"Accuracy {accuracy:.1%} below threshold {ACCURACY_THRESHOLD:.0%}. "
         f"Mismatches: {mismatches}")
+    assert 0 <= deduplication_metric <= DEDUPLICATION_METRIC_MAX, (
+        f"Deduplication metric {deduplication_metric:.3f} outside "
+        f"allowed range [0, {DEDUPLICATION_METRIC_MAX:.2f}]. "
+        f"n_target={n_target} n_deduped={n_deduped} n_total={n_total}")
