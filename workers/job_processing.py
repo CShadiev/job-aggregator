@@ -161,7 +161,7 @@ async def main():
     repository = MongoJobsRepository(mongo_client)
 
     deduplication_agent = DeduplicationAgent(ModelFactory.get_model(Model.GROK_4_3))
-    fit_assessment_agent = FitAssessmentAgent(ModelFactory.get_model(Model.GROK_4_5))
+    fit_assessment_agent = FitAssessmentAgent(ModelFactory.get_model(Model.GROK_4_3))
     object_storage = ObjectStorage()
 
     async with ClientSession() as client_session:
@@ -172,11 +172,13 @@ async def main():
                 run_apify_task=False),
             ApifyCollector(
                 client_session=client_session, task_id=config.APIFY_LINKEDIN_PL_TASK_ID,
-                source_tag="linkedin", apify_parser=LinkedinApifyParser(source_tag="linkedin"),
+                source_tag="linkedin-poland",
+                apify_parser=LinkedinApifyParser(source_tag="linkedin-poland"),
                 run_apify_task=False),
             ApifyCollector(
                 client_session=client_session, task_id=config.APIFY_LINKEDIN_UK_TASK_ID,
-                source_tag="linkedin", apify_parser=LinkedinApifyParser(source_tag="linkedin"),
+                source_tag="linkedin-united-kingdom",
+                apify_parser=LinkedinApifyParser(source_tag="linkedin-united-kingdom"),
                 run_apify_task=False),
             ArbeitnowCollector(client=client_session), ]
         collection_service = CollectionService(
