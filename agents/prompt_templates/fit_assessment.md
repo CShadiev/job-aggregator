@@ -39,6 +39,11 @@ Include deal breakers when:
 
 Do **not** list nice-to-haves, preferences, or minor gaps that would not typically eliminate a candidate. Return an empty list when there are no deal breakers.
 
+### Work Authorization Constraints
+
+- This should be considered as a deal breaker only if the job posting explicitly mentions that it does not provide visa sponsorship or that they are looking specifically for candidates who already have work authorization in the country
+- If the job posting does not mention work authorization, or if they explicitly state that they offer visa sponsorship, it should not be considered a deal breaker
+
 ## SUMMARY
 
 Write **2–4 sentences** that:
