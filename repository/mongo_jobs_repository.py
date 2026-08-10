@@ -2,15 +2,18 @@ from datetime import datetime, timezone
 from typing import Sequence, Union
 
 from pymongo import AsyncMongoClient, UpdateOne
+from pymongo.errors import DuplicateKeyError
 
 from config import ConfigProvider
 from models.collection_service import InvalidEntry, JobPosting
 from models.deduplication import FailedJobPosting
+from models.failed_tasks import FailedTask
 from models.fit_assessment import FitAssessment
 from models.generics import PaginatedDataRequest, PaginatedDataResponse
 from models.job_application import JobApplicationStatus
 from models.jobs_api import JobFeedItem, JobFeedQuery, JobFeedSortField, SortOrder, UpdateJobStatusRequest
 from models.pipeline import PipelineStage
+from models.screening import ScreeningRecord, ScreeningResult
 from models.users import UserProfile
 from models.validators import ts_validator
 from logger_provider import LoggerProvider
@@ -54,9 +57,12 @@ class MongoJobsRepository:
         self._user_profiles = db[config.MONGODB_USER_PROFILES_COLLECTION]
         self._assessments = db[config.MONGODB_ASSESSMENTS_COLLECTION]
         self._applications = db[config.MONGODB_JOB_APPLICATIONS_COLLECTION]
+        self._screenings = db[config.MONGODB_SCREENINGS_COLLECTION]
+        self._failed_tasks = db[config.MONGODB_FAILED_TASKS_COLLECTION]
 
     async def get_checkpoint(self, source_id: str) -> datetime | None:
-        doc = await self._checkpoints.find_one({"_id": source_id}, projection={"checkpoint": 1, "_id": 0})
+        doc = await self._checkpoints.find_one({"_id": source_id},
+                                               projection={"checkpoint": 1, "_id": 0})
         if doc is None:
             return None
         return _to_utc(doc["checkpoint"])
@@ -68,7 +74,8 @@ class MongoJobsRepository:
             upsert=True,
         )
 
-    async def store_assessment(self, assessment: FitAssessment, username: str, job_uid: str) -> None:
+    async def store_assessment(
+            self, assessment: FitAssessment, username: str, job_uid: str) -> None:
         await self._assessments.insert_one({
             "username": username,
             "job_uid": job_uid,
@@ -77,11 +84,13 @@ class MongoJobsRepository:
         job_application_status = JobApplicationStatus(username=username, job_uid=job_uid)
         await self._applications.insert_one(job_application_status.model_dump())
 
-    async def store_many_assessments(self, assessments: list[tuple[FitAssessment, str, str]]) -> None:
+    async def store_many_assessments(
+            self, assessments: list[tuple[FitAssessment, str, str]]) -> None:
         await self._assessments.insert_many([{
             "username": username,
             "job_uid": job_uid,
-            "assessment": assessment.model_dump(mode="json"), } for assessment, username, job_uid in assessments])
+            "assessment": assessment.model_dump(mode="json"), }
+                                             for assessment, username, job_uid in assessments])
 
     async def get_existing_uids(self, uids: set[str]) -> set[str]:
         if not uids:
@@ -105,9 +114,11 @@ class MongoJobsRepository:
             {"$or": conditions},
             projection={"title_normalized": 1, "company_normalized": 1, "_id": 0},
         )
-        return {(doc["title_normalized"], doc["company_normalized"])
-                async for doc in cursor
-                if doc.get("title_normalized") is not None and doc.get("company_normalized") is not None}
+        return {
+            (doc["title_normalized"], doc["company_normalized"])
+            async for doc in cursor
+            if doc.get("title_normalized") is not None and doc.get("company_normalized") is not None
+        }
 
     async def store_in_processing(self, postings: list[JobPosting]) -> int:
         """Enqueue collected jobs for the normalization worker.
@@ -122,7 +133,8 @@ class MongoJobsRepository:
             return 0
         uids = {p.uid for p in postings}
         existing = await self.get_existing_uids(uids)
-        cursor = self._processing.find({"uid": {"$in": list(uids)}}, projection={"uid": 1, "_id": 0})
+        cursor = self._processing.find({"uid": {"$in": list(uids)}},
+                                       projection={"uid": 1, "_id": 0})
         in_processing = {doc["uid"] async for doc in cursor}
         skip = existing | in_processing
         to_insert = [p for p in postings if p.uid not in skip]
@@ -209,10 +221,92 @@ class MongoJobsRepository:
         cursor = self._user_profiles.find()
         return [UserProfile.model_validate(doc) async for doc in cursor]
 
+    async def get_user_profile(self, username: str) -> UserProfile | None:
+        doc = await self._user_profiles.find_one({"username": username})
+        if doc is None:
+            return None
+        return UserProfile.model_validate(doc)
+
     async def store_processed_jobs(self, postings: Sequence[JobPosting]) -> None:
         if not postings:
             return
         await self._jobs.insert_many([posting.model_dump() for posting in postings])
+
+    async def upsert_jobs(self, postings: Sequence[JobPosting]) -> None:
+        """Insert or update jobs by ``uid`` (duplicate-safe for pipeline resume)."""
+        if not postings:
+            return
+        ops = [
+            UpdateOne(
+                {"uid": posting.uid},
+                {"$set": posting.model_dump()},
+                upsert=True,
+            ) for posting in postings]
+        await self._jobs.bulk_write(ops, ordered=False)
+
+    async def store_screening(
+        self,
+        *,
+        username: str,
+        job_uid: str,
+        result: ScreeningResult,
+        model: str,
+    ) -> None:
+        record = ScreeningRecord(
+            username=username,
+            job_uid=job_uid,
+            worth_full_assessment=result.worth_full_assessment,
+            confidence=result.confidence,
+            model=model,
+        )
+        try:
+            await self._screenings.insert_one(record.model_dump())
+        except DuplicateKeyError:
+            pass
+
+    async def get_screening(self, username: str, job_uid: str) -> ScreeningResult | None:
+        doc = await self._screenings.find_one({"username": username, "job_uid": job_uid})
+        if doc is None:
+            return None
+        return ScreeningRecord.model_validate(doc).to_result()
+
+    async def get_assessment(self, username: str, job_uid: str) -> FitAssessment | None:
+        doc = await self._assessments.find_one({"username": username, "job_uid": job_uid})
+        if doc is None:
+            return None
+        return FitAssessment.model_validate(doc["assessment"])
+
+    async def store_failed_task(self, task: FailedTask) -> None:
+        await self._failed_tasks.insert_one(task.model_dump())
+
+    async def get_application_cover_letter_key(
+        self,
+        username: str,
+        job_uid: str,
+    ) -> str | None:
+        doc = await self._applications.find_one(
+            {"username": username, "job_uid": job_uid},
+            projection={"cover_letter_key": 1, "_id": 0},
+        )
+        if doc is None:
+            return None
+        return doc.get("cover_letter_key")
+
+    async def ensure_pipeline_indexes(self) -> None:
+        """Create indexes used by the LangGraph orchestration runner."""
+        await self._screenings.create_index(
+            [("username", 1), ("job_uid", 1)],
+            unique=True,
+            name="username_job_uid_unique",
+        )
+        await self._assessments.create_index(
+            [("username", 1), ("job_uid", 1)],
+            name="username_job_uid",
+        )
+        await self._failed_tasks.create_index(
+            [("cycle_id", 1), ("node", 1)],
+            name="cycle_id_node",
+        )
 
     async def get_job_feed_items(
         self,
@@ -224,15 +318,18 @@ class MongoJobsRepository:
         cursor = await self._assessments.aggregate(pipeline)
         result = await cursor.to_list(length=1)
         if not result:
-            return PaginatedDataResponse(data=[], page=request.page, page_size=request.page_size, total=0)
+            return PaginatedDataResponse(
+                data=[], page=request.page, page_size=request.page_size, total=0)
 
         facet = result[0]
         total = facet["metadata"][0]["total"] if facet["metadata"] else 0
         items = [_to_job_feed_item(doc, username) for doc in facet["data"]]
 
-        return PaginatedDataResponse(data=items, page=request.page, page_size=request.page_size, total=total)
+        return PaginatedDataResponse(
+            data=items, page=request.page, page_size=request.page_size, total=total)
 
-    async def insert_many_job_application_statuses(self, statuses: list[JobApplicationStatus]) -> None:
+    async def insert_many_job_application_statuses(
+            self, statuses: list[JobApplicationStatus]) -> None:
         await self._applications.insert_many([status.model_dump() for status in statuses])
 
     async def update_job_application_status(
@@ -242,14 +339,16 @@ class MongoJobsRepository:
         request: UpdateJobStatusRequest,
     ) -> None:
         """Create or partially update the user's application status for *job_uid*."""
-        log.info(f"Updating job application status for {username} and {job_uid} with request {request}")
-        if request.active is None and request.stage is None and request.skipped is None:
+        log.info(
+            f"Updating job application status for {username} and {job_uid} with request {request}")
+        updates = request.model_dump(exclude_unset=True)
+        if not updates:
             return
 
         existing = await self._applications.find_one({"username": username, "job_uid": job_uid})
-        status = JobApplicationStatus.model_validate(existing) if existing else JobApplicationStatus(
-            username=username, job_uid=job_uid)
-        status = status.model_copy(update=request.model_dump(exclude_unset=True))
+        status = JobApplicationStatus.model_validate(
+            existing) if existing else JobApplicationStatus(username=username, job_uid=job_uid)
+        status = status.model_copy(update=updates)
 
         result = await self._applications.update_one({"username": username, "job_uid": job_uid},
                                                      {"$set": status.model_dump()}, upsert=True)
@@ -264,7 +363,8 @@ def _build_job_feed_pipeline(
     sort_field = {
         JobFeedSortField.POSTED_AT: "job.posted_at",
         JobFeedSortField.CV_ATS_MATCH_SCORE: "assessment.cv_ats_match_score",
-        JobFeedSortField.PROFILE_ATS_MATCH_SCORE: "assessment.profile_ats_match_score", }[query.sort_by]
+        JobFeedSortField.PROFILE_ATS_MATCH_SCORE: "assessment.profile_ats_match_score",
+    }[query.sort_by]
     sort_direction = 1 if query.sort_order == SortOrder.ASC else -1
     skip = (request.page - 1) * request.page_size
 
@@ -274,7 +374,8 @@ def _build_job_feed_pipeline(
     if query.min_cv_ats_match_score is not None:
         assessment_match["assessment.cv_ats_match_score"] = {"$gte": query.min_cv_ats_match_score}
     if query.min_profile_ats_match_score is not None:
-        assessment_match["assessment.profile_ats_match_score"] = {"$gte": query.min_profile_ats_match_score}
+        assessment_match["assessment.profile_ats_match_score"] = {
+            "$gte": query.min_profile_ats_match_score}
     if query.exclude_deal_breakers:
         assessment_match["assessment.deal_breakers"] = {"$size": 0}
     if assessment_match:

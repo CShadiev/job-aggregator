@@ -3,3 +3,5 @@ venv/
 .venv/
 *.env
 logs/
+benchmarks/fit_assessment/dataset/01082026/
+benchmarks/screening/dataset/05082026/

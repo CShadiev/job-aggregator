@@ -25,6 +25,7 @@ class Config(BaseModel):
 
     DEDUPLICATION_BATCH_SIZE: int = 50
     DEDUPLICATION_MAX_RETRIES: int = 3
+    DEDUPLICATION_MODEL: str = "grok-4.3"
 
     FIT_ASSESSMENT_MAX_RETRIES: int = 3
 
@@ -49,6 +50,18 @@ class Config(BaseModel):
     MONGODB_USER_PROFILES_COLLECTION: str = "user_profiles"
     MONGODB_ASSESSMENTS_COLLECTION: str = "assessments"
     MONGODB_JOB_APPLICATIONS_COLLECTION: str = "job_applications"
+    MONGODB_SCREENINGS_COLLECTION: str = "screenings"
+    MONGODB_FAILED_TASKS_COLLECTION: str = "failed_tasks"
+    MONGODB_LANGGRAPH_CHECKPOINT_COLLECTION: str = "langgraph_checkpoints"
+    MONGODB_LANGGRAPH_WRITES_COLLECTION: str = "langgraph_checkpoint_writes"
+
+    SCREENING_MODEL: str = "gpt-5.6-luna"
+    FIT_ASSESSMENT_MODEL: str = "gpt-5-mini"
+    COVER_LETTER_MODEL: str = "gpt-5-mini"
+    COVER_LETTER_MIN_CV_SCORE: float = 80
+    PIPELINE_PAIR_CONCURRENCY: int = 10
+    PIPELINE_THREAD_ID: str = "job-pipeline"
+    PIPELINE_SCHEDULE_SECONDS: int = 60 * 60 * 12
 
     S3_ENDPOINT_URL: str
     S3_ACCESS_KEY: str

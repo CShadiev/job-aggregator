@@ -1,0 +1,6 @@
+"""Allow ``python -m orchestration``."""
+
+from orchestration.runner import main
+
+if __name__ == "__main__":
+    main()
