@@ -206,6 +206,10 @@ Model names come from config (`SCREENING_MODEL`, `FIT_ASSESSMENT_MODEL`, `COVER_
 | `PIPELINE_THREAD_ID` | `job-pipeline` | LangGraph thread / checkpoint id |
 | `PIPELINE_PAIR_CONCURRENCY` | `10` | `max_concurrency` for pair fan-out |
 | `PIPELINE_SCHEDULE_SECONDS` | `43200` | Delay between cycles |
+| `DEDUPLICATION_MODEL` | `gpt-5.6-luna` | Deduplication agent model |
+| `SCREENING_MODEL` | `gpt-5.6-luna` | Screening agent model |
+| `FIT_ASSESSMENT_MODEL` | `gpt-5-mini` | Fit assessment agent model |
+| `COVER_LETTER_MODEL` | `gpt-5-mini` | Cover letter agent model |
 | `COVER_LETTER_MIN_CV_SCORE` | `80` | Gate from assess → cover letter |
 | `MONGODB_LANGGRAPH_CHECKPOINT_COLLECTION` | `langgraph_checkpoints` | Checkpointer blobs |
 | `MONGODB_LANGGRAPH_WRITES_COLLECTION` | `langgraph_checkpoint_writes` | Checkpointer writes |

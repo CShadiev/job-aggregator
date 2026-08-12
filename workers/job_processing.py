@@ -160,7 +160,8 @@ async def main():
         password=config.MONGODB_PASSWORD)
     repository = MongoJobsRepository(mongo_client)
 
-    deduplication_agent = DeduplicationAgent(ModelFactory.get_model(Model.GROK_4_3))
+    deduplication_agent = DeduplicationAgent(
+        ModelFactory.get_model(Model(config.DEDUPLICATION_MODEL)))
     fit_assessment_agent = FitAssessmentAgent(ModelFactory.get_model(Model.GROK_4_3))
     object_storage = ObjectStorage()
 

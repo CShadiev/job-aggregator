@@ -25,7 +25,7 @@ class Config(BaseModel):
 
     DEDUPLICATION_BATCH_SIZE: int = 50
     DEDUPLICATION_MAX_RETRIES: int = 3
-    DEDUPLICATION_MODEL: str = "grok-4.3"
+    DEDUPLICATION_MODEL: str = "gpt-5.6-luna"
 
     FIT_ASSESSMENT_MAX_RETRIES: int = 3
 
