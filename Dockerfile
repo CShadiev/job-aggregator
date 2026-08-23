@@ -1,6 +1,8 @@
 ARG PYTHON_DIGEST=sha256:2c941e860699f878900b0edc2403613c234d4b32eda3cc9fa7036991a2a63c4a
 
-FROM python:3.12-slim@${PYTHON_DIGEST} AS builder
+FROM python:3.13-slim@${PYTHON_DIGEST} AS builder
+
+ENV UV_PYTHON_DOWNLOADS=0
 
 WORKDIR /app
 
@@ -18,7 +20,7 @@ COPY . .
 RUN uv sync --locked --no-dev
 
 # ---------------------------------------------------------------------------
-FROM python:3.12-slim@${PYTHON_DIGEST} AS runtime
+FROM python:3.13-slim@${PYTHON_DIGEST} AS runtime
 
 # Non-root user: an RCE in the app should not hand out root-in-container for free.
 RUN groupadd --system app && useradd --system --gid app --no-create-home app
