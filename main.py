@@ -7,11 +7,11 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware import Middleware
 from fastapi.middleware.cors import CORSMiddleware
+from pathlib import Path
 from config import ConfigProvider
 from auth_service import Auth0ClientWrapper
 from pymongo import AsyncMongoClient
 from logger_provider import LoggerProvider
-import os
 
 from api.routes import jobs
 from api.routes import users
@@ -36,7 +36,7 @@ async def lifespan(_: FastAPI):
     auth0_client = Auth0ClientWrapper(config)
     jobs_repository = MongoJobsRepository(mongo_client)
     object_storage = ObjectStorage()
-    os.makedirs("tmp", exist_ok=True)
+    Path(config.TEMP_DIR).mkdir(parents=True, exist_ok=True)
     log.info("Dependencies initialized, application ready")
     yield {
         "jobs_repository": jobs_repository, "auth0_client": auth0_client,

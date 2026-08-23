@@ -1,6 +1,9 @@
 import os
+from pathlib import Path
 from typing import Optional
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, field_validator
+
+_APP_ROOT = Path(__file__).resolve().parent
 
 
 class Config(BaseModel):
@@ -30,7 +33,23 @@ class Config(BaseModel):
     FIT_ASSESSMENT_MAX_RETRIES: int = 3
 
     DEBUG_MODE: bool = False
-    LOG_DIR: str = "logs"
+
+    LOG_DIR: str = str(_APP_ROOT / "logs")
+    TEMP_DIR: str = str(_APP_ROOT / "tmp")
+
+    @field_validator("LOG_DIR", "TEMP_DIR", mode="before")
+    @classmethod
+    def resolve_absolute_dir(cls, value: object) -> str:
+        '''Resolve directory settings to absolute paths.
+
+        Relative values are interpreted against the application root so the
+        process working directory cannot redirect logs or temp files.
+        Absolute values (including paths outside the app root) are kept.
+        '''
+        path = Path(str(value)).expanduser()
+        if not path.is_absolute():
+            path = _APP_ROOT / path
+        return str(path.resolve())
 
     OPENAI_API_KEY: str
     DEEPINFRA_API_KEY: str
@@ -109,10 +128,15 @@ class ConfigProvider:
         try:
             from dotenv import load_dotenv  # pyright: ignore[reportMissingImports]
             load_dotenv(override=True)
-            config = Config.model_validate(os.environ)
-            return config
+            return cls.__from_environ()
         except ImportError:
             # if the dotenv package is not installed,
             #   load the config from the environment variables
-            config = Config.model_validate(os.environ)
-            return config
+            return cls.__from_environ()
+
+    @classmethod
+    def __from_environ(cls) -> Config:
+        config = Config.model_validate(os.environ)
+        Path(config.LOG_DIR).mkdir(parents=True, exist_ok=True)
+        Path(config.TEMP_DIR).mkdir(parents=True, exist_ok=True)
+        return config

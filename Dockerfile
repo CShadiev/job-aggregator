@@ -29,10 +29,15 @@ WORKDIR /app
 
 # Pull in ONLY the built venv + app source from the builder stage —
 # no compilers, no uv itself, no build-time cache left behind.
-COPY --from=builder --chown=app:app /app /app
+COPY --from=builder /app /app
+
+# The only writable locations, created deliberately.
+RUN install -d -o app -g app -m 0750 /var/log/app
 
 ENV PATH="/app/.venv/bin:$PATH" \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
+    TEMP_DIR=/tmp
+    LOG_DIR=/app/logs
 
 USER app
