@@ -20,6 +20,8 @@ from repository.object_storage import ObjectStorage
 
 log = LoggerProvider.get_logger()
 
+config = ConfigProvider.get_config()
+
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
@@ -28,7 +30,6 @@ async def lifespan(_: FastAPI):
     The initialized API instance is made available to request handlers via request.state.
     """
     log.info("Starting FastAPI application")
-    config = ConfigProvider.get_config()
     mongo_client = AsyncMongoClient(
         host=config.MONGODB_HOST, port=config.MONGODB_PORT, username=config.MONGODB_USER,
         password=config.MONGODB_PASSWORD)
@@ -37,7 +38,9 @@ async def lifespan(_: FastAPI):
     object_storage = ObjectStorage()
     os.makedirs("tmp", exist_ok=True)
     log.info("Dependencies initialized, application ready")
-    yield {"jobs_repository": jobs_repository, "auth0_client": auth0_client, "object_storage": object_storage}
+    yield {
+        "jobs_repository": jobs_repository, "auth0_client": auth0_client,
+        "object_storage": object_storage}
     log.info("FastAPI application shutting down")
 
 
@@ -45,7 +48,7 @@ middleware = [
     Middleware(
         CORSMiddleware,
         allow_methods=["GET", "POST", "PATCH", "OPTIONS"],
-        allow_origins=["*"],
+        allow_origins=config.ALLOWED_ORIGINS,
         allow_credentials=True,
         allow_headers=["*"],
     ), ]

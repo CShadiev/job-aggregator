@@ -79,6 +79,8 @@ class Config(BaseModel):
     FASTAPI_RELOAD: bool = False
     FASTAPI_ROOT_PATH: str = ""
 
+    ALLOWED_ORIGINS: list[str] = ["https://cshadiev.dev"]
+
 
 class ConfigProvider:
     '''
