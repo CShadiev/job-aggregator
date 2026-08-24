@@ -5,3 +5,23 @@ venv/
 logs/
 benchmarks/fit_assessment/dataset/01082026/
 benchmarks/screening/dataset/05082026/
+export_keys.sh
+
+# Local plugin cache / working dir — huge, and machine-specific
+**/.terraform/
+
+# State files themselves are the whole point of NOT committing them —
+# they can contain sensitive values (resource attributes, sometimes secrets)
+*.tfstate
+*.tfstate.*
+*.tfstate.tflock
+
+# Real variable values, as opposed to the committed .example file
+**/terraform.tfvars
+*.auto.tfvars
+
+# NOTE: .terraform.lock.hcl is intentionally NOT ignored — it pins exact
+# provider versions/checksums and should be committed, same spirit as
+# uv.lock or package-lock.json.
+
+terraform/environments/dev/backend.hcl
