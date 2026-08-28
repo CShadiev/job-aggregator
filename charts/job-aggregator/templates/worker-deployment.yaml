@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: worker
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "job-aggregator.labels" . | nindent 4 }}
+    app.kubernetes.io/component: worker
+spec:
+  replicas: {{ .Values.worker.replicas }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: worker
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: worker
+    spec:
+      containers:
+        - name: worker
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          # `run-pipeline` = orchestration.runner:main (pyproject.toml
+          # [project.scripts]) — an in-process sleep loop on
+          # PIPELINE_SCHEDULE_SECONDS, not a CronJob. Kept simple
+          # deliberately for Week 1; see decision point in the study outline.
+          command:
+            - run-pipeline
+          envFrom:
+            - secretRef:
+                name: {{ .Values.secretName }}
+          env:
+            {{- range $key, $value := .Values.worker.env }}
+            - name: {{ $key }}
+              value: {{ $value | quote }}
+            {{- end }}
+          # No liveness/readiness probe: it's not an HTTP server, and a
+          # crashed process already gets restarted by the Deployment without
+          # one. A meaningful "is the pipeline actually healthy" signal is a
+          # metrics/observability concern (epic 1.5/3.x), not a probe.
+          resources:
+            {{- toYaml .Values.worker.resources | nindent 12 }}

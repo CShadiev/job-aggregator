@@ -1,0 +1,43 @@
+name: Build and Push to DOCR
+
+# STOPGAP for epic item 1.3: the API/worker Deployments need a real image in
+# DOCR to prove the Helm chart deploys anything at all, and epic item 1.4
+# (the real CI gate + CD pipeline) hasn't been built yet. This workflow does
+# only the minimum — build, tag with the commit SHA, push — with no lint,
+# no tests, no auto-deploy. 1.4 should absorb or replace this, not grow
+# alongside it.
+on:
+  push:
+    branches:
+      - epic-flagship
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install doctl
+        uses: digitalocean/action-doctl@v2
+        with:
+          token: ${{ secrets.DIGITALOCEAN_TOKEN }}
+
+      - name: Log in to DigitalOcean Container Registry
+        # Short-lived credentials — revoked once the job ends, not a
+        # standing login sitting on the runner.
+        run: doctl registry login --expiry-seconds 1200
+
+      - name: Extract short SHA
+        id: vars
+        run: echo "sha_short=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: registry.digitalocean.com/cs-flagship-demo-cr/job-aggregator:${{ steps.vars.outputs.sha_short }}

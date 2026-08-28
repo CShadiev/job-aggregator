@@ -1,0 +1,36 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: opensearch-headless
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "job-aggregator.labels" . | nindent 4 }}
+    app.kubernetes.io/component: opensearch
+spec:
+  # Required for StatefulSet pod identity (opensearch-0.opensearch-headless...)
+  # even at one replica — not optional, the StatefulSet controller needs it.
+  clusterIP: None
+  selector:
+    app.kubernetes.io/component: opensearch
+  ports:
+    - name: http
+      port: 9200
+    - name: transport
+      port: 9300
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: opensearch
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "job-aggregator.labels" . | nindent 4 }}
+    app.kubernetes.io/component: opensearch
+spec:
+  # Normal ClusterIP for clients (API, worker) that just want "the" endpoint
+  # and don't care about pod identity. Never exposed via the Gateway.
+  selector:
+    app.kubernetes.io/component: opensearch
+  ports:
+    - name: http
+      port: 9200

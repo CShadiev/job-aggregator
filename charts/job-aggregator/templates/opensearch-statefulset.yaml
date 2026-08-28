@@ -1,0 +1,82 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: opensearch
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "job-aggregator.labels" . | nindent 4 }}
+    app.kubernetes.io/component: opensearch
+spec:
+  serviceName: opensearch-headless
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: opensearch
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: opensearch
+    spec:
+      # Default Linux vm.max_map_count (65530) is too low for Lucene's mmap
+      # usage; OpenSearch refuses to start without this. Standard upstream
+      # workaround: a privileged init container sets it on the node before
+      # the main container starts. Harmless to re-run — it's a node-wide
+      # sysctl, not per-pod state.
+      initContainers:
+        - name: set-max-map-count
+          image: busybox:1.36
+          command: ["sysctl", "-w", "vm.max_map_count=262144"]
+          securityContext:
+            privileged: true
+      containers:
+        - name: opensearch
+          image: {{ .Values.opensearch.image }}
+          ports:
+            - name: http
+              containerPort: 9200
+            - name: transport
+              containerPort: 9300
+          env:
+            # Single pod, no peer discovery needed — avoids "no cluster
+            # manager elected" hangs that plain multi-node discovery
+            # defaults produce on a lone node.
+            - name: discovery.type
+              value: single-node
+            - name: DISABLE_SECURITY_PLUGIN
+              value: {{ .Values.opensearch.disableSecurityPlugin | quote }}
+            - name: OPENSEARCH_JAVA_OPTS
+              value: "-Xms{{ .Values.opensearch.heapSize }} -Xmx{{ .Values.opensearch.heapSize }}"
+          volumeMounts:
+            - name: data
+              mountPath: /usr/share/opensearch/data
+          # OpenSearch takes real time to allocate heap and initialize
+          # plugins — don't let liveness kill it mid-startup. Once startup
+          # succeeds, readiness/liveness take over on the same check.
+          startupProbe:
+            httpGet:
+              path: /_cluster/health?wait_for_status=yellow&timeout=1s
+              port: http
+            periodSeconds: 10
+            failureThreshold: 30 # up to 5 minutes to come up
+          readinessProbe:
+            httpGet:
+              path: /_cluster/health?wait_for_status=yellow&timeout=1s
+              port: http
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /_cluster/health?wait_for_status=yellow&timeout=1s
+              port: http
+            periodSeconds: 20
+            failureThreshold: 5
+          resources:
+            {{- toYaml .Values.opensearch.resources | nindent 12 }}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        storageClassName: {{ .Values.opensearch.storageClassName }}
+        resources:
+          requests:
+            storage: {{ .Values.opensearch.storageSize }}

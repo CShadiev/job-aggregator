@@ -1,0 +1,10 @@
+apiVersion: v2
+name: job-aggregator
+description: >-
+  API + pipeline worker + OpenSearch for the job-aggregator flagship demo.
+  Deployed via `helm upgrade --install`, deliberately outside Terraform —
+  see ADR 0001's step 3/4 split (Terraform owns Traefik/cert-manager;
+  this chart is step 4, redeployed on every merge once CI exists).
+type: application
+version: 0.1.0
+appVersion: "0.1.0"

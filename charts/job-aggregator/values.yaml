@@ -1,0 +1,62 @@
+namespace: job-aggregator
+
+image:
+  # DOKS's registry_integration (see terraform/environments/dev) already
+  # patches every namespace's default ServiceAccount with a pull secret for
+  # this registry — no imagePullSecrets needed in the pod specs below.
+  repository: registry.digitalocean.com/cs-flagship-demo-cr/job-aggregator
+  tag: "0.1.0-manual"
+  pullPolicy: IfNotPresent
+
+# Created out-of-band (kubectl today, CI in 1.4) from real credentials —
+# deliberately NOT templated here. Templating it would mean secrets flow
+# through `values.yaml`/`--set`/Helm release history instead of staying a
+# plain k8s object CI writes directly. See decision D9.
+secretName: job-aggregator-secrets
+
+gateway:
+  name: traefik-gateway
+  namespace: traefik
+  sectionName: websecure
+  hostname: app.cshadiev.dev
+  pathPrefix: /api
+
+api:
+  replicas: 1
+  port: 8000
+  resources:
+    requests: { cpu: 250m, memory: 128Mi }
+    limits: { cpu: 500m, memory: 512Mi }
+  # Non-secret config only — MONGODB_PASSWORD/APIFY_API_KEY/etc. all come
+  # from secretName via envFrom, not from here.
+  env:
+    FASTAPI_HOST: "0.0.0.0"
+    FASTAPI_PORT: "8000"
+    FASTAPI_ROOT_PATH: "/api" # must match gateway.pathPrefix, see main.py
+    ALLOWED_ORIGINS: '["https://app.cshadiev.dev"]'
+
+worker:
+  replicas: 1
+  resources:
+    requests: { cpu: 250m, memory: 128Mi }
+    limits: { cpu: 500m, memory: 512Mi }
+  env: {}
+
+opensearch:
+  # 3.8.0 is current stable, well past the epic's "2.19+" floor for the k-NN
+  # + RRF search-pipeline features 1.6/1.7 need. No existing index to be
+  # compatible with on a fresh cluster, so no reason to pin the older line.
+  image: opensearchproject/opensearch:3.8.0
+  storageSize: 10Gi
+  storageClassName: do-block-storage
+  # DISABLE_SECURITY_PLUGIN=true: this Service is ClusterIP-only, never
+  # reachable outside the cluster (never put behind the Gateway) — accepted
+  # trade-off for a demo, see decision log. Revisit before this is ever
+  # multi-tenant or internet-facing.
+  disableSecurityPlugin: true
+  # Rule of thumb: heap ~50% of the container memory limit, leaving room for
+  # off-heap + k-NN native (HNSW) memory outside the JVM heap.
+  heapSize: 768m
+  resources:
+    requests: { cpu: 250m, memory: 1Gi }
+    limits: { cpu: "1", memory: 1536Mi }
