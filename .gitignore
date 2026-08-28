@@ -24,4 +24,4 @@ export_keys.sh
 # provider versions/checksums and should be committed, same spirit as
 # uv.lock or package-lock.json.
 
-terraform/environments/dev/backend.hcl
+**/backend.hcl

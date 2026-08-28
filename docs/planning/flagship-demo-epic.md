@@ -133,7 +133,9 @@ about +2 h, not +10 h.
 7. **Terraform** for the whole stack, remote state, one command up / one command down.
    One live environment, with modules parameterised so a second is a variable file
    rather than a rewrite; teardown-and-recreate demonstrated rather than a second
-   cluster left running (the cost ceiling does not stretch to two).
+   cluster left running (the cost ceiling does not stretch to two). "One command" is a
+   `Makefile` target wrapping two applies with the CRD bootstrap between them — the
+   boundary is deliberate, see ADR 0001 — not a single `terraform apply`.
 8. **Real CI/CD.** PR gate (lint, type check, unit + integration tests, image build) →
    deploy on merge → **canary** with automatic rollback on SLO breach.
 9. **Autoscaling behind a load balancer** for the API; scale-to-zero or scheduled
@@ -159,7 +161,12 @@ about +2 h, not +10 h.
 
 * Service mesh, multi-region, multi-tenancy at scale.
 * Self-managed control plane, custom operators, GitOps (Argo CD) on top of Argo
-  Rollouts. Rollouts alone covers the canary requirement.
+  Rollouts. Rollouts alone covers the canary requirement. Argo CD *would* be the
+  clean answer to CRD ordering (sync waves) and would come with drift self-healing,
+  but it costs 6–10 h against a zero-buffer plan and its controller/repo-server/redis
+  footprint is a genuine capacity risk on 2 × 4 GB nodes that also carry OpenSearch
+  and `kube-prometheus-stack`. Rejected explicitly in
+  [ADR 0001](../adr/0001-gateway-api-crd-installation.md), option E.
 * Postgres/pgvector migration.
 * Tailored CV generation, notification service, StepStone/Indeed collectors (roadmap
   items unrelated to this epic's spine).
@@ -185,9 +192,10 @@ Goal by Friday: **a public URL, deployed by CI, serving hybrid search.**
 | #   | Work                                                                                                                                                              | h   |
 | --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | --- |
 | 1.1 | Confirm stack (§6), Atlas M0 size check, secrets hygiene. Cheap wins from §4.                                                                                     | 4   |
-| 1.2 | Terraform: VPC, DOKS cluster, node pool, LB + Ingress, DNS + TLS (cert-manager), Spaces bucket, registry. Remote state. One environment.                          | 12  |
+| 1.2 | Terraform in two stacks: `dev` (VPC, DOKS cluster, node pool, Spaces bucket, registry) and `cluster-services` (Traefik + cert-manager, `GatewayClass`/`Gateway`/`ClusterIssuer`, DNS + TLS). Remote state, one environment. CRDs are *not* Terraform's job — see 1.2b and ADR 0001. | 11  |
+| 1.2b | `scripts/bootstrap-cluster.sh`: idempotent `kubectl apply --server-side` of the Gateway API CRDs, with explicit cluster verification. Runs between the two Terraform stacks; wrapped with them in a `Makefile` up/down target so "one command up" still holds. | 1   |
 | 1.3 | Helm chart / manifests for API + pipeline worker + OpenSearch StatefulSet (PVC, heap, k-NN plugin).                                                               | 6   |
-| 1.4 | CI gate: lint (`ruff`), type check, unit tests, integration tests against service containers, image build + push to registry. CD to the cluster on merge to main. | 6   |
+| 1.4 | CI gate: lint (`ruff`), type check, unit tests, integration tests against service containers, image build + push to registry. CD to the cluster on merge to main (bootstrap script → `cluster-services` apply → `helm upgrade`); needs `kubectl` + `doctl` in the runner. | 6   |
 | 1.5 | Minimal telemetry: OTel auto-instrumentation for FastAPI + pymongo, structured logs queryable. Enough to debug the rest of the epic.                              | 3   |
 | 1.6 | Search index: mapping, analyzers, tag synonym dictionary (`k8s`→`kubernetes`), dual-write from `persist_jobs`, backfill script.                                   | 6   |
 | 1.7 | Hybrid query: `hybrid` query + search pipeline with `score-ranker-processor` (RRF) behind a `SearchService`. Wire into `POST /jobs/search`.                       | 5   |
@@ -243,10 +251,19 @@ automatically is evidence, and it is the artifact most likely to get watched.
 | 2   | Demo surface | **Thin React/Next UI** — search + RAG chat | A clickable URL is what a non-engineer screener judges. Budget 10 h, cut line #3 if behind.                                                                                                                                                                                                                     |
 | 3   | Cost ceiling | **~$75/mo**                                | Enough for a real cluster; not enough for managed search, which forces decision 4 (happily).                                                                                                                                                                                                                    |
 | 4   | Search tier  | **Self-hosted OpenSearch in-cluster**      | Decisive and verifiable: Elasticsearch's native `rrf` retriever is **Enterprise-licensed** and returns HTTP 403 on Basic. OpenSearch ships RRF (`score-ranker-processor`, 2.19+) and score normalization under Apache 2.0. Also fits the cost ceiling and adds a genuine StatefulSet/PVC/heap-tuning ops story. |
+| 5   | CRD install  | **CI bootstrap script, not Terraform**     | Terraform plans against a schema it discovers before anything runs, so installing a CRD and using it in one apply is impossible. Rather than hide an imperative step inside a `null_resource`, Terraform stops at the cluster edge and a verified, idempotent script applies the Gateway API CRDs between the two stacks — which in turn lets `cluster-services` manage `GatewayClass`/`Gateway` as real resources. [ADR 0001](../adr/0001-gateway-api-crd-installation.md). |
 
 Decision 4 is the single best ADR in the epic — a real constraint, discovered by
 reading a licence table, with three named alternatives (pay for Enterprise, fuse in
 application code, move to OpenSearch) and a defensible pick.
+
+Decision 5 is the second-best, for a different reason: it is a *model* constraint
+rather than a licensing one. "Why isn't this in Terraform?" invites explaining why
+plan-then-apply cannot express a mid-apply schema change, why every workaround is
+just a different way of manufacturing that phase boundary, and why upstream
+(SIG-Network, Traefik, Envoy Gateway) all landed on the same imperative
+`kubectl apply --server-side` rather than a chart. Six named alternatives, and the
+pick is the cheap one on purpose.
 
 ### Proposed stack (to confirm on day 1)
 
@@ -322,6 +339,7 @@ The epic succeeds if these become true, specific, numeric answers.
 | "Why OpenSearch and not Elasticsearch/pgvector/Qdrant?"    | Elasticsearch gates the `rrf` retriever behind an Enterprise licence (403 on Basic); OpenSearch ships RRF under Apache 2.0, in one system that also serves the user-facing feed. Three alternatives named, one constraint that decided it. |
 | "How do you deploy safely?"                                | Canary gated on latency SLO and a retrieval smoke check, with an actual demonstrated rollback.                                                                                                                                             |
 | "How do you know it's healthy?"                            | Three SLOs, dashboards, and the specific alert that fires first.                                                                                                                                                                           |
+| "Where does Terraform stop, and why?"                      | At the cluster edge. Terraform plans against a schema fixed before execution, so a mid-apply CRD install cannot be expressed; the boundary is drawn where the tool's model breaks, not where it ran out of features. Six alternatives named, upstream agrees. |
 | "Walk me through a trade-off you regret or would revisit." | Whatever the ADRs' "consequences" sections honestly record.                                                                                                                                                                                |
 
 ***
@@ -329,6 +347,7 @@ The epic succeeds if these become true, specific, numeric answers.
 ## 9. Deliverables checklist
 
 * \[ ] `terraform/` — modules + environments, remote state, documented up/down
+* \[ ] `scripts/bootstrap-cluster.sh` + `Makefile` up/down targets — CRD bootstrap and the documented apply order (ADR 0001)
 * \[ ] `deploy/` — Helm chart or manifests, OpenSearch StatefulSet, HPA, Argo Rollouts spec
 * \[ ] `.github/workflows/` — PR gate, CD, canary deploy with automatic rollback
 * \[ ] `search/` or `retrieval/` — index management, hybrid query, RRF fusion
@@ -336,7 +355,7 @@ The epic succeeds if these become true, specific, numeric answers.
 * \[ ] `benchmarks/retrieval/` — gold set, metrics, CI-runnable
 * \[ ] RAG endpoint + citation contract
 * \[ ] `observability/` — OTel config, dashboards as code, alert rules
-* \[ ] `docs/adr/0001..000N` — one per real decision
+* \[ ] `docs/adr/0001..000N` — one per real decision (0001 written: Gateway API CRD installation)
 * \[ ] `ui/` — thin search + RAG chat frontend, deployed by the same pipeline
 * \[ ] Load-test scripts + before/after results committed
 * \[ ] README rewritten: what it does, the numbers, how to run it, how to tear it down
