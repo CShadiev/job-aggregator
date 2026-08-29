@@ -43,9 +43,11 @@ def make_batch_nodes(deps: PipelineDeps) -> dict[str, Any]:
                     payload={"entry": invalid.entry},
                 ))
         # Overwrite batch channels at cycle start so prior checkpoint lists do not stick.
+        EMPTY_BATCH = []
+        batch = [p.model_dump(mode="json") for p in result.postings]
         return {
             "cycle_id": cycle_id,
-            "collected": [p.model_dump(mode="json") for p in result.postings],
+            "collected": EMPTY_BATCH,
             "normalize_failed": [],
             "unique_jobs": [],
             "pairs": [],
