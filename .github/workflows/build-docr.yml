@@ -9,10 +9,11 @@ name: Build and Push to DOCR
 on:
   push:
     branches:
-      - epic-flagship
+      - epic-flagship      
 
 permissions:
   contents: read
+  packages: write
 
 jobs:
   build-and-push:
