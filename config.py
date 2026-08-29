@@ -2,17 +2,18 @@ import os
 from pathlib import Path
 from typing import Optional
 from pydantic import BaseModel, ConfigDict, field_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 _APP_ROOT = Path(__file__).resolve().parent
 
 
-class Config(BaseModel):
+class Config(BaseSettings):
     '''
     Settings class for application configuration.
     Implements environment variable loading and validation.
     Should only be accessed through the ConfigProvider class.
     '''
-    model_config = ConfigDict(frozen=True)
+    model_config = SettingsConfigDict(frozen=True, env_file=".env", extra="ignore")
 
     APIFY_API_KEY: str
     APIFY_BASE_URL: str = "https://api.apify.com/v2"
@@ -125,18 +126,4 @@ class ConfigProvider:
         Load the application configuration from environment variables.
         '''
         # try to load the config from .env file
-        try:
-            from dotenv import load_dotenv  # pyright: ignore[reportMissingImports]
-            load_dotenv(override=True)
-            return cls.__from_environ()
-        except ImportError:
-            # if the dotenv package is not installed,
-            #   load the config from the environment variables
-            return cls.__from_environ()
-
-    @classmethod
-    def __from_environ(cls) -> Config:
-        config = Config.model_validate(os.environ)
-        Path(config.LOG_DIR).mkdir(parents=True, exist_ok=True)
-        Path(config.TEMP_DIR).mkdir(parents=True, exist_ok=True)
-        return config
+        return Config.model_validate({})

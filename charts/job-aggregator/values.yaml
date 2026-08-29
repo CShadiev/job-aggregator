@@ -5,7 +5,7 @@ image:
   # patches every namespace's default ServiceAccount with a pull secret for
   # this registry — no imagePullSecrets needed in the pod specs below.
   repository: registry.digitalocean.com/cs-flagship-demo-cr/job-aggregator
-  tag: "0.1.0-manual"
+  tag: "d04e5a3"
   pullPolicy: IfNotPresent
 
 # Created out-of-band (kubectl today, CI in 1.4) from real credentials —
