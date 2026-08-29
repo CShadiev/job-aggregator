@@ -37,4 +37,4 @@ jobs:
         with:
           context: .
           push: true
-          tags: ghcr.io/${{ github.repository }}:${{ steps.vars.outputs.sha_short }}
+          tags: ghcr.io/cshadiev/job-aggregator:${{ steps.vars.outputs.sha_short }}
