@@ -46,21 +46,25 @@ def build_pipeline_graph(
     builder.add_node("normalize", batch["normalize"])
     builder.add_node("dedupe", batch["dedupe"])
     builder.add_node("persist_jobs", batch["persist_jobs"])
-    builder.add_node("build_pairs", batch["build_pairs"])
-    builder.add_node("pair_pipeline", pair_pipeline)
+    # builder.add_node("build_pairs", batch["build_pairs"])
+    # builder.add_node("pair_pipeline", pair_pipeline)
     builder.add_node("finalize", batch["finalize"])
 
     builder.add_edge(START, "collect")
     builder.add_edge("collect", "normalize")
     builder.add_edge("normalize", "dedupe")
     builder.add_edge("dedupe", "persist_jobs")
-    builder.add_edge("persist_jobs", "build_pairs")
-    builder.add_conditional_edges(
-        "build_pairs",
-        batch["fanout"],
-        ["pair_pipeline", "finalize"],
-    )
-    builder.add_edge("pair_pipeline", "finalize")
-    builder.add_edge("finalize", END)
+    # builder.add_edge("persist_jobs", "build_pairs")
+    # builder.add_conditional_edges(
+    #     "build_pairs",
+    #     batch["fanout"],
+    #     ["pair_pipeline", "finalize"],
+    # )
+    # builder.add_edge("pair_pipeline", "finalize")
+    # builder.add_edge("finalize", END)
+
+    # temporary section
+    builder.add_edge("persist_jobs", END)
+    # ---
 
     return builder.compile(checkpointer=checkpointer)
