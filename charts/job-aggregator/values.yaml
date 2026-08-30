@@ -1,12 +1,14 @@
 namespace: job-aggregator
 
 image:
-  # DOKS's registry_integration (see terraform/environments/dev) already
-  # patches every namespace's default ServiceAccount with a pull secret for
-  # this registry — no imagePullSecrets needed in the pod specs below.
-  repository: registry.digitalocean.com/cs-flagship-demo-cr/job-aggregator
-  tag: "d04e5a3"
+  repository: ghcr.io/cshadiev/job-aggregator
+  tag: "latest"
   pullPolicy: IfNotPresent
+  # GHCR is not covered by DOKS registry_integration (that's DOCR-only).
+  # Create a docker-registry secret out-of-band (PAT with read:packages)
+  # and name it here — same D9 reasoning as secretName: don't template
+  # the credentials themselves. Leave empty if the package is public.
+  pullSecretName: "ghcr-pull-secret"
 
 # Created out-of-band (kubectl today, CI in 1.4) from real credentials —
 # deliberately NOT templated here. Templating it would mean secrets flow
