@@ -40,8 +40,4 @@ ENV PATH="/app/.venv/bin:$PATH" \
     TEMP_DIR=/tmp \
     LOG_DIR=/var/log/app
 
-EXPOSE 8000
-
 USER app
-
-CMD ["fastapi", "run", "main.py", "--port", "8000", "--host", "0.0.0.0"]
