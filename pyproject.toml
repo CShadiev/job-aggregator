@@ -29,6 +29,7 @@ run-pipeline = "orchestration.runner:main"
 
 [dependency-groups]
 dev = [
+    "httpx>=0.28.0",
     "pytest>=9.0.3",
     "pytest-asyncio>=1.3.0",
     "python-dotenv>=1.2.2",
