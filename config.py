@@ -1,18 +1,18 @@
-import os
 from pathlib import Path
-from typing import Optional
-from pydantic import BaseModel, ConfigDict, field_validator
+
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 _APP_ROOT = Path(__file__).resolve().parent
 
 
 class Config(BaseSettings):
-    '''
+    """
     Settings class for application configuration.
     Implements environment variable loading and validation.
     Should only be accessed through the ConfigProvider class.
-    '''
+    """
+
     model_config = SettingsConfigDict(frozen=True, env_file=".env", extra="ignore")
 
     APIFY_API_KEY: str
@@ -41,12 +41,12 @@ class Config(BaseSettings):
     @field_validator("LOG_DIR", "TEMP_DIR", mode="before")
     @classmethod
     def resolve_absolute_dir(cls, value: object) -> str:
-        '''Resolve directory settings to absolute paths.
+        """Resolve directory settings to absolute paths.
 
         Relative values are interpreted against the application root so the
         process working directory cannot redirect logs or temp files.
         Absolute values (including paths outside the app root) are kept.
-        '''
+        """
         path = Path(str(value)).expanduser()
         if not path.is_absolute():
             path = _APP_ROOT / path
@@ -79,8 +79,8 @@ class Config(BaseSettings):
     OPENSEARCH_PORT: int = 9200
     OPENSEARCH_USE_SSL: bool = False
     OPENSEARCH_VERIFY_CERTS: bool = False
-    OPENSEARCH_USER: Optional[str] = None
-    OPENSEARCH_PASSWORD: Optional[str] = None
+    OPENSEARCH_USER: str | None = None
+    OPENSEARCH_PASSWORD: str | None = None
     OPENSEARCH_INDEX_NAME: str = "jobs"
 
     SCREENING_MODEL: str = "gpt-5.6-luna"
@@ -111,27 +111,28 @@ class Config(BaseSettings):
 
 
 class ConfigProvider:
-    '''
+    """
     Singleton class for providing application configuration.
     Implements lazy loading of configuration from environment variables.
-    '''
-    __config: Optional[Config] = None
+    """
+
+    __config: Config | None = None
 
     @classmethod
     def get_config(cls) -> Config:
-        '''
+        """
         Get the application configuration.
         Configuration is only loaded once, subsequent calls return the
         cached instance.
-        '''
+        """
         if cls.__config is None:
             cls.__config = cls.__load_config()
         return cls.__config
 
     @classmethod
     def __load_config(cls) -> Config:
-        '''
+        """
         Load the application configuration from environment variables.
-        '''
+        """
         # try to load the config from .env file
         return Config.model_validate({})

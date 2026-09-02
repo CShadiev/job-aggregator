@@ -1,14 +1,15 @@
+import json
+from urllib.request import urlopen
+
+from auth0.authentication import GetToken, RevokeToken, Users
+from auth0.authentication.exceptions import Auth0Error
+from authlib.jose import JsonWebKey
+from authlib.jose.errors import ExpiredTokenError, InvalidTokenError, JoseError
+from authlib.oauth2.rfc7523 import JWTBearerTokenValidator
 from expiringdict import ExpiringDict
-from typing import Dict
+
 from config import Config
 from logger_provider import LoggerProvider
-from auth0.authentication import GetToken, Users, RevokeToken
-from auth0.authentication.exceptions import Auth0Error
-from authlib.oauth2.rfc7523 import JWTBearerTokenValidator
-from authlib.jose import JsonWebKey
-from authlib.jose.errors import JoseError, ExpiredTokenError, InvalidTokenError
-from urllib.request import urlopen
-import json
 
 log = LoggerProvider.get_logger()
 log = log.bind(service="auth_service")
@@ -36,13 +37,14 @@ class Auth0JWTBearerTokenValidator(JWTBearerTokenValidator):
         public_key = JsonWebKey.import_key_set(json.loads(jsonurl.read()))
 
         # Initialize parent class with the public key
-        super(Auth0JWTBearerTokenValidator, self).__init__(public_key)
+        super().__init__(public_key)
 
         # Configure claims validation
         self.claims_options = {
             "exp": {"essential": True},
             "aud": {"essential": True, "value": audience},
-            "iss": {"essential": True, "value": self.issuer}, }
+            "iss": {"essential": True, "value": self.issuer},
+        }
 
 
 class Auth0ClientWrapper:
@@ -61,14 +63,20 @@ class Auth0ClientWrapper:
         self.cache: dict = ExpiringDict(max_len=100, max_age_seconds=60)
 
         # Initialize Auth0 SDK clients
-        self.get_token = GetToken(domain=self.domain, client_id=self.client_id, client_secret=self.client_secret)
+        self.get_token = GetToken(
+            domain=self.domain, client_id=self.client_id, client_secret=self.client_secret
+        )
         self.users = Users(domain=self.domain)
-        self.revoke = RevokeToken(domain=self.domain, client_id=self.client_id, client_secret=self.client_secret)
+        self.revoke = RevokeToken(
+            domain=self.domain, client_id=self.client_id, client_secret=self.client_secret
+        )
 
         # Initialize JWT validator
-        self.jwt_validator = Auth0JWTBearerTokenValidator(domain=self.domain, audience=self.audience)
+        self.jwt_validator = Auth0JWTBearerTokenValidator(
+            domain=self.domain, audience=self.audience
+        )
 
-    def authenticate(self, username: str, password: str) -> Dict:
+    def authenticate(self, username: str, password: str) -> dict:
         """
         Authenticate user with username and password using Auth0 Resource
          Owner Password flow.
@@ -99,20 +107,23 @@ class Auth0ClientWrapper:
             log.info(f"Successfully authenticated user: {username}")
 
             return {
-                "access_token": token_data["access_token"], "id_token": token_data.get("id_token"),
-                "token_type": token_data.get("token_type"), "expires_in": token_data.get("expires_in"),
-                "refresh_token": token_data.get("refresh_token")}
+                "access_token": token_data["access_token"],
+                "id_token": token_data.get("id_token"),
+                "token_type": token_data.get("token_type"),
+                "expires_in": token_data.get("expires_in"),
+                "refresh_token": token_data.get("refresh_token"),
+            }
 
         except Auth0Error as e:
             log.error(f"Authentication failed for user {username}: {e}")
             # Extract error message from Auth0Error
-            error_msg = str(e.message) if hasattr(e, 'message') else str(e)
-            raise ValueError(error_msg)
+            error_msg = str(e.message) if hasattr(e, "message") else str(e)
+            raise ValueError(error_msg) from e
         except Exception as e:
             log.error(f"Unexpected error during authentication: {e}")
-            raise ValueError(f"Authentication failed: {str(e)}")
+            raise ValueError(f"Authentication failed: {str(e)}") from e
 
-    def verify_token(self, token: str) -> Dict:
+    def verify_token(self, token: str) -> dict:
         """
         Verify and decode an Auth0 access token using authlib's JWT validator.
 
@@ -178,7 +189,7 @@ class Auth0ClientWrapper:
             log.error(f"Unexpected error during token revocation: {e}")
             raise
 
-    def get_user_info(self, access_token: str) -> Dict:
+    def get_user_info(self, access_token: str) -> dict:
         """
         Get user information from Auth0 using an access token via Auth0 SDK.
 
@@ -211,7 +222,7 @@ class Auth0ClientWrapper:
             log.error(f"Unexpected error fetching user info: {e}")
             raise
 
-    def refresh_access_token(self, refresh_token: str) -> Dict:
+    def refresh_access_token(self, refresh_token: str) -> dict:
         """
         Refresh an access token using a refresh token via Auth0 SDK.
 
@@ -233,8 +244,11 @@ class Auth0ClientWrapper:
             log.info("Successfully refreshed access token")
 
             return {
-                "access_token": token_data["access_token"], "id_token": token_data.get("id_token"),
-                "token_type": token_data.get("token_type", "Bearer"), "expires_in": token_data.get("expires_in", 86400)}
+                "access_token": token_data["access_token"],
+                "id_token": token_data.get("id_token"),
+                "token_type": token_data.get("token_type", "Bearer"),
+                "expires_in": token_data.get("expires_in", 86400),
+            }
 
         except Auth0Error as e:
             log.error(f"Failed to refresh token: {e}")
