@@ -49,16 +49,26 @@ class MongoJobsRepository:
         client: AsyncMongoClient,
         database: str | None = None,
     ) -> None:
-        db = client[database or config.MONGODB_DATABASE]
-        self._jobs = db[config.MONGODB_JOBS_COLLECTION]
-        self._checkpoints = db[config.MONGODB_CHECKPOINTS_COLLECTION]
-        self._processing = db[config.MONGODB_PROCESSING_COLLECTION]
-        self._failed = db[config.MONGODB_FAILED_COLLECTION]
-        self._user_profiles = db[config.MONGODB_USER_PROFILES_COLLECTION]
-        self._assessments = db[config.MONGODB_ASSESSMENTS_COLLECTION]
-        self._applications = db[config.MONGODB_JOB_APPLICATIONS_COLLECTION]
-        self._screenings = db[config.MONGODB_SCREENINGS_COLLECTION]
-        self._failed_tasks = db[config.MONGODB_FAILED_TASKS_COLLECTION]
+        self._client = client
+        self._db = client[database or config.MONGODB_DATABASE]
+        self._jobs = self._db[config.MONGODB_JOBS_COLLECTION]
+        self._checkpoints = self._db[config.MONGODB_CHECKPOINTS_COLLECTION]
+        self._processing = self._db[config.MONGODB_PROCESSING_COLLECTION]
+        self._failed = self._db[config.MONGODB_FAILED_COLLECTION]
+        self._user_profiles = self._db[config.MONGODB_USER_PROFILES_COLLECTION]
+        self._assessments = self._db[config.MONGODB_ASSESSMENTS_COLLECTION]
+        self._applications = self._db[config.MONGODB_JOB_APPLICATIONS_COLLECTION]
+        self._screenings = self._db[config.MONGODB_SCREENINGS_COLLECTION]
+        self._failed_tasks = self._db[config.MONGODB_FAILED_TASKS_COLLECTION]
+
+    async def ping(self) -> bool:
+        """Verify MongoDB connectivity by executing an admin ping command."""
+        try:
+            await self._db.command("ping")
+            return True
+        except Exception as exc:
+            log.warning("MongoDB ping failed: {exc}", exc=str(exc))
+            return False
 
     async def get_checkpoint(self, source_id: str) -> datetime | None:
         doc = await self._checkpoints.find_one({"_id": source_id},

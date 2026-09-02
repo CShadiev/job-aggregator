@@ -13,6 +13,7 @@ from auth_service import Auth0ClientWrapper
 from pymongo import AsyncMongoClient
 from logger_provider import LoggerProvider
 
+from api.routes import health
 from api.routes import jobs
 from api.routes import users
 from repository.mongo_jobs_repository import MongoJobsRepository
@@ -56,5 +57,6 @@ middleware = [
 # Initialize the FastAPI application with our custom lifespan manager.
 app = FastAPI(lifespan=lifespan, middleware=middleware)
 # Register the API routers for different functional areas.
+app.include_router(health.router)
 app.include_router(jobs.router)
 app.include_router(users.router)

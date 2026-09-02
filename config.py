@@ -75,6 +75,14 @@ class Config(BaseSettings):
     MONGODB_LANGGRAPH_CHECKPOINT_COLLECTION: str = "langgraph_checkpoints"
     MONGODB_LANGGRAPH_WRITES_COLLECTION: str = "langgraph_checkpoint_writes"
 
+    OPENSEARCH_HOST: str = "localhost"
+    OPENSEARCH_PORT: int = 9200
+    OPENSEARCH_USE_SSL: bool = False
+    OPENSEARCH_VERIFY_CERTS: bool = False
+    OPENSEARCH_USER: Optional[str] = None
+    OPENSEARCH_PASSWORD: Optional[str] = None
+    OPENSEARCH_INDEX_NAME: str = "jobs"
+
     SCREENING_MODEL: str = "gpt-5.6-luna"
     FIT_ASSESSMENT_MODEL: str = "gpt-5-mini"
     COVER_LETTER_MODEL: str = "gpt-5-mini"
