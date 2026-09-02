@@ -7,6 +7,10 @@ benchmarks/fit_assessment/dataset/01082026/
 benchmarks/screening/dataset/05082026/
 export_keys.sh
 
+# UI repository (managed separately)
+react-app/
+frontend/
+
 # Local plugin cache / working dir — huge, and machine-specific
 **/.terraform/
 
