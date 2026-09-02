@@ -1,7 +1,7 @@
 """Parser that converts raw Stepstone (via Apify) dataset items into JobPostings."""
 
-from datetime import datetime, timezone
 import hashlib
+from datetime import UTC, datetime
 
 from models.collection_service import JobPosting
 
@@ -59,7 +59,7 @@ class StepstoneParser:
                 "description_raw": raw.get("description_html", None),
                 "job_types": [t.lower() for t in raw.get("job_types", [])],
                 "posted_at": raw["date_posted"],
-                "collected_at": datetime.now(tz=timezone.utc),
-                "updated_at": datetime.now(tz=timezone.utc),
+                "collected_at": datetime.now(tz=UTC),
+                "updated_at": datetime.now(tz=UTC),
             }
         )

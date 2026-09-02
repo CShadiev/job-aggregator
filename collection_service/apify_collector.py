@@ -5,15 +5,15 @@ from datetime import datetime
 from aiohttp import ClientSession, ClientTimeout, ServerTimeoutError
 from pydantic import ValidationError
 
-from config import ConfigProvider
 from collection_service.apify_parser_protocol import IApifyParser
 from collection_service.exceptions import (
+    CollectionAPIError,
     CollectionTimeoutError,
     MissingEntriesError,
-    CollectionAPIError,
 )
-from models.collection_service import CollectionResult, InvalidEntry, JobPosting
+from config import ConfigProvider
 from logger_provider import LoggerProvider
+from models.collection_service import CollectionResult, InvalidEntry, JobPosting
 
 log = LoggerProvider.get_logger()
 

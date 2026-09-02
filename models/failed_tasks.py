@@ -1,6 +1,6 @@
 """Models for LangGraph pipeline node failures."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any, Literal
 
 from pydantic import BaseModel, Field
@@ -24,6 +24,6 @@ class FailedTask(BaseModel):
     cycle_id: str
     task_id: str | None = None
     error: str
-    failed_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    failed_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     retryable: bool = False
     payload: dict[str, Any] = Field(default_factory=dict)

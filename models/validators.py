@@ -1,6 +1,6 @@
 """Reusable Pydantic field validators for the models layer."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 
 def ts_validator(v: datetime) -> datetime:
@@ -17,5 +17,5 @@ def ts_validator(v: datetime) -> datetime:
         A timezone-aware :class:`datetime` in UTC.
     """
     if v.tzinfo is None:
-        return v.replace(tzinfo=timezone.utc)
-    return v.astimezone(timezone.utc)
+        return v.replace(tzinfo=UTC)
+    return v.astimezone(UTC)

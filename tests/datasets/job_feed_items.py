@@ -1,6 +1,6 @@
 """Deterministic dataset of :class:`JobFeedItem` objects for tests/benchmarks."""
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from models.collection_service import JobPosting
 from models.fit_assessment import FitAssessment
@@ -36,7 +36,7 @@ _LOCATIONS = ["Berlin", "Munich", "Remote", "Hamburg", "Vienna", "Zurich"]
 _TAGS = ["python", "fastapi", "mongodb", "react", "docker", "kubernetes", "aws", "go"]
 _JOB_TYPES = ["full-time", "part-time", "contract", "internship"]
 _STAGES = list(ApplicationStage)
-_BASE_TIME = datetime(2026, 1, 1, tzinfo=timezone.utc)
+_BASE_TIME = datetime(2026, 1, 1, tzinfo=UTC)
 
 
 def _make_job_posting(i: int) -> JobPosting:

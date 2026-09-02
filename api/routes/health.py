@@ -1,4 +1,5 @@
 from typing import Any
+
 from fastapi import APIRouter, Response, status
 
 from api.deps import AppJobsRepository

@@ -39,7 +39,7 @@ def build_pipeline_graph(
     checkpointer: BaseCheckpointSaver,
 ) -> CompiledStateGraph:
     batch = make_batch_nodes(deps)
-    pair_pipeline = build_pair_subgraph(deps)
+    # pair_pipeline = build_pair_subgraph(deps)
 
     builder = StateGraph(PipelineState)
     builder.add_node("collect", batch["collect"])

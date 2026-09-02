@@ -1,8 +1,8 @@
-from enum import Enum
+from enum import StrEnum
 
-from pydantic_ai.providers.openai import OpenAIProvider
-from pydantic_ai.models.openai import OpenAIResponsesModel
 from pydantic_ai.models import Model as PydanticModel
+from pydantic_ai.models.openai import OpenAIResponsesModel
+from pydantic_ai.providers.openai import OpenAIProvider
 
 from config import ConfigProvider
 
@@ -14,7 +14,7 @@ OPENAI_PROVIDER = OpenAIProvider(
 )
 
 
-class Model(str, Enum):
+class Model(StrEnum):
     GROK_4_3 = "grok-4.3"
     GROK_4_5 = "grok-4.5"
     LUNA_5_6 = "gpt-5.6-luna"
@@ -35,5 +35,5 @@ class ModelFactory:
     def get_model(cls, model: Model) -> PydanticModel:
         try:
             return cls._models[model]
-        except KeyError:
-            raise ValueError(f"Model {model} not found")
+        except KeyError as e:
+            raise ValueError(f"Model {model} not found") from e

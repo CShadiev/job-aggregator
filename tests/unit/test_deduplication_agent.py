@@ -1,8 +1,9 @@
 from pydantic_ai.models.test import TestModel
 
 from agents.deduplication import DeduplicationAgent
-from ..helpers.job_posting import make_job_posting, make_normalized_batch
 from models.deduplication import NormalizedBatch, NormalizedJobEntry
+
+from ..helpers.job_posting import make_job_posting, make_normalized_batch
 
 
 def get_agent() -> DeduplicationAgent:
@@ -29,10 +30,10 @@ class TestReconcile:
         assert len(processed_jobs) == 2
         assert failed_jobs == []
 
-        for processed, normalized in zip(processed_jobs, normalized.jobs):
-            assert processed.uid == f"test:{normalized.id}"
-            assert processed.title_normalized == normalized.title
-            assert processed.company_normalized == normalized.company
+        for processed, entry in zip(processed_jobs, normalized.jobs, strict=True):
+            assert processed.uid == f"test:{entry.id}"
+            assert processed.title_normalized == entry.title
+            assert processed.company_normalized == entry.company
 
     def test_missing_entry_returns_partial_response(self):
         agent = get_agent()

@@ -6,9 +6,8 @@ from datetime import datetime
 from aiohttp import ClientSession
 
 from config import ConfigProvider
-from models.collection_service import CollectionResult, JobPosting
-
 from logger_provider import LoggerProvider
+from models.collection_service import CollectionResult, JobPosting
 
 log = LoggerProvider.get_logger()
 

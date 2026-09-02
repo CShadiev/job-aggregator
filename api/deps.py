@@ -1,6 +1,7 @@
 from typing import Annotated
+
 from fastapi import Depends, Request
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from auth_service import Auth0ClientWrapper
 from models.users import User

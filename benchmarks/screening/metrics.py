@@ -25,9 +25,9 @@ def binary_precision_recall_f1(
     """
     _require_same_length(gold, pred)
 
-    tp = sum(1 for g, p in zip(gold, pred) if g is positive and p is positive)
-    fp = sum(1 for g, p in zip(gold, pred) if g is not positive and p is positive)
-    fn = sum(1 for g, p in zip(gold, pred) if g is positive and p is not positive)
+    tp = sum(1 for g, p in zip(gold, pred, strict=True) if g is positive and p is positive)
+    fp = sum(1 for g, p in zip(gold, pred, strict=True) if g is not positive and p is positive)
+    fn = sum(1 for g, p in zip(gold, pred, strict=True) if g is positive and p is not positive)
     support = sum(1 for g in gold if g is positive)
 
     precision = tp / (tp + fp) if (tp + fp) else 0.0
@@ -46,7 +46,7 @@ def binary_accuracy(gold: list[bool], pred: list[bool | None]) -> float:
     if not gold:
         return 0.0
     _require_same_length(gold, pred)
-    correct = sum(1 for g, p in zip(gold, pred) if p is not None and p == g)
+    correct = sum(1 for g, p in zip(gold, pred, strict=True) if p is not None and p == g)
     return correct / len(gold)
 
 
@@ -66,7 +66,7 @@ def binary_confusion_matrix(
     cols = list(labels) + ([ERROR_LABEL] if include_error else [])
     matrix: dict[str, dict[str, int]] = {row: {col: 0 for col in cols} for row in labels}
 
-    for g, p in zip(gold, pred):
+    for g, p in zip(gold, pred, strict=True):
         row = "true" if g else "false"
         col = ERROR_LABEL if p is None else ("true" if p else "false")
         matrix[row][col] += 1
@@ -121,7 +121,7 @@ def confidence_summary(
     """Exploratory means (and simple quantiles) overall / by correctness / by band."""
     _require_same_length(confidences, correct, gold_categories)
 
-    paired = [(c, ok) for c, ok in zip(confidences, correct) if c is not None]
+    paired = [(c, ok) for c, ok in zip(confidences, correct, strict=True) if c is not None]
     overall_vals = [c for c, _ in paired]
     correct_vals = [c for c, ok in paired if ok is True]
     incorrect_vals = [c for c, ok in paired if ok is False]
@@ -130,7 +130,7 @@ def confidence_summary(
     for cls in category_order():
         band_vals = [
             conf
-            for conf, cat in zip(confidences, gold_categories)
+            for conf, cat in zip(confidences, gold_categories, strict=True)
             if conf is not None and cat == cls
         ]
         by_band[cls.value] = {

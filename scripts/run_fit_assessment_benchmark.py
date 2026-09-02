@@ -6,7 +6,7 @@ import argparse
 import asyncio
 import json
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from pydantic_ai import ModelResponse, capture_run_messages
@@ -60,7 +60,7 @@ class BenchmarkRun:
     results: list[EntryResult] = field(default_factory=list)
     usage: RunUsage = field(default_factory=RunUsage)
     timestamp: str = field(
-        default_factory=lambda: datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S"),
+        default_factory=lambda: datetime.now(UTC).strftime("%Y%m%d_%H%M%S"),
     )
 
 

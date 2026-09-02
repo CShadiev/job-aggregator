@@ -1,16 +1,18 @@
-from typing import AsyncGenerator
+from collections.abc import AsyncGenerator
+
+import pytest
 from pymongo import AsyncMongoClient
+
+from config import ConfigProvider
 from models.generics import PaginatedDataRequest
 from models.jobs_api import JobFeedQuery
 from repository.mongo_jobs_repository import MongoJobsRepository
-from config import ConfigProvider
-import pytest
 
 _USERNAME = "test_user"
 
 
 @pytest.fixture()
-async def repo() -> AsyncGenerator[MongoJobsRepository, None]:
+async def repo() -> AsyncGenerator[MongoJobsRepository]:
     config = ConfigProvider.get_config()
     mongo_client = AsyncMongoClient(
         host=config.MONGODB_HOST,

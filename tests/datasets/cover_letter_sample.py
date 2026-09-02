@@ -1,6 +1,6 @@
 """Sample profile, posting and fit assessment for cover-letter tests."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from models.collection_service import JobPosting
 from models.fit_assessment import FitAssessment
@@ -214,8 +214,8 @@ def make_sample_job_posting() -> JobPosting:
             "Nice to have: experience taking AI prototypes to production at scale."
         ),
         job_types=["full-time"],
-        posted_at=datetime(2026, 6, 1, 9, 0, tzinfo=timezone.utc),
-        collected_at=datetime(2026, 6, 1, 12, 0, tzinfo=timezone.utc),
+        posted_at=datetime(2026, 6, 1, 9, 0, tzinfo=UTC),
+        collected_at=datetime(2026, 6, 1, 12, 0, tzinfo=UTC),
         company_normalized="lumen ai",
         title_normalized="senior ai backend engineer",
     )

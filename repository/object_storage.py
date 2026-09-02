@@ -1,5 +1,6 @@
 import boto3
 from mypy_boto3_s3 import S3Client
+
 from config import ConfigProvider
 from logger_provider import LoggerProvider
 

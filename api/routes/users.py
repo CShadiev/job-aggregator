@@ -32,7 +32,7 @@ async def login(request: LoginRequest, auth0_client: AppAuth0Client) -> LoginRes
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail=str(e),
             headers={"WWW-Authenticate": "Bearer"},
-        )
+        ) from e
     except Exception as e:
         # Other errors (network issues, Auth0 unavailable, etc.)
         user_log.error(f"Unexpected error during authentication: {str(e)}")
@@ -73,4 +73,4 @@ async def refresh_token(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Failed to refresh token. Please login again.",
             headers={"WWW-Authenticate": "Bearer"},
-        )
+        ) from e

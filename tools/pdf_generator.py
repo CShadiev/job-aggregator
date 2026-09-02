@@ -1,5 +1,6 @@
 import fpdf
 from fpdf.enums import XPos, YPos
+
 from models.fit_assessment import CoverLetterContent
 
 FONT = "Comfortaa"

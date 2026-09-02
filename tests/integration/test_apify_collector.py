@@ -1,18 +1,18 @@
-from contextlib import asynccontextmanager
-from typing import AsyncContextManager, AsyncGenerator, Protocol
+from collections.abc import AsyncGenerator
+from contextlib import AbstractAsyncContextManager, asynccontextmanager
 from datetime import datetime
+from typing import Protocol
 
-from aiohttp import ClientSession
 import pytest
+from aiohttp import ClientSession
 
 from collection_service.apify_collector import ApifyCollector
 from collection_service.apify_parser_protocol import IApifyParser
 from collection_service.exceptions import MissingEntriesError
 from collection_service.indeed_apify_parser import IndeedApifyParser
 from collection_service.linkedin_apify_parser import LinkedinApifyParser
-from models.collection_service import JobPosting, InvalidEntry
-
 from config import ConfigProvider
+from models.collection_service import InvalidEntry, JobPosting
 
 cfg = ConfigProvider.get_config()
 
@@ -29,7 +29,7 @@ class FaultyApifyParser:
 class ApifyCollectorFactory(Protocol):
     def __call__(
         self, run_apify_task: bool = False, parser: IApifyParser | None = None
-    ) -> AsyncContextManager[ApifyCollector]: ...
+    ) -> AbstractAsyncContextManager[ApifyCollector]: ...
 
 
 test_params = [
@@ -45,7 +45,7 @@ def get_apify_collector(request) -> ApifyCollectorFactory:
     @asynccontextmanager
     async def factory(
         run_apify_task: bool = False, parser: IApifyParser | None = None
-    ) -> AsyncGenerator[ApifyCollector, None]:
+    ) -> AsyncGenerator[ApifyCollector]:
         client_session = ClientSession()
         try:
             apify_collector = ApifyCollector(

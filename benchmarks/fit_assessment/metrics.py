@@ -17,7 +17,7 @@ def exact_accuracy(gold: list[FitCategory], pred: list[FitCategory | None]) -> f
         return 0.0
     if len(gold) != len(pred):
         raise ValueError("gold and pred must have the same length")
-    correct = sum(1 for g, p in zip(gold, pred) if p is not None and p == g)
+    correct = sum(1 for g, p in zip(gold, pred, strict=True) if p is not None and p == g)
     return correct / len(gold)
 
 
@@ -27,7 +27,7 @@ def adjacent_accuracy(gold: list[FitCategory], pred: list[FitCategory | None]) -
         return 0.0
     if len(gold) != len(pred):
         raise ValueError("gold and pred must have the same length")
-    correct = sum(1 for g, p in zip(gold, pred) if p is not None and is_adjacent(g, p))
+    correct = sum(1 for g, p in zip(gold, pred, strict=True) if p is not None and is_adjacent(g, p))
     return correct / len(gold)
 
 
@@ -48,7 +48,7 @@ def confusion_matrix(
     cols = labels + ([ERROR_LABEL] if include_error else [])
     matrix: dict[str, dict[str, int]] = {row: {col: 0 for col in cols} for row in labels}
 
-    for g, p in zip(gold, pred):
+    for g, p in zip(gold, pred, strict=True):
         col = ERROR_LABEL if p is None else p.value
         matrix[g.value][col] += 1
     return matrix
@@ -68,9 +68,9 @@ def per_class_prf(
 
     result: dict[FitCategory, dict[str, float]] = {}
     for cls in category_order():
-        tp = sum(1 for g, p in zip(gold, pred) if g == cls and p == cls)
-        fp = sum(1 for g, p in zip(gold, pred) if g != cls and p == cls)
-        fn = sum(1 for g, p in zip(gold, pred) if g == cls and p != cls)
+        tp = sum(1 for g, p in zip(gold, pred, strict=True) if g == cls and p == cls)
+        fp = sum(1 for g, p in zip(gold, pred, strict=True) if g != cls and p == cls)
+        fn = sum(1 for g, p in zip(gold, pred, strict=True) if g == cls and p != cls)
         support = sum(1 for g in gold if g == cls)
 
         precision = tp / (tp + fp) if (tp + fp) else 0.0

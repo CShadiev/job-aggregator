@@ -1,6 +1,6 @@
 """Pydantic models for user profiles stored in MongoDB."""
 
-from typing import Optional
+
 from pydantic import BaseModel, ConfigDict, Field
 
 
@@ -16,9 +16,9 @@ class Contact(BaseModel):
     """Public contact details for a user profile."""
 
     email: str
-    linkedin: Optional[str] = None
-    website: Optional[str] = None
-    telegram: Optional[str] = None
+    linkedin: str | None = None
+    website: str | None = None
+    telegram: str | None = None
 
 
 class Profile(BaseModel):
@@ -50,9 +50,9 @@ class Certification(BaseModel):
     name: str
     issuer: str
     date: str
-    score: Optional[str] = None
-    details: Optional[str] = None
-    link: Optional[str] = None
+    score: str | None = None
+    details: str | None = None
+    link: str | None = None
 
 
 class TechnicalSkill(BaseModel):
@@ -81,9 +81,9 @@ class Experience(BaseModel):
     startDate: str
     endDate: str
     responsibilities: list[str]
-    companyDescription: Optional[str] = None
-    impact: Optional[str] = None
-    stack: Optional[list[str]] = None
+    companyDescription: str | None = None
+    impact: str | None = None
+    stack: list[str] | None = None
 
 
 class Education(BaseModel):
@@ -93,9 +93,9 @@ class Education(BaseModel):
     institution: str
     location: str
     year: int
-    classification: Optional[str] = None
-    modules: Optional[list[str]] = None
-    focus: Optional[list[str]] = None
+    classification: str | None = None
+    modules: list[str] | None = None
+    focus: list[str] | None = None
 
 
 class LocationPreferences(BaseModel):
@@ -130,9 +130,9 @@ class WorkAuthorization(BaseModel):
     status: str
     location: str
     sponsorshipRequired: bool
-    sponsorshipNotes: Optional[str] = None
+    sponsorshipNotes: str | None = None
     partTimeImmediate: bool
-    partTimeLimit: Optional[int] = None
+    partTimeLimit: int | None = None
 
 
 class RoleFitSignals(BaseModel):

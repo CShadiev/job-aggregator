@@ -1,9 +1,9 @@
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-from typing import AsyncGenerator
 from datetime import datetime
 
-from aiohttp import ClientSession
 import pytest
+from aiohttp import ClientSession
 
 from collection_service.arbeitnow_collector import ArbeitnowCollector
 from models.collection_service import JobPosting
@@ -14,7 +14,7 @@ def ts(timestamp: str) -> datetime:
 
 
 @asynccontextmanager
-async def get_arbeitnow_collector() -> AsyncGenerator[ArbeitnowCollector, None]:
+async def get_arbeitnow_collector() -> AsyncGenerator[ArbeitnowCollector]:
     client_session = ClientSession()
     try:
         collector = ArbeitnowCollector(client=client_session)

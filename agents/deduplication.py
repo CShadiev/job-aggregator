@@ -6,7 +6,7 @@ from pydantic_ai import Agent, models
 
 from config import ConfigProvider
 from models.collection_service import JobPosting
-from models.deduplication import FailedJobPosting, NormalizedBatch, NormalizationResult
+from models.deduplication import FailedJobPosting, NormalizationResult, NormalizedBatch
 
 _PROMPT_TEMPLATE_PATH = Path(__file__).parent / "prompt_templates" / "normalize_job.md"
 CONFIG = ConfigProvider.get_config()

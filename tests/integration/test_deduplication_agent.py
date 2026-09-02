@@ -3,12 +3,11 @@ from pydantic_ai import ModelResponse, capture_run_messages
 from pydantic_ai.usage import RunUsage
 
 from agents.deduplication import DeduplicationAgent
+from agents.model_factory import Model, ModelFactory
 from config import ConfigProvider
 from logger_provider import LoggerProvider
 from tests.datasets.deduplication_benchmark import load_benchmark_dataset
 from tests.helpers.job_posting import make_job_posting
-
-from agents.model_factory import Model, ModelFactory
 
 log = LoggerProvider.get_logger()
 config = ConfigProvider.get_config()

@@ -1,7 +1,8 @@
+from pymongo import UpdateOne
+
 from config import ConfigProvider
 from logger_provider import LoggerProvider
 from repository.mongo_jobs_repository import AsyncMongoClient
-from pymongo import UpdateOne
 
 log = LoggerProvider.get_logger()
 

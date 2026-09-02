@@ -1,8 +1,9 @@
+from pymongo import InsertOne
+
 from config import ConfigProvider
 from logger_provider import LoggerProvider
-from repository.mongo_jobs_repository import AsyncMongoClient
 from models.job_application import JobApplicationStatus
-from pymongo import InsertOne
+from repository.mongo_jobs_repository import AsyncMongoClient
 
 log = LoggerProvider.get_logger()
 

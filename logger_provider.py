@@ -1,9 +1,12 @@
 from __future__ import annotations
+
 import sys
 from pathlib import Path
-from config import ConfigProvider
+
 import loguru
 from loguru import logger
+
+from config import ConfigProvider
 
 config = ConfigProvider.get_config()
 _LOG_DIR = Path(config.LOG_DIR)

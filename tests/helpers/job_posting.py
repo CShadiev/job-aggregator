@@ -1,12 +1,12 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from pymongo import AsyncMongoClient
 
-from models.job_application import JobApplicationStatus
-from repository.mongo_jobs_repository import MongoJobsRepository
 from config import ConfigProvider
 from models.collection_service import JobPosting
 from models.deduplication import NormalizedBatch, NormalizedJobEntry
+from models.job_application import JobApplicationStatus
+from repository.mongo_jobs_repository import MongoJobsRepository
 from tests.datasets.job_feed_items import generate_job_feed_items
 
 
@@ -20,8 +20,8 @@ def make_job_posting(**overrides) -> JobPosting:
         "remote": False,
         "url": "https://example.com/jobs/1",
         "description_raw": "Job description",
-        "posted_at": datetime(2026, 1, 1, tzinfo=timezone.utc),
-        "collected_at": datetime(2026, 1, 1, tzinfo=timezone.utc),
+        "posted_at": datetime(2026, 1, 1, tzinfo=UTC),
+        "collected_at": datetime(2026, 1, 1, tzinfo=UTC),
     }
     defaults.update(overrides)
     return JobPosting(**defaults)

@@ -1,7 +1,8 @@
 """Parser that converts raw LinkedIn (via Apify) dataset items into JobPostings."""
 
-from models.collection_service import JobPosting
 from urllib.parse import unquote
+
+from models.collection_service import JobPosting
 
 
 class LinkedinApifyParser:

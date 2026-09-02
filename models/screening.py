@@ -1,6 +1,6 @@
 """Pydantic models for the screening agent."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Literal
 
 from pydantic import BaseModel, Field
@@ -30,7 +30,7 @@ class ScreeningRecord(BaseModel):
     job_uid: str
     worth_full_assessment: bool
     confidence: float = Field(ge=0, le=1)
-    screened_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    screened_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     model: str
 
     def to_result(self) -> ScreeningResult:

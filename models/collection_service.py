@@ -4,8 +4,8 @@ All timestamp fields are normalised to UTC via :func:`~models.validators.ts_vali
 so that comparisons and storage are always timezone-aware and consistent.
 """
 
-from datetime import datetime, timezone
-from typing import Annotated, Optional
+from datetime import UTC, datetime
+from typing import Annotated
 
 from pydantic import AfterValidator, BaseModel, Field
 
@@ -57,23 +57,23 @@ class JobPosting(BaseModel):
     collected_at: ts
     """Timestamp when the job was fetched by the collector, normalised to UTC."""
 
-    updated_at: ts = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: ts = Field(default_factory=lambda: datetime.now(UTC))
     """Timestamp of the last update to this record, normalised to UTC."""
 
-    company_normalized: Optional[str] = None
+    company_normalized: str | None = None
     """Canonical company name after entity resolution (populated downstream)."""
 
-    title_normalized: Optional[str] = None
+    title_normalized: str | None = None
     """Canonical job title after normalisation (populated downstream)."""
 
 
 class SearchInput(BaseModel):
     """Optional search parameters that may accompany a raw scraped item."""
 
-    position: Optional[str] = None
+    position: str | None = None
     """Job position or keyword used in the originating search query."""
 
-    country: Optional[str] = None
+    country: str | None = None
     """Country code or name used in the originating search query."""
 
 
@@ -87,14 +87,14 @@ class IndeedRaw(BaseModel):
     id: str
     positionName: str
     company: str
-    location: Optional[str] = None
+    location: str | None = None
     url: str
     description: str
     jobType: list[str] = Field(default_factory=list)
-    postingDateParsed: Optional[datetime] = None
+    postingDateParsed: datetime | None = None
     scrapedAt: datetime
-    searchInput: Optional[SearchInput] = None
-    isExpired: Optional[bool] = None
+    searchInput: SearchInput | None = None
+    isExpired: bool | None = None
 
 
 class InvalidEntry(BaseModel):

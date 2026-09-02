@@ -1,7 +1,6 @@
 """Parser that converts raw Indeed (via Apify) dataset items into JobPostings."""
 
-from datetime import datetime, timezone
-from typing import Optional
+from datetime import UTC, datetime
 
 from pydantic import BaseModel
 
@@ -11,8 +10,8 @@ from models.collection_service import IndeedRaw, JobPosting
 class SearchInput(BaseModel):
     """Lightweight model representing the search parameters used in an Indeed scrape."""
 
-    position: Optional[str] = None
-    country: Optional[str] = None
+    position: str | None = None
+    country: str | None = None
 
 
 class IndeedApifyParser:
@@ -59,6 +58,6 @@ class IndeedApifyParser:
             description_raw=rm.description,
             job_types=rm.jobType,
             posted_at=posted_at,
-            collected_at=datetime.now(tz=timezone.utc),
-            updated_at=datetime.now(tz=timezone.utc),
+            collected_at=datetime.now(tz=UTC),
+            updated_at=datetime.now(tz=UTC),
         )

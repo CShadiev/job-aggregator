@@ -4,18 +4,17 @@ It sets up the app instance, configures the lifespan, and includes the API route
 """
 
 from contextlib import asynccontextmanager
+from pathlib import Path
+
 from fastapi import FastAPI
 from fastapi.middleware import Middleware
 from fastapi.middleware.cors import CORSMiddleware
-from pathlib import Path
-from config import ConfigProvider
-from auth_service import Auth0ClientWrapper
 from pymongo import AsyncMongoClient
-from logger_provider import LoggerProvider
 
-from api.routes import health
-from api.routes import jobs
-from api.routes import users
+from api.routes import health, jobs, users
+from auth_service import Auth0ClientWrapper
+from config import ConfigProvider
+from logger_provider import LoggerProvider
 from repository.mongo_jobs_repository import MongoJobsRepository
 from repository.object_storage import ObjectStorage
 

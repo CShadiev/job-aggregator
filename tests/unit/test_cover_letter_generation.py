@@ -1,14 +1,16 @@
-import pytest
 from pathlib import Path
+
+import pytest
+
 from agents.cover_letter_generation import CoverLetterGenerationAgent
 from agents.model_factory import Model, ModelFactory
+from logger_provider import LoggerProvider
 from models.fit_assessment import CoverLetterContent
 from tests.datasets.cover_letter_sample import (
     make_sample_fit_assessment,
     make_sample_job_posting,
     make_sample_user_profile,
 )
-from logger_provider import LoggerProvider
 from tools.pdf_generator import generate_cover_letter
 
 log = LoggerProvider.get_logger()

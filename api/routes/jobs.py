@@ -1,12 +1,13 @@
 from pathlib import Path
+
 from fastapi import APIRouter, Response
 
 from api.deps import AppCurrentUser, AppJobsRepository, AppObjectStorage
 from config import ConfigProvider
 from logger_provider import LoggerProvider
 from models.fit_assessment import CoverLetterContent
-from models.jobs_api import JobFeedItem, JobFeedQuery, UpdateJobStatusRequest
 from models.generics import PaginatedDataRequest, PaginatedDataResponse
+from models.jobs_api import JobFeedItem, JobFeedQuery, UpdateJobStatusRequest
 from tools.pdf_generator import generate_cover_letter
 
 router = APIRouter(prefix="/jobs", tags=["jobs"])

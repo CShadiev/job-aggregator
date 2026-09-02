@@ -1,10 +1,11 @@
-from datetime import datetime, timezone
-from typing import Sequence, Union
+from collections.abc import Sequence
+from datetime import UTC, datetime
 
 from pymongo import AsyncMongoClient, UpdateOne
 from pymongo.errors import DuplicateKeyError
 
 from config import ConfigProvider
+from logger_provider import LoggerProvider
 from models.collection_service import InvalidEntry, JobPosting
 from models.deduplication import FailedJobPosting
 from models.failed_tasks import FailedTask
@@ -22,12 +23,11 @@ from models.pipeline import PipelineStage
 from models.screening import ScreeningRecord, ScreeningResult
 from models.users import UserProfile
 from models.validators import ts_validator
-from logger_provider import LoggerProvider
 
 config = ConfigProvider.get_config()
 log = LoggerProvider.get_logger()
 
-FailedEntry = Union[InvalidEntry, FailedJobPosting]
+FailedEntry = InvalidEntry | FailedJobPosting
 
 
 def _to_utc(value: datetime) -> datetime:
@@ -233,7 +233,7 @@ class MongoJobsRepository:
         """Record pipeline failures and remove the jobs from processing."""
         if not failures:
             return
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         failed_docs = []
         for failure in failures:
             if isinstance(failure, FailedJobPosting):

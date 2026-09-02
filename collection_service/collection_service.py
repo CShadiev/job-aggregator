@@ -1,12 +1,11 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from agents.deduplication import DeduplicationAgent
 from collection_service.collector_protocol import ICollector
 from collection_service.repository_protocol import IRepository
+from logger_provider import LoggerProvider
 from models.collection_service import CollectionResult, InvalidEntry, JobPosting
 from models.deduplication import NormalizationResult
-
-from logger_provider import LoggerProvider
 
 log = LoggerProvider.get_logger()
 
@@ -146,7 +145,7 @@ class CollectionService:
                 seen[key] = posting
 
         # Cross-run: drop any key that already has a recent match in the store.
-        since = datetime.now(timezone.utc) - timedelta(days=within_days)
+        since = datetime.now(UTC) - timedelta(days=within_days)
         stored_keys = await self.repo.get_recent_normalized_keys(set(seen.keys()), since)
 
         return [p for key, p in seen.items() if key not in stored_keys]

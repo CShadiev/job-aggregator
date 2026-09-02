@@ -1,14 +1,11 @@
-from typing import Generic, TypeVar
 from pydantic import BaseModel, ConfigDict, Field
 
-T = TypeVar("T")
 
-
-class DataResponse(BaseModel, Generic[T]):
+class DataResponse[T](BaseModel):
     data: list[T]
 
 
-class PaginatedDataResponse(BaseModel, Generic[T]):
+class PaginatedDataResponse[T](BaseModel):
     data: list[T]
 
     page: int = Field(default=1, ge=1)
@@ -16,7 +13,7 @@ class PaginatedDataResponse(BaseModel, Generic[T]):
     total: int
 
 
-class PaginatedDataRequest(BaseModel, Generic[T]):
+class PaginatedDataRequest[T](BaseModel):
     query: T
     page: int = Field(default=1, ge=1)
     page_size: int = Field(default=10, ge=1)
@@ -24,3 +21,13 @@ class PaginatedDataRequest(BaseModel, Generic[T]):
 
 class FrozenBaseModel(BaseModel):
     model_config = ConfigDict(frozen=True)
+
+
+class TestModel(FrozenBaseModel):
+    name: str
+    age: int
+
+
+x: PaginatedDataResponse[TestModel] = PaginatedDataResponse(
+    data=[TestModel(name="John", age=30)], total=3
+)

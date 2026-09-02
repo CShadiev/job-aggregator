@@ -11,7 +11,7 @@ import json
 import random
 import shutil
 from collections import defaultdict
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from pymongo import AsyncMongoClient
@@ -39,7 +39,7 @@ _JOB_EXPORT_FIELDS = (
 
 
 def _utc_today_ddmmyyyy() -> str:
-    return datetime.now(timezone.utc).strftime("%d%m%Y")
+    return datetime.now(UTC).strftime("%d%m%Y")
 
 
 def _target_per_class(n: int) -> dict[FitCategory, int]:
@@ -249,7 +249,7 @@ def _write_dataset(
     manifest = {
         "schema_version": 1,
         "dataset_version": dataset_version,
-        "exported_at": datetime.now(timezone.utc).isoformat(),
+        "exported_at": datetime.now(UTC).isoformat(),
         "username": username,
         "n_entries": len(sample),
         "stratification": {
