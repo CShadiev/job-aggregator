@@ -1,15 +1,19 @@
 import os
+from pathlib import Path
 from typing import Optional
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, field_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+_APP_ROOT = Path(__file__).resolve().parent
 
 
-class Config(BaseModel):
+class Config(BaseSettings):
     '''
     Settings class for application configuration.
     Implements environment variable loading and validation.
     Should only be accessed through the ConfigProvider class.
     '''
-    model_config = ConfigDict(frozen=True)
+    model_config = SettingsConfigDict(frozen=True, env_file=".env", extra="ignore")
 
     APIFY_API_KEY: str
     APIFY_BASE_URL: str = "https://api.apify.com/v2"
@@ -30,7 +34,23 @@ class Config(BaseModel):
     FIT_ASSESSMENT_MAX_RETRIES: int = 3
 
     DEBUG_MODE: bool = False
-    LOG_DIR: str = "logs"
+
+    LOG_DIR: str = str(_APP_ROOT / "logs")
+    TEMP_DIR: str = str(_APP_ROOT / "tmp")
+
+    @field_validator("LOG_DIR", "TEMP_DIR", mode="before")
+    @classmethod
+    def resolve_absolute_dir(cls, value: object) -> str:
+        '''Resolve directory settings to absolute paths.
+
+        Relative values are interpreted against the application root so the
+        process working directory cannot redirect logs or temp files.
+        Absolute values (including paths outside the app root) are kept.
+        '''
+        path = Path(str(value)).expanduser()
+        if not path.is_absolute():
+            path = _APP_ROOT / path
+        return str(path.resolve())
 
     OPENAI_API_KEY: str
     DEEPINFRA_API_KEY: str
@@ -79,6 +99,8 @@ class Config(BaseModel):
     FASTAPI_RELOAD: bool = False
     FASTAPI_ROOT_PATH: str = ""
 
+    ALLOWED_ORIGINS: list[str] = ["https://cshadiev.dev"]
+
 
 class ConfigProvider:
     '''
@@ -104,13 +126,4 @@ class ConfigProvider:
         Load the application configuration from environment variables.
         '''
         # try to load the config from .env file
-        try:
-            from dotenv import load_dotenv  # pyright: ignore[reportMissingImports]
-            load_dotenv(override=True)
-            config = Config.model_validate(os.environ)
-            return config
-        except ImportError:
-            # if the dotenv package is not installed,
-            #   load the config from the environment variables
-            config = Config.model_validate(os.environ)
-            return config
+        return Config.model_validate({})

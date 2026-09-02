@@ -2,6 +2,7 @@ from pathlib import Path
 from fastapi import APIRouter, Response
 
 from api.deps import AppCurrentUser, AppJobsRepository, AppObjectStorage
+from config import ConfigProvider
 from logger_provider import LoggerProvider
 from models.fit_assessment import CoverLetterContent
 from models.jobs_api import JobFeedItem, JobFeedQuery, UpdateJobStatusRequest
@@ -10,6 +11,7 @@ from tools.pdf_generator import generate_cover_letter
 
 router = APIRouter(prefix="/jobs", tags=["jobs"])
 log = LoggerProvider.get_logger()
+_TEMP_DIR = Path(ConfigProvider.get_config().TEMP_DIR)
 
 
 @router.post("/search", response_model=PaginatedDataResponse[JobFeedItem])
@@ -37,11 +39,12 @@ async def get_cover_letter(job_uid: str, user: AppCurrentUser, object_storage: A
     """
     Get the cover letter for a job.
     """
+    json_file = _TEMP_DIR / "cover_letter.json"
     try:
-        json_path = object_storage.get_coverletter_json(user.username, job_uid, "tmp/cover_letter.json")
+        json_path = object_storage.get_coverletter_json(user.username, job_uid, str(json_file))
         return CoverLetterContent.model_validate_json(Path(json_path).read_text())
     finally:
-        Path("tmp/cover_letter.json").unlink(missing_ok=True)
+        json_file.unlink(missing_ok=True)
 
 
 @router.get("/{job_uid}/cover-letter-pdf")
@@ -49,14 +52,16 @@ async def get_cover_letter_pdf(job_uid: str, user: AppCurrentUser, object_storag
     """
     Get the cover letter PDF for a job.
     """
+    json_file = _TEMP_DIR / "cover_letter.json"
+    pdf_file = _TEMP_DIR / "cover_letter.pdf"
     try:
-        json_path = object_storage.get_coverletter_json(user.username, job_uid, "tmp/cover_letter.json")
+        json_path = object_storage.get_coverletter_json(user.username, job_uid, str(json_file))
         cover_letter_content = CoverLetterContent.model_validate_json(Path(json_path).read_text())
-        generate_cover_letter(cover_letter_content, "tmp/cover_letter.pdf")
-        return Response(content=Path("tmp/cover_letter.pdf").read_bytes(), media_type="application/pdf")
+        generate_cover_letter(cover_letter_content, str(pdf_file))
+        return Response(content=pdf_file.read_bytes(), media_type="application/pdf")
     finally:
-        Path("tmp/cover_letter.json").unlink(missing_ok=True)
-        Path("tmp/cover_letter.pdf").unlink(missing_ok=True)
+        json_file.unlink(missing_ok=True)
+        pdf_file.unlink(missing_ok=True)
 
 
 @router.patch("/{job_uid}/cover-letter")
@@ -66,7 +71,7 @@ async def update_cover_letter(
     """
     Update the cover letter for a job.
     """
-    file_path = Path(f"tmp/{job_uid}_cover_letter.json")
+    file_path = _TEMP_DIR / f"{job_uid}_cover_letter.json"
     try:
         file_path.write_text(cover_letter_content.model_dump_json())
         object_storage.upload_coverletter_json(user.username, job_uid, str(file_path))
