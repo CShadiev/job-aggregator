@@ -18,6 +18,7 @@ dependencies = [
     "loguru>=0.7.3",
     "pydantic>=2.13.3",
     "pydantic-ai>=1.97.0",
+    "pydantic-settings>=2.14.1",
     "pymongo>=4.12,<4.17",
 ]
 

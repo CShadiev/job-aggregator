@@ -3,6 +3,7 @@
 from pathlib import Path
 from typing import Any
 
+from config import ConfigProvider
 from logger_provider import LoggerProvider
 from models.collection_service import JobPosting
 from models.failed_tasks import FailedTask, NodeName
@@ -135,7 +136,7 @@ def make_pair_nodes(deps: PipelineDeps) -> dict[str, Any]:
         else:
             assessment = FitAssessment.model_validate(assessment_data)
 
-        file_path = Path("tmp") / Path(username) / f"{job.uid}.json"
+        file_path = Path(ConfigProvider.get_config().TEMP_DIR) / username / f"{job.uid}.json"
         try:
             profile = await repository.get_user_profile(username)
             if profile is None:

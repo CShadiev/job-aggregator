@@ -7,11 +7,11 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware import Middleware
 from fastapi.middleware.cors import CORSMiddleware
+from pathlib import Path
 from config import ConfigProvider
 from auth_service import Auth0ClientWrapper
 from pymongo import AsyncMongoClient
 from logger_provider import LoggerProvider
-import os
 
 from api.routes import jobs
 from api.routes import users
@@ -19,6 +19,8 @@ from repository.mongo_jobs_repository import MongoJobsRepository
 from repository.object_storage import ObjectStorage
 
 log = LoggerProvider.get_logger()
+
+config = ConfigProvider.get_config()
 
 
 @asynccontextmanager
@@ -28,16 +30,17 @@ async def lifespan(_: FastAPI):
     The initialized API instance is made available to request handlers via request.state.
     """
     log.info("Starting FastAPI application")
-    config = ConfigProvider.get_config()
     mongo_client = AsyncMongoClient(
         host=config.MONGODB_HOST, port=config.MONGODB_PORT, username=config.MONGODB_USER,
         password=config.MONGODB_PASSWORD)
     auth0_client = Auth0ClientWrapper(config)
     jobs_repository = MongoJobsRepository(mongo_client)
     object_storage = ObjectStorage()
-    os.makedirs("tmp", exist_ok=True)
+    Path(config.TEMP_DIR).mkdir(parents=True, exist_ok=True)
     log.info("Dependencies initialized, application ready")
-    yield {"jobs_repository": jobs_repository, "auth0_client": auth0_client, "object_storage": object_storage}
+    yield {
+        "jobs_repository": jobs_repository, "auth0_client": auth0_client,
+        "object_storage": object_storage}
     log.info("FastAPI application shutting down")
 
 
@@ -45,7 +48,7 @@ middleware = [
     Middleware(
         CORSMiddleware,
         allow_methods=["GET", "POST", "PATCH", "OPTIONS"],
-        allow_origins=["*"],
+        allow_origins=config.ALLOWED_ORIGINS,
         allow_credentials=True,
         allow_headers=["*"],
     ), ]
