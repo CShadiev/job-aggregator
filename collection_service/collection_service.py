@@ -61,13 +61,21 @@ class CollectionService:
             collection_result.invalid_entries.extend(_result.invalid_entries)
             log.info(
                 "collected {n_collected_jobs} jobs from {source_name}, failed to parse {n_failed_jobs} jobs",
-                n_collected_jobs=len(_result.postings), n_failed_jobs=len(_result.invalid_entries),
-                source_name=collector.get_source_name(), event="collect")
+                n_collected_jobs=len(_result.postings),
+                n_failed_jobs=len(_result.invalid_entries),
+                source_name=collector.get_source_name(),
+                event="collect",
+            )
             if _result.postings:
-                await self.repo.set_checkpoint(collector.get_source_name(), _result.postings[0].posted_at)
+                await self.repo.set_checkpoint(
+                    collector.get_source_name(), _result.postings[0].posted_at
+                )
                 log.info(
-                    "set checkpoint for {source_name} to {checkpoint}", event="checkpoint_set",
-                    source_name=collector.get_source_name(), checkpoint=_result.postings[0].posted_at)
+                    "set checkpoint for {source_name} to {checkpoint}",
+                    event="checkpoint_set",
+                    source_name=collector.get_source_name(),
+                    checkpoint=_result.postings[0].posted_at,
+                )
         return collection_result
 
     async def normalize(self, postings: list[JobPosting]) -> NormalizationResult:
@@ -168,7 +176,9 @@ class CollectionService:
         deduplicated = await self.deduplicate(normalization_result.processed)
 
         norm_failures = [
-            InvalidEntry(entry=f.posting.model_dump(mode="json"), error=f.error) for f in normalization_result.failed]
+            InvalidEntry(entry=f.posting.model_dump(mode="json"), error=f.error)
+            for f in normalization_result.failed
+        ]
 
         return CollectionResult(
             postings=deduplicated,

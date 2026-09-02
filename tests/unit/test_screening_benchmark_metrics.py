@@ -15,20 +15,19 @@ from benchmarks.screening.metrics import (
 
 
 class TestCategoryToWorth:
-
     @pytest.mark.parametrize(
         ("category", "expected"),
         [
             (FitCategory.LOW, False),
             (FitCategory.MODERATE, True),
-            (FitCategory.GOOD, True), ],
+            (FitCategory.GOOD, True),
+        ],
     )
     def test_mapping(self, category: FitCategory, expected: bool):
         assert category_to_worth(category) is expected
 
 
 class TestScoreToWorth:
-
     @pytest.mark.parametrize(
         ("score", "expected"),
         [
@@ -37,14 +36,14 @@ class TestScoreToWorth:
             (50.0, True),
             (69.9, True),
             (70.0, True),
-            (100.0, True), ],
+            (100.0, True),
+        ],
     )
     def test_boundaries(self, score: float, expected: bool):
         assert score_to_worth(score) is expected
 
 
 class TestBinaryPrecisionRecallF1:
-
     def test_perfect_positive(self):
         gold = [True, True, False, False]
         pred: list[bool | None] = [True, True, False, False]
@@ -75,7 +74,6 @@ class TestBinaryPrecisionRecallF1:
 
 
 class TestBinaryAccuracy:
-
     def test_all_correct(self):
         gold = [True, False]
         pred: list[bool | None] = [True, False]
@@ -91,7 +89,6 @@ class TestBinaryAccuracy:
 
 
 class TestBinaryConfusionMatrix:
-
     def test_with_error_column(self):
         gold = [True, False, True]
         pred: list[bool | None] = [True, None, False]
@@ -109,13 +106,13 @@ class TestBinaryConfusionMatrix:
 
 
 class TestBandBinaryAccuracy:
-
     def test_per_band(self):
         gold_categories = [
             FitCategory.LOW,
             FitCategory.LOW,
             FitCategory.MODERATE,
-            FitCategory.GOOD, ]
+            FitCategory.GOOD,
+        ]
         gold_worth = [False, False, True, True]
         pred: list[bool | None] = [False, True, True, None]
         bands = band_binary_accuracy(gold_categories, gold_worth, pred)
@@ -130,7 +127,6 @@ class TestBandBinaryAccuracy:
 
 
 class TestConfidenceSummary:
-
     def test_overall_and_by_correctness(self):
         confidences: list[float | None] = [0.9, 0.5, 0.1, None]
         correct: list[bool | None] = [True, False, True, None]
@@ -138,7 +134,8 @@ class TestConfidenceSummary:
             FitCategory.GOOD,
             FitCategory.LOW,
             FitCategory.MODERATE,
-            FitCategory.LOW, ]
+            FitCategory.LOW,
+        ]
         summary = confidence_summary(confidences, correct, gold_categories)
         assert summary["overall"]["n"] == 3.0
         assert summary["overall"]["mean"] == pytest.approx(0.5)

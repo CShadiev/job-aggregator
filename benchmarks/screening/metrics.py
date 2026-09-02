@@ -32,7 +32,7 @@ def binary_precision_recall_f1(
 
     precision = tp / (tp + fp) if (tp + fp) else 0.0
     recall = tp / (tp + fn) if (tp + fn) else 0.0
-    f1 = (2 * precision * recall / (precision + recall) if (precision + recall) else 0.0)
+    f1 = 2 * precision * recall / (precision + recall) if (precision + recall) else 0.0
     return {
         "precision": precision,
         "recall": recall,
@@ -85,8 +85,7 @@ def band_binary_accuracy(
     for cls in category_order():
         indices = [i for i, c in enumerate(gold_categories) if c == cls]
         n = len(indices)
-        correct = sum(
-            1 for i in indices if pred[i] is not None and pred[i] == gold_worth[i])
+        correct = sum(1 for i in indices if pred[i] is not None and pred[i] == gold_worth[i])
         result[cls.value] = {
             "n": float(n),
             "correct": float(correct),
@@ -132,7 +131,8 @@ def confidence_summary(
         band_vals = [
             conf
             for conf, cat in zip(confidences, gold_categories)
-            if conf is not None and cat == cls]
+            if conf is not None and cat == cls
+        ]
         by_band[cls.value] = {
             "n": float(len(band_vals)),
             "mean": _mean(band_vals),

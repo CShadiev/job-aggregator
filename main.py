@@ -32,16 +32,21 @@ async def lifespan(_: FastAPI):
     """
     log.info("Starting FastAPI application")
     mongo_client = AsyncMongoClient(
-        host=config.MONGODB_HOST, port=config.MONGODB_PORT, username=config.MONGODB_USER,
-        password=config.MONGODB_PASSWORD)
+        host=config.MONGODB_HOST,
+        port=config.MONGODB_PORT,
+        username=config.MONGODB_USER,
+        password=config.MONGODB_PASSWORD,
+    )
     auth0_client = Auth0ClientWrapper(config)
     jobs_repository = MongoJobsRepository(mongo_client)
     object_storage = ObjectStorage()
     Path(config.TEMP_DIR).mkdir(parents=True, exist_ok=True)
     log.info("Dependencies initialized, application ready")
     yield {
-        "jobs_repository": jobs_repository, "auth0_client": auth0_client,
-        "object_storage": object_storage}
+        "jobs_repository": jobs_repository,
+        "auth0_client": auth0_client,
+        "object_storage": object_storage,
+    }
     log.info("FastAPI application shutting down")
 
 
@@ -52,7 +57,8 @@ middleware = [
         allow_origins=config.ALLOWED_ORIGINS,
         allow_credentials=True,
         allow_headers=["*"],
-    ), ]
+    ),
+]
 
 # Initialize the FastAPI application with our custom lifespan manager.
 app = FastAPI(lifespan=lifespan, middleware=middleware)

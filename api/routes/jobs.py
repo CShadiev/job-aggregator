@@ -16,8 +16,10 @@ _TEMP_DIR = Path(ConfigProvider.get_config().TEMP_DIR)
 
 @router.post("/search", response_model=PaginatedDataResponse[JobFeedItem])
 async def get_jobs(
-        request: PaginatedDataRequest[JobFeedQuery], user: AppCurrentUser,
-        jobs_repository: AppJobsRepository) -> PaginatedDataResponse[JobFeedItem]:
+    request: PaginatedDataRequest[JobFeedQuery],
+    user: AppCurrentUser,
+    jobs_repository: AppJobsRepository,
+) -> PaginatedDataResponse[JobFeedItem]:
     """
     Get all jobs.
     """
@@ -26,8 +28,11 @@ async def get_jobs(
 
 @router.patch("/{job_uid}/status")
 async def update_job_status(
-        job_uid: str, request: UpdateJobStatusRequest, user: AppCurrentUser,
-        jobs_repository: AppJobsRepository) -> None:
+    job_uid: str,
+    request: UpdateJobStatusRequest,
+    user: AppCurrentUser,
+    jobs_repository: AppJobsRepository,
+) -> None:
     """
     Update the status of a job.
     """
@@ -35,7 +40,9 @@ async def update_job_status(
 
 
 @router.get("/{job_uid}/cover-letter")
-async def get_cover_letter(job_uid: str, user: AppCurrentUser, object_storage: AppObjectStorage) -> CoverLetterContent:
+async def get_cover_letter(
+    job_uid: str, user: AppCurrentUser, object_storage: AppObjectStorage
+) -> CoverLetterContent:
     """
     Get the cover letter for a job.
     """
@@ -48,7 +55,9 @@ async def get_cover_letter(job_uid: str, user: AppCurrentUser, object_storage: A
 
 
 @router.get("/{job_uid}/cover-letter-pdf")
-async def get_cover_letter_pdf(job_uid: str, user: AppCurrentUser, object_storage: AppObjectStorage) -> Response:
+async def get_cover_letter_pdf(
+    job_uid: str, user: AppCurrentUser, object_storage: AppObjectStorage
+) -> Response:
     """
     Get the cover letter PDF for a job.
     """
@@ -66,8 +75,11 @@ async def get_cover_letter_pdf(job_uid: str, user: AppCurrentUser, object_storag
 
 @router.patch("/{job_uid}/cover-letter")
 async def update_cover_letter(
-        job_uid: str, user: AppCurrentUser, object_storage: AppObjectStorage,
-        cover_letter_content: CoverLetterContent) -> None:
+    job_uid: str,
+    user: AppCurrentUser,
+    object_storage: AppObjectStorage,
+    cover_letter_content: CoverLetterContent,
+) -> None:
     """
     Update the cover letter for a job.
     """

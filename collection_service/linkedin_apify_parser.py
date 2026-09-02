@@ -5,8 +5,7 @@ from urllib.parse import unquote
 
 
 class LinkedinApifyParser:
-    """Parse raw Indeed dataset items produced by an Apify actor into JobPostings.
-    """
+    """Parse raw Indeed dataset items produced by an Apify actor into JobPostings."""
 
     def __init__(self, source_tag: str):
         """Initialise the parser.
@@ -26,8 +25,11 @@ class LinkedinApifyParser:
         Returns:
             A validated :class:`~models.collection_service.JobPosting` instance.
         """
-        uid_parsed = unquote(raw['uid'])
+        uid_parsed = unquote(raw["uid"])
         uid = f"linkedin:{uid_parsed}"
-        return JobPosting.model_validate({
-            **raw,
-            "uid": uid, })
+        return JobPosting.model_validate(
+            {
+                **raw,
+                "uid": uid,
+            }
+        )

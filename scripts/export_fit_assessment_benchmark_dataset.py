@@ -30,7 +30,12 @@ log = LoggerProvider.get_logger()
 
 _DEFAULT_DATASET_ROOT = Path("benchmarks/fit_assessment/dataset")
 _JOB_EXPORT_FIELDS = (
-    *_JOB_FIELDS, "collected_at", "updated_at", "company_normalized", "title_normalized")
+    *_JOB_FIELDS,
+    "collected_at",
+    "updated_at",
+    "company_normalized",
+    "title_normalized",
+)
 
 
 def _utc_today_ddmmyyyy() -> str:
@@ -72,8 +77,9 @@ def _diversify_within_band(candidates: list[dict], k: int) -> list[dict]:
     return selected
 
 
-def stratified_sample(candidates: list[dict],
-                      n: int) -> tuple[list[dict], dict[FitCategory, int], dict[FitCategory, int]]:
+def stratified_sample(
+    candidates: list[dict], n: int
+) -> tuple[list[dict], dict[FitCategory, int], dict[FitCategory, int]]:
     """Stratify on profile_category; fill shortfalls from other bands.
 
     Returns (sample, target_per_class, actual_per_class).
@@ -120,7 +126,8 @@ def stratified_sample(candidates: list[dict],
     if shortfall > 0:
         remaining_by_cls: dict[FitCategory, list[dict]] = {
             cls: [c for c in by_profile[cls] if id(c) not in selected_ids]
-            for cls in category_order()}
+            for cls in category_order()
+        }
         while shortfall > 0:
             donors = sorted(
                 (cls for cls in category_order() if remaining_by_cls[cls]),
@@ -143,15 +150,16 @@ async def _resolve_username(repo: MongoJobsRepository, username: str | None) -> 
     if username:
         return username
 
-    usernames = sorted({
-        doc["username"]
-        async for doc in repo._assessments.find({}, projection={"username": 1})})
+    usernames = sorted(
+        {doc["username"] async for doc in repo._assessments.find({}, projection={"username": 1})}
+    )
     if not usernames:
         raise SystemExit("No assessments found in MongoDB")
     if len(usernames) > 1:
         raise SystemExit(
             "Multiple usernames have assessments; pass --username explicitly. "
-            f"Found: {', '.join(usernames)}")
+            f"Found: {', '.join(usernames)}"
+        )
     return usernames[0]
 
 
@@ -171,19 +179,25 @@ async def _load_candidates(repo: MongoJobsRepository, username: str) -> list[dic
                 "from": config.MONGODB_JOBS_COLLECTION,
                 "localField": "job_uid",
                 "foreignField": "uid",
-                "as": "job", }, },
-        {"$unwind": "$job"}, ]
+                "as": "job",
+            },
+        },
+        {"$unwind": "$job"},
+    ]
     cursor = await repo._assessments.aggregate(pipeline)
     candidates: list[dict] = []
     async for doc in cursor:
         assessment = FitAssessment.model_validate(doc["assessment"])
         job = JobPosting.model_validate(doc["job"])
-        candidates.append({
-            "username": username,
-            "job": job,
-            "assessment": assessment,
-            "cv_category": score_to_category(assessment.cv_ats_match_score),
-            "profile_category": score_to_category(assessment.profile_ats_match_score), })
+        candidates.append(
+            {
+                "username": username,
+                "job": job,
+                "assessment": assessment,
+                "cv_category": score_to_category(assessment.cv_ats_match_score),
+                "profile_category": score_to_category(assessment.profile_ats_match_score),
+            }
+        )
     return candidates
 
 
@@ -220,7 +234,9 @@ def _write_dataset(
                     "cv_category": item["cv_category"].value,
                     "profile_category": item["profile_category"].value,
                     "deal_breakers": assessment.deal_breakers,
-                    "summary": assessment.summary, }, }
+                    "summary": assessment.summary,
+                },
+            }
             fh.write(json.dumps(record, ensure_ascii=False) + "\n")
 
     profile_path = out_dir / "profile.json"
@@ -238,15 +254,16 @@ def _write_dataset(
         "n_entries": len(sample),
         "stratification": {
             "axis": "profile_category",
-            "target_per_class": {c.value: targets[c]
-                                 for c in category_order()},
-            "actual_per_class": {c.value: actual[c]
-                                 for c in category_order()}, },
+            "target_per_class": {c.value: targets[c] for c in category_order()},
+            "actual_per_class": {c.value: actual[c] for c in category_order()},
+        },
         "cv_path": "cv.pdf",
         "profile_path": "profile.json",
         "source": {
             "mongodb_database": config.MONGODB_DATABASE,
-            "note": "Scores are historical FitAssessmentAgent outputs, not human labels.", }, }
+            "note": "Scores are historical FitAssessmentAgent outputs, not human labels.",
+        },
+    }
     (out_dir / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
 
 
@@ -282,7 +299,8 @@ async def export_dataset(args: argparse.Namespace) -> Path:
             cv_bytes = object_storage.get_user_cv(username)
         except Exception as exc:
             raise SystemExit(
-                f"Failed to fetch CV from S3 for username={username!r}: {exc}") from exc
+                f"Failed to fetch CV from S3 for username={username!r}: {exc}"
+            ) from exc
         if not cv_bytes:
             raise SystemExit(f"Empty CV fetched from S3 for username={username!r}")
 
@@ -306,8 +324,7 @@ async def export_dataset(args: argparse.Namespace) -> Path:
             "Wrote dataset version={} n_entries={} actual_per_class={}",
             dataset_version,
             len(sample),
-            {c.value: actual[c]
-             for c in category_order()},
+            {c.value: actual[c] for c in category_order()},
         )
         return out_dir
     finally:
@@ -328,7 +345,8 @@ def build_parser() -> argparse.ArgumentParser:
         help="Version id as DDMMYYYY (default: today's UTC date)",
     )
     parser.add_argument(
-        "--n", type=int, default=100, help="Target number of entries (default: 100)")
+        "--n", type=int, default=100, help="Target number of entries (default: 100)"
+    )
     parser.add_argument(
         "--username",
         default=None,

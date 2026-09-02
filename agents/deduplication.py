@@ -13,7 +13,6 @@ CONFIG = ConfigProvider.get_config()
 
 
 class DeduplicationAgent:
-
     def __init__(self, model: models.Model):
         self.model = model
         self.agent: Agent[None, NormalizedBatch] = Agent(
@@ -23,7 +22,8 @@ class DeduplicationAgent:
         self._prompt_template = _PROMPT_TEMPLATE_PATH.read_text(encoding="utf-8")
 
     async def normalize(
-            self, postings: list[JobPosting], batch_size: int = CONFIG.DEDUPLICATION_BATCH_SIZE) -> NormalizationResult:
+        self, postings: list[JobPosting], batch_size: int = CONFIG.DEDUPLICATION_BATCH_SIZE
+    ) -> NormalizationResult:
         """
         Normalize job titles and company names for each posting.
 
@@ -31,7 +31,7 @@ class DeduplicationAgent:
         and processed concurrently.
         """
 
-        batches = [postings[i:i + batch_size] for i in range(0, len(postings), batch_size)]
+        batches = [postings[i : i + batch_size] for i in range(0, len(postings), batch_size)]
 
         results = await asyncio.gather(*[self._process_batch(batch) for batch in batches])
 
@@ -82,7 +82,10 @@ class DeduplicationAgent:
                 original.model_copy(
                     update={
                         "title_normalized": entry.title.lower(),
-                        "company_normalized": entry.company.lower(), }))
+                        "company_normalized": entry.company.lower(),
+                    }
+                )
+            )
 
         for temp_id, posting in temp_map.items():
             if temp_id not in seen_ids:
@@ -90,6 +93,7 @@ class DeduplicationAgent:
                     FailedJobPosting(
                         posting=posting,
                         error="AI did not return a result for this posting.",
-                    ))
+                    )
+                )
 
         return processed, failed

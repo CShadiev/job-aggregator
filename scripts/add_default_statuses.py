@@ -10,15 +10,20 @@ log = LoggerProvider.get_logger()
 async def add_default_statuses():
     config = ConfigProvider.get_config()
     mongo_client = AsyncMongoClient(
-        host=config.MONGODB_HOST, port=config.MONGODB_PORT, username=config.MONGODB_USER,
-        password=config.MONGODB_PASSWORD)
+        host=config.MONGODB_HOST,
+        port=config.MONGODB_PORT,
+        username=config.MONGODB_USER,
+        password=config.MONGODB_PASSWORD,
+    )
     mdb = mongo_client.get_database(config.MONGODB_DATABASE)
 
     assessments = mdb.get_collection(config.MONGODB_ASSESSMENTS_COLLECTION)
     applications = mdb.get_collection(config.MONGODB_JOB_APPLICATIONS_COLLECTION)
 
-    existing_keys = {(doc["username"], doc["job_uid"])
-                     async for doc in applications.find({}, projection={"username": 1, "job_uid": 1, "_id": 0})}
+    existing_keys = {
+        (doc["username"], doc["job_uid"])
+        async for doc in applications.find({}, projection={"username": 1, "job_uid": 1, "_id": 0})
+    }
 
     inserts: list[InsertOne] = []
     seen: set[tuple[str, str]] = set()
@@ -41,4 +46,5 @@ async def add_default_statuses():
 
 if __name__ == "__main__":
     import asyncio
+
     asyncio.run(add_default_statuses())

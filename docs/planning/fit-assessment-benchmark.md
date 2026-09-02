@@ -213,10 +213,12 @@ exit — likely systemic outage).
 # benchmarks/fit_assessment/categories.py
 from enum import StrEnum
 
+
 class FitCategory(StrEnum):
     LOW = "low"
     MODERATE = "moderate"
     GOOD = "good"
+
 
 def score_to_category(score: float) -> FitCategory:
     """Map ATS score in [0, 100] to low / moderate / good."""

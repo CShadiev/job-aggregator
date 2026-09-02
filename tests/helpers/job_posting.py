@@ -21,21 +21,29 @@ def make_job_posting(**overrides) -> JobPosting:
         "url": "https://example.com/jobs/1",
         "description_raw": "Job description",
         "posted_at": datetime(2026, 1, 1, tzinfo=timezone.utc),
-        "collected_at": datetime(2026, 1, 1, tzinfo=timezone.utc), }
+        "collected_at": datetime(2026, 1, 1, tzinfo=timezone.utc),
+    }
     defaults.update(overrides)
     return JobPosting(**defaults)
 
 
 def make_normalized_batch(entries: list[tuple[str, str, str]]) -> NormalizedBatch:
     return NormalizedBatch(
-        jobs=[NormalizedJobEntry(id=id_, title=title, company=company) for id_, title, company in entries])
+        jobs=[
+            NormalizedJobEntry(id=id_, title=title, company=company)
+            for id_, title, company in entries
+        ]
+    )
 
 
 async def setup_test_db(username: str):
     config = ConfigProvider.get_config()
     mongo_client = AsyncMongoClient(
-        host=config.MONGODB_HOST, port=config.MONGODB_PORT, username=config.MONGODB_USER,
-        password=config.MONGODB_PASSWORD)
+        host=config.MONGODB_HOST,
+        port=config.MONGODB_PORT,
+        username=config.MONGODB_USER,
+        password=config.MONGODB_PASSWORD,
+    )
 
     try:
         repo = MongoJobsRepository(mongo_client, database=config.MONGODB_TEST_DATABASE)
@@ -48,8 +56,14 @@ async def setup_test_db(username: str):
         await repo.store_many_assessments(assessments)
         statuses = [
             JobApplicationStatus(
-                username=username, job_uid=item.job.uid, stage=item.status.stage, skipped=item.status.skipped)
-            for item in job_items if item.status is not None]
+                username=username,
+                job_uid=item.job.uid,
+                stage=item.status.stage,
+                skipped=item.status.skipped,
+            )
+            for item in job_items
+            if item.status is not None
+        ]
         await repo.insert_many_job_application_statuses(statuses)
 
     finally:

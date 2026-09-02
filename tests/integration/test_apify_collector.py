@@ -22,20 +22,20 @@ def ts(timestamp: str) -> datetime:
 
 
 class FaultyApifyParser:
-
     def parse_job(self, raw: dict) -> JobPosting:
         return JobPosting.model_validate({})
 
 
 class ApifyCollectorFactory(Protocol):
+    def __call__(
+        self, run_apify_task: bool = False, parser: IApifyParser | None = None
+    ) -> AsyncContextManager[ApifyCollector]: ...
 
-    def __call__(self, run_apify_task: bool = False,
-                 parser: IApifyParser | None = None) -> AsyncContextManager[ApifyCollector]:
-        ...
 
-
-test_params = [("indeed", cfg.APIFY_INDEED_TASK_ID, IndeedApifyParser("indeed")),
-               ("linkedin", cfg.APIFY_LINKEDIN_TASK_ID, LinkedinApifyParser("linkedin"))]
+test_params = [
+    ("indeed", cfg.APIFY_INDEED_TASK_ID, IndeedApifyParser("indeed")),
+    ("linkedin", cfg.APIFY_LINKEDIN_TASK_ID, LinkedinApifyParser("linkedin")),
+]
 
 
 @pytest.fixture(params=test_params)
@@ -43,8 +43,9 @@ def get_apify_collector(request) -> ApifyCollectorFactory:
     source_tag, task_id, default_parser = request.param
 
     @asynccontextmanager
-    async def factory(run_apify_task: bool = False,
-                      parser: IApifyParser | None = None) -> AsyncGenerator[ApifyCollector, None]:
+    async def factory(
+        run_apify_task: bool = False, parser: IApifyParser | None = None
+    ) -> AsyncGenerator[ApifyCollector, None]:
         client_session = ClientSession()
         try:
             apify_collector = ApifyCollector(
@@ -78,7 +79,8 @@ async def test_collect_returns_valid_result(get_apify_collector: ApifyCollectorF
 
 
 async def test_raises_missing_entries_error_if_min_date_lower_than_earliest_entry(
-        get_apify_collector: ApifyCollectorFactory):
+    get_apify_collector: ApifyCollectorFactory,
+):
 
     async with get_apify_collector() as apify_collector:
         with pytest.raises(MissingEntriesError):

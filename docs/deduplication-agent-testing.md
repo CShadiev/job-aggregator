@@ -128,6 +128,7 @@ Set globally in `conftest.py` or per test:
 
 ```python
 from pydantic_ai.models import ALLOW_MODEL_REQUESTS
+
 ALLOW_MODEL_REQUESTS = False  # fail fast if a real model is accidentally used
 ```
 

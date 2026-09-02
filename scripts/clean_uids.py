@@ -9,24 +9,31 @@ log = LoggerProvider.get_logger()
 async def clean_uids():
     config = ConfigProvider.get_config()
     mongo_client = AsyncMongoClient(
-        host=config.MONGODB_HOST, port=config.MONGODB_PORT, username=config.MONGODB_USER,
-        password=config.MONGODB_PASSWORD)
+        host=config.MONGODB_HOST,
+        port=config.MONGODB_PORT,
+        username=config.MONGODB_USER,
+        password=config.MONGODB_PASSWORD,
+    )
     mdb = mongo_client.get_database(config.MONGODB_DATABASE)
 
     job_updates: list[UpdateOne] = []
     status_updates: list[UpdateOne] = []
     assessment_updates: list[UpdateOne] = []
-    existing_jobs = await mdb.get_collection(config.MONGODB_JOBS_COLLECTION).find({"source": "linkedin"}).to_list()
+    existing_jobs = (
+        await mdb.get_collection(config.MONGODB_JOBS_COLLECTION)
+        .find({"source": "linkedin"})
+        .to_list()
+    )
 
     for job in existing_jobs:
-        if 'https://' not in job['uid']:
+        if "https://" not in job["uid"]:
             continue
 
-        uid = job['uid']
-        uid_parsed = uid.split('/')[-1]
-        job_updates.append(UpdateOne({'_id': job['_id']}, {'$set': {'uid': uid_parsed}}))
-        status_updates.append(UpdateOne({"job_uid": uid}, {'$set': {'job_uid': uid_parsed}}))
-        assessment_updates.append(UpdateOne({"job_uid": uid}, {'$set': {'job_uid': uid_parsed}}))
+        uid = job["uid"]
+        uid_parsed = uid.split("/")[-1]
+        job_updates.append(UpdateOne({"_id": job["_id"]}, {"$set": {"uid": uid_parsed}}))
+        status_updates.append(UpdateOne({"job_uid": uid}, {"$set": {"job_uid": uid_parsed}}))
+        assessment_updates.append(UpdateOne({"job_uid": uid}, {"$set": {"job_uid": uid_parsed}}))
 
     log.info(f"Found {len(job_updates)} job ids to update")
     for update in job_updates[:10]:
@@ -39,4 +46,5 @@ async def clean_uids():
 
 if __name__ == "__main__":
     import asyncio
+
     asyncio.run(clean_uids())

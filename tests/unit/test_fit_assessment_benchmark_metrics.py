@@ -13,7 +13,6 @@ from benchmarks.fit_assessment.metrics import (
 
 
 class TestScoreToCategory:
-
     @pytest.mark.parametrize(
         ("score", "expected"),
         [
@@ -22,14 +21,14 @@ class TestScoreToCategory:
             (50.0, FitCategory.MODERATE),
             (69.999, FitCategory.MODERATE),
             (70.0, FitCategory.GOOD),
-            (100.0, FitCategory.GOOD), ],
+            (100.0, FitCategory.GOOD),
+        ],
     )
     def test_boundaries(self, score: float, expected: FitCategory):
         assert score_to_category(score) is expected
 
 
 class TestExactAccuracy:
-
     def test_all_correct(self):
         gold = [FitCategory.LOW, FitCategory.MODERATE, FitCategory.GOOD]
         pred: list[FitCategory | None] = list(gold)
@@ -49,13 +48,13 @@ class TestExactAccuracy:
 
 
 class TestAdjacentAccuracy:
-
     def test_exact_and_neighbors(self):
         gold = [
             FitCategory.LOW,
             FitCategory.LOW,
             FitCategory.LOW,
-            FitCategory.MODERATE, ]
+            FitCategory.MODERATE,
+        ]
         pred = [
             FitCategory.LOW,  # exact
             FitCategory.MODERATE,  # adjacent
@@ -66,7 +65,6 @@ class TestAdjacentAccuracy:
 
 
 class TestConfusionMatrix:
-
     def test_with_error_column(self):
         gold = [FitCategory.LOW, FitCategory.MODERATE, FitCategory.GOOD]
         pred = [FitCategory.LOW, None, FitCategory.MODERATE]
@@ -84,7 +82,6 @@ class TestConfusionMatrix:
 
 
 class TestPerClassPrf:
-
     def test_perfect(self):
         gold = [FitCategory.LOW, FitCategory.MODERATE, FitCategory.GOOD]
         pred: list[FitCategory | None] = list(gold)

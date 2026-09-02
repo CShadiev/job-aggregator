@@ -55,7 +55,8 @@ class BenchmarkRun:
     results: list[EntryResult] = field(default_factory=list)
     usage: RunUsage = field(default_factory=RunUsage)
     timestamp: str = field(
-        default_factory=lambda: datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S"), )
+        default_factory=lambda: datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S"),
+    )
 
 
 def _list_versions(dataset_root: Path) -> list[str]:
@@ -72,7 +73,8 @@ def resolve_dataset_dir(dataset_root: Path, dataset_version: str | None) -> Path
             available = ", ".join(versions) if versions else "(none)"
             raise SystemExit(
                 f"Dataset version {dataset_version!r} not found under {dataset_root}. "
-                f"Available: {available}")
+                f"Available: {available}"
+            )
         return dataset_dir
 
     if len(versions) == 0:
@@ -80,7 +82,8 @@ def resolve_dataset_dir(dataset_root: Path, dataset_version: str | None) -> Path
     if len(versions) > 1:
         raise SystemExit(
             "Multiple dataset versions found; pass --dataset-version explicitly. "
-            f"Available: {', '.join(versions)}")
+            f"Available: {', '.join(versions)}"
+        )
     return dataset_root / versions[0]
 
 
@@ -97,7 +100,8 @@ def load_dataset(dataset_dir: Path) -> tuple[dict, list[dict], Path]:
     if manifest.get("dataset_version") != dataset_dir.name:
         raise SystemExit(
             f"manifest.dataset_version={manifest.get('dataset_version')!r} "
-            f"does not match directory name {dataset_dir.name!r}")
+            f"does not match directory name {dataset_dir.name!r}"
+        )
 
     entries: list[dict] = []
     with entries_path.open(encoding="utf-8") as fh:
@@ -148,7 +152,7 @@ async def run_benchmark(args: argparse.Namespace) -> Path:
     manifest, entries, cv_path = load_dataset(dataset_dir)
 
     if args.limit is not None:
-        entries = entries[:args.limit]
+        entries = entries[: args.limit]
 
     model = _parse_model(args.model)
     agent = ScreeningAgent(ModelFactory.get_model(model))
@@ -173,8 +177,8 @@ async def run_benchmark(args: argparse.Namespace) -> Path:
     with capture_run_messages() as run_records:
         async with asyncio.TaskGroup() as tg:
             tasks = [
-                tg.create_task(_screen_entry(agent, semaphore, cv_path, entry))
-                for entry in entries]
+                tg.create_task(_screen_entry(agent, semaphore, cv_path, entry)) for entry in entries
+            ]
         run.results = [task.result() for task in tasks]
 
     for record in run_records:
@@ -191,7 +195,8 @@ async def run_benchmark(args: argparse.Namespace) -> Path:
         raise SystemExit(
             f"Aborting: {failed}/{n} entries failed "
             f"(>{_FAILURE_ABORT_RATIO:.0%} threshold). "
-            f"Partial results: {reports_dir / f'{stem}.results.jsonl'}")
+            f"Partial results: {reports_dir / f'{stem}.results.jsonl'}"
+        )
 
     reports_dir = Path(args.reports_dir)
     reports_dir.mkdir(parents=True, exist_ok=True)
@@ -230,13 +235,15 @@ def _fmt_matrix(matrix: dict[str, dict[str, int]]) -> str:
 def _fmt_band_table(bands: dict[str, dict[str, float]]) -> str:
     lines = [
         "| band | n | binary gold | correct | accuracy |",
-        "|---|---|---|---|---|", ]
+        "|---|---|---|---|---|",
+    ]
     for cls in category_order():
         m = bands[cls.value]
         gold_label = "true" if m["binary_gold"] else "false"
         lines.append(
             f"| {cls.value} | {int(m['n'])} | {gold_label} | "
-            f"{int(m['correct'])} | {_fmt_pct(m['accuracy'])} |")
+            f"{int(m['correct'])} | {_fmt_pct(m['accuracy'])} |"
+        )
     return "\n".join(lines)
 
 
@@ -251,8 +258,8 @@ def _render_report(run: BenchmarkRun) -> str:
     gold_categories = [r.gold_cv_category for r in results]
     confidences = [r.predicted_confidence for r in results]
     correct: list[bool | None] = [
-        None if r.error is not None else (r.predicted_worth == r.gold_worth)
-        for r in results]
+        None if r.error is not None else (r.predicted_worth == r.gold_worth) for r in results
+    ]
 
     prf = binary_precision_recall_f1(gold_worth, pred_worth)
     bands = band_binary_accuracy(gold_categories, gold_worth, pred_worth)
@@ -261,7 +268,8 @@ def _render_report(run: BenchmarkRun) -> str:
 
     conf_by_band = {
         band: {"n": int(stats["n"]), "mean": round(stats["mean"], 3)}
-        for band, stats in conf["by_band"].items()}
+        for band, stats in conf["by_band"].items()
+    }
 
     template = _REPORT_TEMPLATE_PATH.read_text(encoding="utf-8")
     return template.format(
@@ -307,13 +315,15 @@ def _write_results_jsonl(path: Path, run: BenchmarkRun) -> None:
             "type": "meta",
             "dataset_version": run.dataset_version,
             "model": run.model,
-            "timestamp": run.timestamp, }
+            "timestamp": run.timestamp,
+        }
         fh.write(json.dumps(meta, ensure_ascii=False) + "\n")
         for r in run.results:
             if r.error is None:
                 predicted = {
                     "worth_full_assessment": r.predicted_worth,
-                    "confidence": r.predicted_confidence, }
+                    "confidence": r.predicted_confidence,
+                }
             else:
                 predicted = None
             record = {
@@ -323,9 +333,11 @@ def _write_results_jsonl(path: Path, run: BenchmarkRun) -> None:
                 "gold": {
                     "cv_ats_match_score": r.gold_cv_score,
                     "cv_category": r.gold_cv_category.value,
-                    "worth_full_assessment": r.gold_worth, },
+                    "worth_full_assessment": r.gold_worth,
+                },
                 "predicted": predicted,
-                "error": r.error, }
+                "error": r.error,
+            }
             fh.write(json.dumps(record, ensure_ascii=False) + "\n")
 
 

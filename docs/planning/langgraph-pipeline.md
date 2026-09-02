@@ -235,19 +235,20 @@ keys for the legacy worker.
 # orchestration/state.py
 class PipelineState(TypedDict, total=False):
     cycle_id: str
-    collected: list[dict]           # JobPosting dumps
+    collected: list[dict]  # JobPosting dumps
     normalize_failed: list[dict]
     unique_jobs: list[dict]
-    pairs: list[dict]               # {username, job_uid} (+ optional job dump)
+    pairs: list[dict]  # {username, job_uid} (+ optional job dump)
     pair_results: Annotated[list[dict], operator.add]
     # cleared in finalize
+
 
 class PairState(TypedDict, total=False):
     cycle_id: str
     username: str
-    job: dict                       # JobPosting dump
-    screening: dict                 # ScreeningResult dump
-    assessment: dict | None         # FitAssessment dump
+    job: dict  # JobPosting dump
+    screening: dict  # ScreeningResult dump
+    assessment: dict | None  # FitAssessment dump
     cover_letter_key: str | None
     skipped_reason: str | None
 ```
@@ -279,22 +280,36 @@ On `MongoJobsRepository` (used by new module; safe additions):
 
 ```python
 async def store_screening(
-    self, *, username: str, job_uid: str,
-    result: ScreeningResult, model: str,
+    self,
+    *,
+    username: str,
+    job_uid: str,
+    result: ScreeningResult,
+    model: str,
 ) -> None: ...
 
+
 async def get_screening(
-    self, username: str, job_uid: str,
+    self,
+    username: str,
+    job_uid: str,
 ) -> ScreeningResult | None: ...
 
+
 async def get_assessment(
-    self, username: str, job_uid: str,
+    self,
+    username: str,
+    job_uid: str,
 ) -> FitAssessment | None: ...
+
 
 async def store_failed_task(self, task: FailedTask) -> None: ...
 
+
 async def get_application_cover_letter_key(
-    self, username: str, job_uid: str,
+    self,
+    username: str,
+    job_uid: str,
 ) -> str | None: ...
 ```
 
@@ -313,9 +328,15 @@ rename-equivalent upsert — see edge cases), `store_assessment`,
 ```python
 # models/failed_tasks.py
 NodeName = Literal[
-    "collect", "normalize", "dedupe", "persist_jobs",
-    "screen", "assess", "cover_letter",
+    "collect",
+    "normalize",
+    "dedupe",
+    "persist_jobs",
+    "screen",
+    "assess",
+    "cover_letter",
 ]
+
 
 class FailedTask(BaseModel):
     node: NodeName
@@ -331,13 +352,14 @@ class FailedTask(BaseModel):
 ### Routing (pure)
 
 ```python
-def route_after_screen(state: PairState) -> Literal["assess", "pair_end"]:
-    ...
+def route_after_screen(state: PairState) -> Literal["assess", "pair_end"]: ...
+
 
 def route_after_assess(
-    state: PairState, *, min_cv_score: float,
-) -> Literal["cover_letter", "pair_end"]:
-    ...
+    state: PairState,
+    *,
+    min_cv_score: float,
+) -> Literal["cover_letter", "pair_end"]: ...
 ```
 
 ### Graph topology

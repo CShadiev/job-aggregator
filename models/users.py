@@ -176,17 +176,19 @@ class UserProfile(BaseModel):
 
 
 class LoginRequest(BaseModel):
-    '''
+    """
     Request model for user login.
-    '''
+    """
+
     username: str
     password: str
 
 
 class LoginResponse(BaseModel):
-    '''
+    """
     Response model for successful login.
-    '''
+    """
+
     access_token: str
     id_token: str
     token_type: str
@@ -195,14 +197,16 @@ class LoginResponse(BaseModel):
 
 
 class LogoutRequest(BaseModel):
-    '''
+    """
     Request model for user logout.
-    '''
+    """
+
     refresh_token: str | None = None
 
 
 class RefreshTokenRequest(BaseModel):
-    '''
+    """
     Request model for refreshing a token.
-    '''
+    """
+
     refresh_token: str

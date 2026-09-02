@@ -33,7 +33,12 @@ log = LoggerProvider.get_logger()
 
 _DEFAULT_DATASET_ROOT = Path("benchmarks/screening/dataset")
 _JOB_EXPORT_FIELDS = (
-    *_JOB_FIELDS, "collected_at", "updated_at", "company_normalized", "title_normalized")
+    *_JOB_FIELDS,
+    "collected_at",
+    "updated_at",
+    "company_normalized",
+    "title_normalized",
+)
 _FIXED_N = 300
 _QUOTAS: dict[FitCategory, int] = {
     FitCategory.GOOD: 30,
@@ -65,7 +70,8 @@ def stratified_sample(
             shortfalls.append(f"{cls.value}: available={available}, required={quota}")
     if shortfalls:
         raise SystemExit(
-            "Insufficient inventory for screening quotas:\n  " + "\n  ".join(shortfalls))
+            "Insufficient inventory for screening quotas:\n  " + "\n  ".join(shortfalls)
+        )
 
     random.seed(_SAMPLE_SEED)
     selected: list[dict] = []
@@ -85,15 +91,16 @@ async def _resolve_username(repo: MongoJobsRepository, username: str | None) -> 
     if username:
         return username
 
-    usernames = sorted({
-        doc["username"]
-        async for doc in repo._assessments.find({}, projection={"username": 1})})
+    usernames = sorted(
+        {doc["username"] async for doc in repo._assessments.find({}, projection={"username": 1})}
+    )
     if not usernames:
         raise SystemExit("No assessments found in MongoDB")
     if len(usernames) > 1:
         raise SystemExit(
             "Multiple usernames have assessments; pass --username explicitly. "
-            f"Found: {', '.join(usernames)}")
+            f"Found: {', '.join(usernames)}"
+        )
     return usernames[0]
 
 
@@ -113,19 +120,25 @@ async def _load_candidates(repo: MongoJobsRepository, username: str) -> list[dic
                 "from": config.MONGODB_JOBS_COLLECTION,
                 "localField": "job_uid",
                 "foreignField": "uid",
-                "as": "job", }, },
-        {"$unwind": "$job"}, ]
+                "as": "job",
+            },
+        },
+        {"$unwind": "$job"},
+    ]
     cursor = await repo._assessments.aggregate(pipeline)
     candidates: list[dict] = []
     async for doc in cursor:
         assessment = FitAssessment.model_validate(doc["assessment"])
         job = JobPosting.model_validate(doc["job"])
         cv_category = score_to_category(assessment.cv_ats_match_score)
-        candidates.append({
-            "username": username,
-            "job": job,
-            "assessment": assessment,
-            "cv_category": cv_category, })
+        candidates.append(
+            {
+                "username": username,
+                "job": job,
+                "assessment": assessment,
+                "cv_category": cv_category,
+            }
+        )
     return candidates
 
 
@@ -159,7 +172,9 @@ def _write_dataset(
                 "gold": {
                     "cv_ats_match_score": assessment.cv_ats_match_score,
                     "cv_category": cv_category.value,
-                    "worth_full_assessment": category_to_worth(cv_category), }, }
+                    "worth_full_assessment": category_to_worth(cv_category),
+                },
+            }
             fh.write(json.dumps(record, ensure_ascii=False) + "\n")
 
     cv_path = out_dir / "cv.pdf"
@@ -174,17 +189,19 @@ def _write_dataset(
         "n_entries": len(sample),
         "stratification": {
             "axis": "cv_category",
-            "target_per_class": {c.value: targets[c]
-                                 for c in category_order()},
-            "actual_per_class": {c.value: actual[c]
-                                 for c in category_order()},
-            "positive_definition": "cv_category in {moderate, good} (score >= 50)", },
+            "target_per_class": {c.value: targets[c] for c in category_order()},
+            "actual_per_class": {c.value: actual[c] for c in category_order()},
+            "positive_definition": "cv_category in {moderate, good} (score >= 50)",
+        },
         "cv_path": "cv.pdf",
         "source": {
             "mongodb_database": config.MONGODB_DATABASE,
             "note": (
                 "CV scores are historical FitAssessmentAgent outputs, not human "
-                "labels. Binary gold derived from cv_category."), }, }
+                "labels. Binary gold derived from cv_category."
+            ),
+        },
+    }
     (out_dir / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
 
 
@@ -214,7 +231,8 @@ async def export_dataset(args: argparse.Namespace) -> Path:
             cv_bytes = object_storage.get_user_cv(username)
         except Exception as exc:
             raise SystemExit(
-                f"Failed to fetch CV from S3 for username={username!r}: {exc}") from exc
+                f"Failed to fetch CV from S3 for username={username!r}: {exc}"
+            ) from exc
         if not cv_bytes:
             raise SystemExit(f"Empty CV fetched from S3 for username={username!r}")
 
@@ -237,8 +255,7 @@ async def export_dataset(args: argparse.Namespace) -> Path:
             "Wrote dataset version={} n_entries={} actual_per_class={}",
             dataset_version,
             len(sample),
-            {c.value: actual[c]
-             for c in category_order()},
+            {c.value: actual[c] for c in category_order()},
         )
         return out_dir
     finally:
@@ -276,7 +293,8 @@ def main() -> None:
     args = build_parser().parse_args()
     if args.n != _FIXED_N:
         raise SystemExit(
-            f"--n must be {_FIXED_N} for v1 (hardcoded 30/60/210 quotas); got {args.n}")
+            f"--n must be {_FIXED_N} for v1 (hardcoded 30/60/210 quotas); got {args.n}"
+        )
     out_dir = asyncio.run(export_dataset(args))
     print(out_dir)
 

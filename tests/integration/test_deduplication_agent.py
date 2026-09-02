@@ -23,7 +23,9 @@ def get_agent() -> DeduplicationAgent:
     return DeduplicationAgent(model)
 
 
-def count_deduped_by_normalized_key(processed: list, ) -> int:
+def count_deduped_by_normalized_key(
+    processed: list,
+) -> int:
     seen: set[tuple[str, str]] = set()
     for posting in processed:
         key = (posting.title_normalized, posting.company_normalized)
@@ -41,7 +43,9 @@ async def test_benchmark_normalization_accuracy():
             uid=f"benchmark:{index}",
             title=entry["title"],
             company=entry["company"],
-        ) for index, entry in enumerate(dataset)]
+        )
+        for index, entry in enumerate(dataset)
+    ]
 
     log.info("Deduplication benchmark model={}", MODEL_NAME)
 
@@ -65,7 +69,8 @@ async def test_benchmark_normalization_accuracy():
             error = failed.error if failed else "missing from agent output"
             mismatches.append(
                 f"[{index}] failed normalization: title={entry['title']!r} "
-                f"company={entry['company']!r} error={error!r}", )
+                f"company={entry['company']!r} error={error!r}",
+            )
             log.info(
                 "Benchmark output [{}]: status=failed title={!r} company={!r} error={!r}",
                 index,
@@ -101,7 +106,8 @@ async def test_benchmark_normalization_accuracy():
                 f"got title_normalized={processed.title_normalized!r} "
                 f"company_normalized={processed.company_normalized!r} "
                 f"expected title={entry['expected_normalized_title']!r} "
-                f"company={entry['expected_normalized_company']!r}", )
+                f"company={entry['expected_normalized_company']!r}",
+            )
 
     accuracy = correct / len(dataset)
     total_usage = RunUsage()
@@ -110,8 +116,7 @@ async def test_benchmark_normalization_accuracy():
             total_usage = total_usage + record.usage
 
     log.info(
-        "Benchmark run cost: model={} requests={} input_tokens={} output_tokens={} "
-        "total_tokens={}",
+        "Benchmark run cost: model={} requests={} input_tokens={} output_tokens={} total_tokens={}",
         MODEL_NAME,
         total_usage.requests,
         total_usage.input_tokens,
@@ -132,8 +137,7 @@ async def test_benchmark_normalization_accuracy():
         ACCURACY_THRESHOLD,
     )
     log.info(
-        "Benchmark deduplication: n_target={} n_deduped={} n_total={} "
-        "metric={:.3f} max={:.2f}",
+        "Benchmark deduplication: n_target={} n_deduped={} n_total={} metric={:.3f} max={:.2f}",
         n_target,
         n_deduped,
         n_total,
@@ -146,8 +150,10 @@ async def test_benchmark_normalization_accuracy():
     assert not result.failed, f"Unexpected normalization failures: {result.failed}"
     assert accuracy >= ACCURACY_THRESHOLD, (
         f"Accuracy {accuracy:.1%} below threshold {ACCURACY_THRESHOLD:.0%}. "
-        f"Mismatches: {mismatches}")
+        f"Mismatches: {mismatches}"
+    )
     assert 0 <= deduplication_metric <= DEDUPLICATION_METRIC_MAX, (
         f"Deduplication metric {deduplication_metric:.3f} outside "
         f"allowed range [0, {DEDUPLICATION_METRIC_MAX:.2f}]. "
-        f"n_target={n_target} n_deduped={n_deduped} n_total={n_total}")
+        f"n_target={n_target} n_deduped={n_deduped} n_total={n_total}"
+    )

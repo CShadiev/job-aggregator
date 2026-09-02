@@ -57,7 +57,8 @@ def build_collectors(client_session: ClientSession, config: Config) -> list:
             apify_parser=LinkedinApifyParser(source_tag="linkedin-united-kingdom"),
             run_apify_task=False,
         ),
-        ArbeitnowCollector(client=client_session), ]
+        ArbeitnowCollector(client=client_session),
+    ]
 
 
 async def build_deps(
@@ -72,8 +73,7 @@ async def build_deps(
     screening_model = Model(cfg.SCREENING_MODEL)
     fit_assessment_model = Model(cfg.FIT_ASSESSMENT_MODEL)
     cover_letter_model = Model(cfg.COVER_LETTER_MODEL)
-    deduplication_agent = DeduplicationAgent(
-        ModelFactory.get_model(deduplication_model))
+    deduplication_agent = DeduplicationAgent(ModelFactory.get_model(deduplication_model))
     collection_service = CollectionService(
         collectors=build_collectors(client_session, cfg),
         repo=repository,
@@ -84,10 +84,8 @@ async def build_deps(
         repository=repository,
         object_storage=ObjectStorage(),
         screening_agent=ScreeningAgent(ModelFactory.get_model(screening_model)),
-        fit_assessment_agent=FitAssessmentAgent(
-            ModelFactory.get_model(fit_assessment_model)),
-        cover_letter_agent=CoverLetterGenerationAgent(
-            ModelFactory.get_model(cover_letter_model)),
+        fit_assessment_agent=FitAssessmentAgent(ModelFactory.get_model(fit_assessment_model)),
+        cover_letter_agent=CoverLetterGenerationAgent(ModelFactory.get_model(cover_letter_model)),
         cover_letter_min_cv_score=cfg.COVER_LETTER_MIN_CV_SCORE,
         screening_model=screening_model.value,
         thread_id=cfg.PIPELINE_THREAD_ID,

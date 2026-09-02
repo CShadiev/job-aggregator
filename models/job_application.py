@@ -17,6 +17,7 @@ class ApplicationStage(StrEnum):
 
 class CoverLetterPdfKey(BaseModel):
     """Key of the cover letter in the object storage."""
+
     source_hash: str
     value: str
 

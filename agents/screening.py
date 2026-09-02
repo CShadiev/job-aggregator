@@ -26,7 +26,8 @@ class ScreeningAgent:
         prompt = self._build_screening_prompt(job)
         user_content: list[str | BinaryContent] = [
             prompt,
-            self._cv_content(cv), ]
+            self._cv_content(cv),
+        ]
 
         result = await self.agent.run(user_content)
         output = result.output

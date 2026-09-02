@@ -29,7 +29,10 @@ async def login(request: LoginRequest, auth0_client: AppAuth0Client) -> LoginRes
         # Authentication failed (invalid credentials)
         user_log.warning(f"Authentication failed: {str(e)}")
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail=str(e), headers={"WWW-Authenticate": "Bearer"})
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=str(e),
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     except Exception as e:
         # Other errors (network issues, Auth0 unavailable, etc.)
         user_log.error(f"Unexpected error during authentication: {str(e)}")
@@ -37,14 +40,18 @@ async def login(request: LoginRequest, auth0_client: AppAuth0Client) -> LoginRes
 
 
 @router.post("/refresh", response_model=LoginResponse)
-async def refresh_token(request: RefreshTokenRequest, auth0_client: AppAuth0Client) -> LoginResponse:
+async def refresh_token(
+    request: RefreshTokenRequest, auth0_client: AppAuth0Client
+) -> LoginResponse:
     """
     Refresh an access token using a refresh token.
     """
     try:
         if not request.refresh_token:
             log.warning("Token refresh attempted without refresh token")
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Refresh token is required")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail="Refresh token is required"
+            )
 
         log.info("Refreshing access token")
 
@@ -53,13 +60,17 @@ async def refresh_token(request: RefreshTokenRequest, auth0_client: AppAuth0Clie
 
         log.info("Access token refreshed successfully")
 
-        return LoginResponse.model_validate({
-            **token_data,
-            "refresh_token": request.refresh_token  # Return same refresh token
-        })
+        return LoginResponse.model_validate(
+            {
+                **token_data,
+                "refresh_token": request.refresh_token,  # Return same refresh token
+            }
+        )
 
     except Exception as e:
         log.error(f"Error refreshing token: {str(e)}")
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Failed to refresh token. Please login again.",
-            headers={"WWW-Authenticate": "Bearer"})
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Failed to refresh token. Please login again.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )

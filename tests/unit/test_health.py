@@ -26,12 +26,7 @@ def test_readyz_endpoint_healthy(client):
     try:
         response = client.get("/readyz")
         assert response.status_code == 200
-        assert response.json() == {
-            "status": "ready",
-            "checks": {
-                "mongodb": "ok"
-            }
-        }
+        assert response.json() == {"status": "ready", "checks": {"mongodb": "ok"}}
     finally:
         app.dependency_overrides.clear()
 
@@ -44,11 +39,6 @@ def test_readyz_endpoint_unhealthy(client):
     try:
         response = client.get("/readyz")
         assert response.status_code == 503
-        assert response.json() == {
-            "status": "unready",
-            "checks": {
-                "mongodb": "unreachable"
-            }
-        }
+        assert response.json() == {"status": "unready", "checks": {"mongodb": "unreachable"}}
     finally:
         app.dependency_overrides.clear()

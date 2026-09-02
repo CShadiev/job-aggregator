@@ -7,7 +7,7 @@ from models.collection_service import JobPosting
 from models.fit_assessment import CoverLetterContent, FitAssessment
 from models.users import UserProfile
 
-_PROMPT_TEMPLATE_PATH = (Path(__file__).parent / "prompt_templates" / "cover_letter_generation.md")
+_PROMPT_TEMPLATE_PATH = Path(__file__).parent / "prompt_templates" / "cover_letter_generation.md"
 
 _JOB_FIELDS = (
     "uid",

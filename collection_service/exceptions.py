@@ -8,7 +8,9 @@ class CollectionTimeoutError(Exception):
         self.url = url
         self.timeout_seconds = timeout_seconds
         detail = f" after {timeout_seconds}s" if timeout_seconds is not None else ""
-        super().__init__(f"API request timed out{detail}: {url}" if url else f"API request timed out{detail}")
+        super().__init__(
+            f"API request timed out{detail}: {url}" if url else f"API request timed out{detail}"
+        )
 
 
 class CollectionAPIError(Exception):
@@ -28,4 +30,5 @@ class MissingEntriesError(Exception):
         self.min_date = min_date.isoformat()
         super().__init__(
             f"Collection is incomplete: earliest entry {self.earliest_date} "
-            f"is later than min_date {self.min_date}")
+            f"is later than min_date {self.min_date}"
+        )

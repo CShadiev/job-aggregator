@@ -102,7 +102,9 @@ def make_pair_nodes(deps: PipelineDeps) -> dict[str, Any]:
                 raise ValueError(f"User profile not found: {username}")
             cv = object_storage.get_user_cv(username)
             assessment = await fit_assessment_agent.assess(
-                user_profile=profile, cv=cv, job=job,
+                user_profile=profile,
+                cv=cv,
+                job=job,
             )
             await repository.store_assessment(assessment, username, job.uid)
             _log.info(
@@ -147,7 +149,9 @@ def make_pair_nodes(deps: PipelineDeps) -> dict[str, Any]:
             file_path.parent.mkdir(parents=True, exist_ok=True)
             file_path.write_text(content.model_dump_json(indent=2))
             object_key = object_storage.upload_coverletter_json(
-                username=username, job_id=job.uid, file_path=str(file_path),
+                username=username,
+                job_id=job.uid,
+                file_path=str(file_path),
             )
             await repository.update_job_application_status(
                 job_uid=job.uid,

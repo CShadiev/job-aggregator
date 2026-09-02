@@ -60,7 +60,8 @@ class BenchmarkRun:
     results: list[EntryResult] = field(default_factory=list)
     usage: RunUsage = field(default_factory=RunUsage)
     timestamp: str = field(
-        default_factory=lambda: datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S"), )
+        default_factory=lambda: datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S"),
+    )
 
 
 def _list_versions(dataset_root: Path) -> list[str]:
@@ -77,7 +78,8 @@ def resolve_dataset_dir(dataset_root: Path, dataset_version: str | None) -> Path
             available = ", ".join(versions) if versions else "(none)"
             raise SystemExit(
                 f"Dataset version {dataset_version!r} not found under {dataset_root}. "
-                f"Available: {available}")
+                f"Available: {available}"
+            )
         return dataset_dir
 
     if len(versions) == 0:
@@ -85,7 +87,8 @@ def resolve_dataset_dir(dataset_root: Path, dataset_version: str | None) -> Path
     if len(versions) > 1:
         raise SystemExit(
             "Multiple dataset versions found; pass --dataset-version explicitly. "
-            f"Available: {', '.join(versions)}")
+            f"Available: {', '.join(versions)}"
+        )
     return dataset_root / versions[0]
 
 
@@ -103,7 +106,8 @@ def load_dataset(dataset_dir: Path) -> tuple[dict, list[dict], UserProfile, Path
     if manifest.get("dataset_version") != dataset_dir.name:
         raise SystemExit(
             f"manifest.dataset_version={manifest.get('dataset_version')!r} "
-            f"does not match directory name {dataset_dir.name!r}")
+            f"does not match directory name {dataset_dir.name!r}"
+        )
 
     entries: list[dict] = []
     with entries_path.open(encoding="utf-8") as fh:
@@ -148,7 +152,8 @@ async def _assess_entry(
             result.predicted_profile_score = assessment.profile_ats_match_score
             result.predicted_cv_category = score_to_category(assessment.cv_ats_match_score)
             result.predicted_profile_category = score_to_category(
-                assessment.profile_ats_match_score)
+                assessment.profile_ats_match_score
+            )
             result.deal_breakers = list(assessment.deal_breakers)
             result.summary = assessment.summary
         except Exception as exc:  # noqa: BLE001 — per-entry isolation
@@ -162,7 +167,7 @@ async def run_benchmark(args: argparse.Namespace) -> Path:
     manifest, entries, profile, cv_path = load_dataset(dataset_dir)
 
     if args.limit is not None:
-        entries = entries[:args.limit]
+        entries = entries[: args.limit]
 
     model = _parse_model(args.model)
     agent = FitAssessmentAgent(ModelFactory.get_model(model))
@@ -188,7 +193,8 @@ async def run_benchmark(args: argparse.Namespace) -> Path:
         async with asyncio.TaskGroup() as tg:
             tasks = [
                 tg.create_task(_assess_entry(agent, semaphore, profile, cv_path, entry))
-                for entry in entries]
+                for entry in entries
+            ]
         run.results = [task.result() for task in tasks]
 
     for record in run_records:
@@ -205,7 +211,8 @@ async def run_benchmark(args: argparse.Namespace) -> Path:
         raise SystemExit(
             f"Aborting: {failed}/{n} entries failed "
             f"(>{_FAILURE_ABORT_RATIO:.0%} threshold). "
-            f"Partial results: {reports_dir / f'{stem}.results.jsonl'}")
+            f"Partial results: {reports_dir / f'{stem}.results.jsonl'}"
+        )
 
     reports_dir = Path(args.reports_dir)
     reports_dir.mkdir(parents=True, exist_ok=True)
@@ -226,8 +233,9 @@ def _fmt_pct(value: float) -> str:
 
 
 def _fmt_matrix(matrix: dict[str, dict[str, int]]) -> str:
-    cols = list(next(iter(matrix.values())).keys()) if matrix else [
-        c.value for c in category_order()]
+    cols = (
+        list(next(iter(matrix.values())).keys()) if matrix else [c.value for c in category_order()]
+    )
     header = "| gold \\ pred | " + " | ".join(cols) + " |"
     sep = "|" + "|".join(["---"] * (len(cols) + 1)) + "|"
     rows = [header, sep]
@@ -241,12 +249,14 @@ def _fmt_matrix(matrix: dict[str, dict[str, int]]) -> str:
 def _fmt_prf(metrics: dict[FitCategory, dict[str, float]]) -> str:
     lines = [
         "| class | precision | recall | f1 | support |",
-        "|---|---|---|---|---|", ]
+        "|---|---|---|---|---|",
+    ]
     for cls in category_order():
         m = metrics[cls]
         lines.append(
             f"| {cls.value} | {m['precision']:.3f} | {m['recall']:.3f} | "
-            f"{m['f1']:.3f} | {int(m['support'])} |")
+            f"{m['f1']:.3f} | {int(m['support'])} |"
+        )
     return "\n".join(lines)
 
 
@@ -299,7 +309,8 @@ def _write_results_jsonl(path: Path, run: BenchmarkRun) -> None:
             "type": "meta",
             "dataset_version": run.dataset_version,
             "model": run.model,
-            "timestamp": run.timestamp, }
+            "timestamp": run.timestamp,
+        }
         fh.write(json.dumps(meta, ensure_ascii=False) + "\n")
         for r in run.results:
             if r.error is None:
@@ -307,12 +318,14 @@ def _write_results_jsonl(path: Path, run: BenchmarkRun) -> None:
                     "cv_ats_match_score": r.predicted_cv_score,
                     "profile_ats_match_score": r.predicted_profile_score,
                     "cv_category": r.predicted_cv_category.value
-                    if r.predicted_cv_category else None,
+                    if r.predicted_cv_category
+                    else None,
                     "profile_category": (
-                        r.predicted_profile_category.value
-                        if r.predicted_profile_category else None),
+                        r.predicted_profile_category.value if r.predicted_profile_category else None
+                    ),
                     "deal_breakers": r.deal_breakers or [],
-                    "summary": r.summary, }
+                    "summary": r.summary,
+                }
             else:
                 predicted = None
             record = {
@@ -323,9 +336,11 @@ def _write_results_jsonl(path: Path, run: BenchmarkRun) -> None:
                     "cv_ats_match_score": r.gold_cv_score,
                     "profile_ats_match_score": r.gold_profile_score,
                     "cv_category": r.gold_cv_category.value,
-                    "profile_category": r.gold_profile_category.value, },
+                    "profile_category": r.gold_profile_category.value,
+                },
                 "predicted": predicted,
-                "error": r.error, }
+                "error": r.error,
+            }
             fh.write(json.dumps(record, ensure_ascii=False) + "\n")
 
 

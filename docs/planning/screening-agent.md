@@ -243,9 +243,11 @@ class ScreeningAgent:
 ```python
 from benchmarks.fit_assessment.categories import FitCategory, score_to_category
 
+
 def category_to_worth(category: FitCategory) -> bool:
     """True iff category is moderate or good (CV score ≥ 50)."""
     return category != FitCategory.LOW
+
 
 def score_to_worth(score: float) -> bool:
     return category_to_worth(score_to_category(score))
@@ -255,18 +257,25 @@ def score_to_worth(score: float) -> bool:
 
 ```python
 def binary_precision_recall_f1(
-    gold: list[bool], pred: list[bool | None], *, positive: bool = True,
+    gold: list[bool],
+    pred: list[bool | None],
+    *,
+    positive: bool = True,
 ) -> dict[str, float]:
     """Precision/recall/F1/support for the positive class. None → FN if gold positive."""
     ...
 
+
 def binary_accuracy(gold: list[bool], pred: list[bool | None]) -> float: ...
 
+
 def binary_confusion_matrix(
-    gold: list[bool], pred: list[bool | None],
+    gold: list[bool],
+    pred: list[bool | None],
 ) -> dict[str, dict[str, int]]:
     """Rows/cols: ``true``, ``false``, optional ``error`` column."""
     ...
+
 
 def band_binary_accuracy(
     gold_categories: list[FitCategory],
@@ -275,6 +284,7 @@ def band_binary_accuracy(
 ) -> dict[str, dict[str, float]]:
     """Per gold band: n, correct, accuracy under binary mapping."""
     ...
+
 
 def confidence_summary(
     confidences: list[float | None],

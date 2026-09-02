@@ -67,9 +67,7 @@ def _make_job_posting(i: int) -> JobPosting:
 def _make_fit_assessment(i: int) -> FitAssessment:
     cv_score = (i * 7) % 101
     profile_score = (i * 13) % 101
-    deal_breakers = (
-        [f"Missing requirement {i % 5}"] if i % 5 == 0 else []
-    )
+    deal_breakers = [f"Missing requirement {i % 5}"] if i % 5 == 0 else []
     return FitAssessment(
         cv_ats_match_score=float(cv_score),
         profile_ats_match_score=float(profile_score),
@@ -99,8 +97,6 @@ def generate_job_feed_items(username: str = "test_user") -> list[JobFeedItem]:
         job = _make_job_posting(i)
         fit = _make_fit_assessment(i)
         # Leave some items without a status to exercise the optional field.
-        status = (
-            _make_status(i, job.uid, username) if i % 6 != 0 else None
-        )
+        status = _make_status(i, job.uid, username) if i % 6 != 0 else None
         items.append(JobFeedItem(job=job, fit=fit, status=status))
     return items

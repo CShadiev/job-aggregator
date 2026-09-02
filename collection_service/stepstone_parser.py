@@ -41,20 +41,25 @@ class StepstoneParser:
         company = raw.get("company", None)
         date_posted = raw.get("date_posted", None)
         if title and company and date_posted:
-            uid = f"stepstone:{hashlib.sha256(f'{title}{company}{date_posted}'.encode()).hexdigest()}"
+            uid = (
+                f"stepstone:{hashlib.sha256(f'{title}{company}{date_posted}'.encode()).hexdigest()}"
+            )
         else:
             uid = None
-        return JobPosting.model_validate({
-            "uid": uid,
-            "source": self.source_tag,
-            "title": raw.get("title", None),
-            "company": raw.get("company", None),
-            "location": raw.get("location", None),
-            "remote": raw.get("remote", False),
-            "url": raw.get("url", None),
-            "tags": [t.lower() for t in raw.get("tags", ["python developer"])],
-            "description_raw": raw.get("description_html", None),
-            "job_types": [t.lower() for t in raw.get("job_types", [])],
-            "posted_at": raw["date_posted"],
-            "collected_at": datetime.now(tz=timezone.utc),
-            "updated_at": datetime.now(tz=timezone.utc), })
+        return JobPosting.model_validate(
+            {
+                "uid": uid,
+                "source": self.source_tag,
+                "title": raw.get("title", None),
+                "company": raw.get("company", None),
+                "location": raw.get("location", None),
+                "remote": raw.get("remote", False),
+                "url": raw.get("url", None),
+                "tags": [t.lower() for t in raw.get("tags", ["python developer"])],
+                "description_raw": raw.get("description_html", None),
+                "job_types": [t.lower() for t in raw.get("job_types", [])],
+                "posted_at": raw["date_posted"],
+                "collected_at": datetime.now(tz=timezone.utc),
+                "updated_at": datetime.now(tz=timezone.utc),
+            }
+        )

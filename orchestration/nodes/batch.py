@@ -41,7 +41,8 @@ def make_batch_nodes(deps: PipelineDeps) -> dict[str, Any]:
                     cycle_id=cycle_id,
                     error=invalid.error,
                     payload={"entry": invalid.entry},
-                ))
+                )
+            )
         # Overwrite batch channels at cycle start so prior checkpoint lists do not stick.
         return {
             "cycle_id": cycle_id,
@@ -49,7 +50,8 @@ def make_batch_nodes(deps: PipelineDeps) -> dict[str, Any]:
             "normalize_failed": [],
             "unique_jobs": [],
             "pairs": [],
-            "pair_results": Overwrite([]), }
+            "pair_results": Overwrite([]),
+        }
 
     async def normalize(state: PipelineState) -> dict[str, Any]:
         cycle_id = state["cycle_id"]
@@ -76,11 +78,14 @@ def make_batch_nodes(deps: PipelineDeps) -> dict[str, Any]:
                     error=failure.error,
                     payload={
                         "uid": failure.posting.uid,
-                        "posting": failure.posting.model_dump(mode="json")},
-                ))
+                        "posting": failure.posting.model_dump(mode="json"),
+                    },
+                )
+            )
         return {
             "collected": [p.model_dump(mode="json") for p in result.processed],
-            "normalize_failed": [{"uid": f.posting.uid, "error": f.error} for f in result.failed], }
+            "normalize_failed": [{"uid": f.posting.uid, "error": f.error} for f in result.failed],
+        }
 
     async def dedupe(state: PipelineState) -> dict[str, Any]:
         cycle_id = state["cycle_id"]
@@ -123,7 +128,8 @@ def make_batch_nodes(deps: PipelineDeps) -> dict[str, Any]:
                     cycle_id=cycle_id,
                     error=str(exc),
                     payload={"n_jobs": len(unique_jobs)},
-                ))
+                )
+            )
             raise
         return {}
 
@@ -156,7 +162,9 @@ def make_batch_nodes(deps: PipelineDeps) -> dict[str, Any]:
                     username=pair["username"],
                     job=pair["job"],
                 ),
-            ) for pair in pairs]
+            )
+            for pair in pairs
+        ]
 
     async def finalize(state: PipelineState) -> dict[str, Any]:
         cycle_id = state["cycle_id"]
@@ -185,4 +193,5 @@ def make_batch_nodes(deps: PipelineDeps) -> dict[str, Any]:
         "persist_jobs": persist_jobs,
         "build_pairs": build_pairs,
         "fanout": fanout,
-        "finalize": finalize, }
+        "finalize": finalize,
+    }

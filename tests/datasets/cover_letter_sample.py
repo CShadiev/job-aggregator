@@ -89,12 +89,20 @@ def make_sample_user_profile() -> UserProfile:
                 TechnicalSkill(name="React", proficiency=3, evidence=["Internal dashboards"]),
             ],
             infrastructure=[
-                TechnicalSkill(name="Docker", proficiency=4, evidence=["Containerised all services"]),
-                TechnicalSkill(name="AWS", proficiency=4, evidence=["ECS, Lambda, RDS in production"]),
+                TechnicalSkill(
+                    name="Docker", proficiency=4, evidence=["Containerised all services"]
+                ),
+                TechnicalSkill(
+                    name="AWS", proficiency=4, evidence=["ECS, Lambda, RDS in production"]
+                ),
             ],
             databases=[
-                TechnicalSkill(name="PostgreSQL", proficiency=4, evidence=["Schema design, indexing, tuning"]),
-                TechnicalSkill(name="MongoDB", proficiency=3, evidence=["Document stores for job data"]),
+                TechnicalSkill(
+                    name="PostgreSQL", proficiency=4, evidence=["Schema design, indexing, tuning"]
+                ),
+                TechnicalSkill(
+                    name="MongoDB", proficiency=3, evidence=["Document stores for job data"]
+                ),
             ],
             aiMl=[
                 TechnicalSkill(

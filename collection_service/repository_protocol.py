@@ -3,7 +3,6 @@ from typing import Protocol
 
 
 class IRepository(Protocol):
-
     async def get_checkpoint(self, source_id: str) -> datetime | None:
         """Return the high-water mark timestamp for a given source.
         The checkpoint is the ``posted_at`` value of the most recently stored

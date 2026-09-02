@@ -10,7 +10,8 @@ config = ConfigProvider.get_config()
 
 GROK_PROVIDER = OpenAIProvider(api_key=config.GROK_API_KEY, base_url="https://api.x.ai/v1")
 OPENAI_PROVIDER = OpenAIProvider(
-    api_key=config.OPENAI_API_KEY, base_url="https://api.openai.com/v1")
+    api_key=config.OPENAI_API_KEY, base_url="https://api.openai.com/v1"
+)
 
 
 class Model(str, Enum):
@@ -26,7 +27,9 @@ class ModelFactory:
         Model.GROK_4_5: OpenAIResponsesModel(model_name=Model.GROK_4_5, provider=GROK_PROVIDER),
         Model.LUNA_5_6: OpenAIResponsesModel(model_name=Model.LUNA_5_6, provider=OPENAI_PROVIDER),
         Model.GPT_5_MINI: OpenAIResponsesModel(
-            model_name=Model.GPT_5_MINI, provider=OPENAI_PROVIDER), }
+            model_name=Model.GPT_5_MINI, provider=OPENAI_PROVIDER
+        ),
+    }
 
     @classmethod
     def get_model(cls, model: Model) -> PydanticModel:

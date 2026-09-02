@@ -45,7 +45,8 @@ class FitAssessmentAgent:
         prompt = self._build_assessment_prompt(user_profile, job)
         user_content: list[str | BinaryContent] = [
             prompt,
-            self._cv_content(cv), ]
+            self._cv_content(cv),
+        ]
 
         result = await self.agent.run(user_content)
         return result.output

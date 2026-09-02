@@ -7,7 +7,11 @@ from pydantic import ValidationError
 
 from config import ConfigProvider
 from collection_service.apify_parser_protocol import IApifyParser
-from collection_service.exceptions import CollectionTimeoutError, MissingEntriesError, CollectionAPIError
+from collection_service.exceptions import (
+    CollectionTimeoutError,
+    MissingEntriesError,
+    CollectionAPIError,
+)
 from models.collection_service import CollectionResult, InvalidEntry, JobPosting
 from logger_provider import LoggerProvider
 
@@ -23,8 +27,14 @@ class ApifyCollector:
     """
 
     def __init__(
-            self, client_session: ClientSession, task_id: str, source_tag: str, apify_parser: IApifyParser,
-            run_apify_task: bool = True, api_timeout_seconds: int = 5 * 60):
+        self,
+        client_session: ClientSession,
+        task_id: str,
+        source_tag: str,
+        apify_parser: IApifyParser,
+        run_apify_task: bool = True,
+        api_timeout_seconds: int = 5 * 60,
+    ):
         """Initialise the collector.
 
         Args:
@@ -71,8 +81,11 @@ class ApifyCollector:
         """
 
         log.info(
-            "Collecting jobs from Apify ({source_tag}, {task_id}, {min_date})", source_tag=self.source_tag,
-            task_id=self.task_id, min_date=min_date)
+            "Collecting jobs from Apify ({source_tag}, {task_id}, {min_date})",
+            source_tag=self.source_tag,
+            task_id=self.task_id,
+            min_date=min_date,
+        )
         url = ""
         try:
             if self.run_apify_task:
@@ -81,7 +94,8 @@ class ApifyCollector:
                     url,
                     headers={
                         "Authorization": f"Bearer {self.api_key}",
-                        "Accept": "application/json", },
+                        "Accept": "application/json",
+                    },
                     params={"format": "json", "clean": 1},
                     timeout=ClientTimeout(total=self.api_timeout_seconds),
                 )
@@ -91,17 +105,25 @@ class ApifyCollector:
                     url,
                     headers={
                         "Authorization": f"Bearer {self.api_key}",
-                        "Accept": "application/json", },
+                        "Accept": "application/json",
+                    },
                     params={"format": "json", "clean": 1, "status": "SUCCEEDED"},
                     timeout=ClientTimeout(total=self.api_timeout_seconds),
                 )
         except ServerTimeoutError as e:
             log.error(
-                "Collection timed out ({url}, {timeout_seconds})", url=url, timeout_seconds=self.api_timeout_seconds)
+                "Collection timed out ({url}, {timeout_seconds})",
+                url=url,
+                timeout_seconds=self.api_timeout_seconds,
+            )
             raise CollectionTimeoutError(url, self.api_timeout_seconds) from e
 
         if response.status not in (200, 201):
-            log.error("Collection API error ({status}, {text})", status=response.status, text=await response.text())
+            log.error(
+                "Collection API error ({status}, {text})",
+                status=response.status,
+                text=await response.text(),
+            )
             raise CollectionAPIError(response.status, await response.text())
 
         data = await response.json()

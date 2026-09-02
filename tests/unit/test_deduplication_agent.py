@@ -10,16 +10,19 @@ def get_agent() -> DeduplicationAgent:
 
 
 class TestReconcile:
-
     def test_happy_path(self):
         agent = get_agent()
         postings = [
             make_job_posting(uid="test:0", title="Sr. Engineer", company="Google Inc."),
-            make_job_posting(uid="test:1", title="Dev.", company="Meta LLC"), ]
+            make_job_posting(uid="test:1", title="Dev.", company="Meta LLC"),
+        ]
         temp_map = {str(i): posting for i, posting in enumerate(postings)}
-        normalized = make_normalized_batch([
-            ("0", "senior engineer", "google"),
-            ("1", "developer", "meta"), ])
+        normalized = make_normalized_batch(
+            [
+                ("0", "senior engineer", "google"),
+                ("1", "developer", "meta"),
+            ]
+        )
 
         processed_jobs, failed_jobs = agent._reconcile(temp_map, normalized)
 
@@ -35,7 +38,8 @@ class TestReconcile:
         agent = get_agent()
         postings = [
             make_job_posting(uid="test:0"),
-            make_job_posting(uid="test:1"), ]
+            make_job_posting(uid="test:1"),
+        ]
         temp_map = {str(i): posting for i, posting in enumerate(postings)}
         normalized = make_normalized_batch([("0", "engineer", "acme")])
 
@@ -50,9 +54,12 @@ class TestReconcile:
         agent = get_agent()
         posting = make_job_posting(uid="test:0")
         temp_map = {"0": posting}
-        normalized = make_normalized_batch([
-            ("0", "engineer", "acme"),
-            ("99", "other", "unknown"), ])
+        normalized = make_normalized_batch(
+            [
+                ("0", "engineer", "acme"),
+                ("99", "other", "unknown"),
+            ]
+        )
 
         processed, failed = agent._reconcile(temp_map, normalized)
 
@@ -67,7 +74,9 @@ class TestReconcile:
         normalized = NormalizedBatch(
             jobs=[
                 NormalizedJobEntry(id="0", title="first", company="first-co"),
-                NormalizedJobEntry(id="0", title="second", company="second-co"), ])
+                NormalizedJobEntry(id="0", title="second", company="second-co"),
+            ]
+        )
 
         processed, failed = agent._reconcile(temp_map, normalized)
 
@@ -80,7 +89,8 @@ class TestReconcile:
         agent = get_agent()
         postings = [
             make_job_posting(uid="test:0"),
-            make_job_posting(uid="test:1"), ]
+            make_job_posting(uid="test:1"),
+        ]
         temp_map = {str(i): posting for i, posting in enumerate(postings)}
 
         processed, failed = agent._reconcile(temp_map, make_normalized_batch([]))

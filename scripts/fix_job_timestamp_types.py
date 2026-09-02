@@ -34,10 +34,12 @@ async def fix_job_timestamp_types() -> None:
         password=config.MONGODB_PASSWORD,
     )
     jobs = mongo_client.get_database(config.MONGODB_DATABASE).get_collection(
-        config.MONGODB_JOBS_COLLECTION)
+        config.MONGODB_JOBS_COLLECTION
+    )
 
     query = {
-        "$or": [{field: {"$type": "string"}} for field in _TIMESTAMP_FIELDS], }
+        "$or": [{field: {"$type": "string"}} for field in _TIMESTAMP_FIELDS],
+    }
     projection = {field: 1 for field in _TIMESTAMP_FIELDS}
     projection["_id"] = 1
 

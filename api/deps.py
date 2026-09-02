@@ -13,8 +13,9 @@ async def get_auth0_client(request: Request) -> Auth0ClientWrapper:
 
 
 async def get_current_user(
-        bearer: HTTPAuthorizationCredentials = Depends(HTTPBearer()),
-        auth0_client: Auth0ClientWrapper = Depends(get_auth0_client)) -> User:
+    bearer: HTTPAuthorizationCredentials = Depends(HTTPBearer()),
+    auth0_client: Auth0ClientWrapper = Depends(get_auth0_client),
+) -> User:
 
     token = bearer.credentials
     user_info = auth0_client.get_user_info(token)

@@ -1,7 +1,7 @@
 from typing import Generic, TypeVar
 from pydantic import BaseModel, ConfigDict, Field
 
-T = TypeVar('T')
+T = TypeVar("T")
 
 
 class DataResponse(BaseModel, Generic[T]):
