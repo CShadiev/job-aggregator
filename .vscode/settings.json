@@ -1,0 +1,17 @@
+{
+  // Tell Cursor/VS Code to use the Python environment created by uv
+  "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
+
+  // Force Ruff to use the binary installed in the active .venv (from pyproject.toml)
+  "ruff.importStrategy": "fromEnvironment",
+
+  // Set Ruff as the default formatter for Python files
+  "[python]": {
+    "editor.defaultFormatter": "charliermarsh.ruff",
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.fixAll.ruff": "explicit",
+      "source.organizeImports.ruff": "explicit"
+    }
+  }
+}
