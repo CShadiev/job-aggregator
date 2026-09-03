@@ -11,16 +11,20 @@ from fastapi.middleware import Middleware
 from fastapi.middleware.cors import CORSMiddleware
 from pymongo import AsyncMongoClient
 
+from api.middleware.correlation import CorrelationIdMiddleware
 from api.routes import health, jobs, users
 from auth_service import Auth0ClientWrapper
 from config import ConfigProvider
 from logger_provider import LoggerProvider
 from repository.mongo_jobs_repository import MongoJobsRepository
 from repository.object_storage import ObjectStorage
+from telemetry import instrument_fastapi, setup_telemetry
 
 log = LoggerProvider.get_logger()
-
 config = ConfigProvider.get_config()
+
+# Initialize OpenTelemetry tracing & auto-instrumentation
+setup_telemetry()
 
 
 @asynccontextmanager
@@ -50,6 +54,7 @@ async def lifespan(_: FastAPI):
 
 
 middleware = [
+    Middleware(CorrelationIdMiddleware),
     Middleware(
         CORSMiddleware,
         allow_methods=["GET", "POST", "PATCH", "OPTIONS"],
@@ -61,6 +66,10 @@ middleware = [
 
 # Initialize the FastAPI application with our custom lifespan manager.
 app = FastAPI(lifespan=lifespan, middleware=middleware)
+
+# Instrument FastAPI with OpenTelemetry
+instrument_fastapi(app)
+
 # Register the API routers for different functional areas.
 app.include_router(health.router)
 app.include_router(jobs.router)

@@ -16,6 +16,12 @@ dependencies = [
     "langgraph>=1.2.10",
     "langgraph-checkpoint-mongodb>=0.4.0",
     "loguru>=0.7.3",
+    "opentelemetry-api>=1.39.1",
+    "opentelemetry-instrumentation-aiohttp-client>=0.60b1",
+    "opentelemetry-instrumentation-fastapi>=0.60b1",
+    "opentelemetry-instrumentation-httpx>=0.60b1",
+    "opentelemetry-instrumentation-pymongo>=0.60b1",
+    "opentelemetry-sdk>=1.39.1",
     "pydantic>=2.13.3",
     "pydantic-ai>=1.97.0",
     "pydantic-settings>=2.14.1",
@@ -90,6 +96,7 @@ known-first-party = [
     "models",
     "orchestration",
     "repository",
+    "telemetry",
     "tools",
 ]
 
