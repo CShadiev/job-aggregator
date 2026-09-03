@@ -109,6 +109,10 @@ class Config(BaseSettings):
 
     ALLOWED_ORIGINS: list[str] = ["https://cshadiev.dev"]
 
+    OTEL_SERVICE_NAME: str = "job-aggregator"
+    OTEL_EXPORTER_OTLP_ENDPOINT: str | None = None
+    OTEL_TRACES_EXPORTER: str = "none"
+
 
 class ConfigProvider:
     """

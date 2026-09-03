@@ -13,8 +13,10 @@ from logger_provider import LoggerProvider
 from orchestration.deps import build_deps
 from orchestration.graph import build_pipeline_graph
 from orchestration.state import new_pipeline_state
+from telemetry import cycle_id_ctx, get_tracer, setup_telemetry
 
 log = LoggerProvider.get_logger()
+tracer = get_tracer("job-aggregator.pipeline")
 
 
 def _sync_mongo_client(config) -> MongoClient:
@@ -36,23 +38,31 @@ async def run_once(
         "max_concurrency": config.PIPELINE_PAIR_CONCURRENCY,
     }
     cycle_id = str(uuid4())
-    log.info(
-        "Starting pipeline cycle",
-        event="pipeline_cycle_start",
-        cycle_id=cycle_id,
-        thread_id=config.PIPELINE_THREAD_ID,
-    )
-    await graph.ainvoke(new_pipeline_state(cycle_id=cycle_id), config=invoke_config)
-    log.info(
-        "Pipeline cycle finished",
-        event="pipeline_cycle_end",
-        cycle_id=cycle_id,
-        thread_id=config.PIPELINE_THREAD_ID,
-    )
+    token = cycle_id_ctx.set(cycle_id)
+    try:
+        with tracer.start_as_current_span("pipeline.cycle") as span:
+            span.set_attribute("pipeline.cycle_id", cycle_id)
+            span.set_attribute("pipeline.thread_id", config.PIPELINE_THREAD_ID)
+            log.info(
+                "Starting pipeline cycle",
+                event="pipeline_cycle_start",
+                cycle_id=cycle_id,
+                thread_id=config.PIPELINE_THREAD_ID,
+            )
+            await graph.ainvoke(new_pipeline_state(cycle_id=cycle_id), config=invoke_config)
+            log.info(
+                "Pipeline cycle finished",
+                event="pipeline_cycle_end",
+                cycle_id=cycle_id,
+                thread_id=config.PIPELINE_THREAD_ID,
+            )
+    finally:
+        cycle_id_ctx.reset(token)
 
 
 async def _async_main() -> None:
     config = ConfigProvider.get_config()
+    setup_telemetry()
     async_mongo = AsyncMongoClient(
         host=config.MONGODB_HOST,
         port=config.MONGODB_PORT,
