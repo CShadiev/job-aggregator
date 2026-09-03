@@ -1,6 +1,5 @@
 """Pydantic models for user profiles stored in MongoDB."""
 
-
 from pydantic import BaseModel, ConfigDict, Field
 
 
