@@ -29,3 +29,5 @@ frontend/
 # uv.lock or package-lock.json.
 
 **/backend.hcl
+
+.cursor/
