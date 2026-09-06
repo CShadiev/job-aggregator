@@ -10,7 +10,7 @@ from pymongo import AsyncMongoClient, MongoClient
 
 from config import ConfigProvider
 from logger_provider import LoggerProvider
-from orchestration.deps import build_deps
+from orchestration.deps import PipelineDeps, build_deps
 from orchestration.graph import build_pipeline_graph
 from orchestration.state import new_pipeline_state
 from telemetry import cycle_id_ctx, get_tracer, setup_telemetry
@@ -77,6 +77,7 @@ async def _async_main() -> None:
         writes_collection_name=config.MONGODB_LANGGRAPH_WRITES_COLLECTION,
     )
 
+    deps: PipelineDeps | None = None
     try:
         async with ClientSession() as client_session:
             deps = await build_deps(
@@ -85,11 +86,14 @@ async def _async_main() -> None:
                 config=config,
             )
             await deps.repository.ensure_pipeline_indexes()
+            await deps.search_service.ensure_indices()
             graph = build_pipeline_graph(deps, checkpointer)
             await run_once(graph=graph, config=config)
     finally:
         await async_mongo.close()
         sync_mongo.close()
+        if deps is not None:
+            await deps.search_service.close()
 
 
 def main() -> None:

@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "dataset_version": "06092026",
+  "n_queries": 10,
+  "n_corpus": 20,
+  "n_qrels": 31,
+  "embedding_model": "text-embedding-3-small",
+  "embedding_dimensions": 1536,
+  "label_source": "ATS-band proxy (Q8) over a frozen synthetic split for CI; vectors are deterministic stand-ins for precomputed OpenAI embeddings (zero live API calls).",
+  "smoke_query_ids": [
+    "q01",
+    "q02",
+    "q03",
+    "q04",
+    "q05",
+    "q06",
+    "q07",
+    "q08",
+    "q09",
+    "q10"
+  ],
+  "ks": [
+    5,
+    10,
+    20
+  ]
+}

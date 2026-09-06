@@ -18,6 +18,8 @@ from config import ConfigProvider
 from logger_provider import LoggerProvider
 from repository.mongo_jobs_repository import MongoJobsRepository
 from repository.object_storage import ObjectStorage
+from search.client import build_opensearch_client
+from search.search_service import SearchService
 from telemetry import instrument_fastapi, setup_telemetry
 
 log = LoggerProvider.get_logger()
@@ -41,7 +43,12 @@ async def lifespan(_: FastAPI):
         password=config.MONGODB_PASSWORD,
     )
     auth0_client = Auth0ClientWrapper(config)
-    jobs_repository = MongoJobsRepository(mongo_client)
+    search_service = SearchService(build_opensearch_client(config), config=config)
+    try:
+        await search_service.ensure_indices()
+    except Exception as exc:
+        log.warning("OpenSearch index bootstrap failed: {exc}", exc=str(exc))
+    jobs_repository = MongoJobsRepository(mongo_client, search_service=search_service)
     object_storage = ObjectStorage()
     Path(config.TEMP_DIR).mkdir(parents=True, exist_ok=True)
     log.info("Dependencies initialized, application ready")
@@ -49,8 +56,10 @@ async def lifespan(_: FastAPI):
         "jobs_repository": jobs_repository,
         "auth0_client": auth0_client,
         "object_storage": object_storage,
+        "search_service": search_service,
     }
     log.info("FastAPI application shutting down")
+    await search_service.close()
 
 
 middleware = [

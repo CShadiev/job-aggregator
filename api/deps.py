@@ -7,6 +7,7 @@ from auth_service import Auth0ClientWrapper
 from models.users import User
 from repository.mongo_jobs_repository import MongoJobsRepository
 from repository.object_storage import ObjectStorage
+from search.search_service import SearchService
 
 
 async def get_auth0_client(request: Request) -> Auth0ClientWrapper:
@@ -31,7 +32,12 @@ async def get_object_storage(request: Request) -> ObjectStorage:
     return request.state.object_storage
 
 
+async def get_search_service(request: Request) -> SearchService:
+    return request.state.search_service
+
+
 AppAuth0Client = Annotated[Auth0ClientWrapper, Depends(get_auth0_client)]
 AppCurrentUser = Annotated[User, Depends(get_current_user)]
 AppJobsRepository = Annotated[MongoJobsRepository, Depends(get_jobs_repository)]
 AppObjectStorage = Annotated[ObjectStorage, Depends(get_object_storage)]
+AppSearchService = Annotated[SearchService, Depends(get_search_service)]

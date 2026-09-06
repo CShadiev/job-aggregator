@@ -106,7 +106,7 @@ def make_pair_nodes(deps: PipelineDeps) -> dict[str, Any]:
                 cv=cv,
                 job=job,
             )
-            await repository.store_assessment(assessment, username, job.uid)
+            await repository.store_assessment(assessment, username, job.uid, job=job)
             _log.info(
                 "Assessed job cv_ats_match_score={score}",
                 score=assessment.cv_ats_match_score,

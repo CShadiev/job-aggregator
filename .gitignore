@@ -5,6 +5,7 @@ venv/
 logs/
 benchmarks/fit_assessment/dataset/01082026/
 benchmarks/screening/dataset/05082026/
+benchmarks/retrieval/reports/
 export_keys.sh
 
 # UI repository (managed separately)

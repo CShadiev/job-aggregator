@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Literal
 
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -82,6 +83,14 @@ class Config(BaseSettings):
     OPENSEARCH_USER: str | None = None
     OPENSEARCH_PASSWORD: str | None = None
     OPENSEARCH_INDEX_NAME: str = "jobs"
+    OPENSEARCH_ASSESSMENTS_INDEX_NAME: str = "assessments"
+
+    EMBEDDING_MODEL: str = "text-embedding-3-small"
+    EMBEDDING_DIMENSIONS: int = 1536
+    EMBEDDING_BATCH_SIZE: int = 64
+
+    PIPELINE_PAIR_MODE: Literal["topk", "cartesian"] = "topk"
+    PIPELINE_RETRIEVAL_K: int = 20
 
     SCREENING_MODEL: str = "gpt-5.6-luna"
     FIT_ASSESSMENT_MODEL: str = "gpt-5-mini"

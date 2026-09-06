@@ -15,7 +15,7 @@ Candidates browsing the job feed in the frontend web application currently only 
 When candidates want to locate opportunities mentioning a specific technology (e.g. `"Kubernetes"`, `"PyTorch"`, `"Kafka"`), a specific target employer (e.g. `"Google"`, `"Stripe"`), or a role keyword (e.g. `"Staff"`, `"Founding Engineer"`), there is no keyword/text search input available. 
 
 As decided in Backend Epic 2 (decisions Q2, Q10, Q12, Q13):
-1. The backend `POST /jobs/search` endpoint has been upgraded to accept an optional `q: str | None = None` parameter.
+1. The backend `POST /jobs/search` endpoint accepts an optional `q: str | None = None` parameter. The OpenAPI contract is covered by `tests/integration/test_jobs_api.py`.
 2. The search space is strictly restricted to matching (assessed) positions for the authenticated user, powered by an OpenSearch `assessments` index with sub-50ms BM25 multi-match querying across `job.title`, `job.company`, and `job.description`.
 3. Client application modifications are planned separately in this artifact and implemented within the frontend repository / environment.
 

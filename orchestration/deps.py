@@ -17,6 +17,9 @@ from collection_service.linkedin_apify_parser import LinkedinApifyParser
 from config import Config, ConfigProvider
 from repository.mongo_jobs_repository import MongoJobsRepository
 from repository.object_storage import ObjectStorage
+from search.client import build_opensearch_client
+from search.embeddings import EmbeddingClient
+from search.search_service import SearchService
 
 
 @dataclass
@@ -32,6 +35,10 @@ class PipelineDeps:
     thread_id: str
     client_session: ClientSession
     async_mongo_client: AsyncMongoClient
+    search_service: SearchService
+    embedding_client: EmbeddingClient
+    pair_mode: str
+    retrieval_k: int
 
 
 def build_collectors(client_session: ClientSession, config: Config) -> list:
@@ -68,7 +75,9 @@ async def build_deps(
     config: Config | None = None,
 ) -> PipelineDeps:
     cfg = config or ConfigProvider.get_config()
-    repository = MongoJobsRepository(async_mongo_client)
+    search_service = SearchService(build_opensearch_client(cfg), config=cfg)
+    embedding_client = EmbeddingClient(client_session, config=cfg)
+    repository = MongoJobsRepository(async_mongo_client, search_service=search_service)
     deduplication_model = Model(cfg.DEDUPLICATION_MODEL)
     screening_model = Model(cfg.SCREENING_MODEL)
     fit_assessment_model = Model(cfg.FIT_ASSESSMENT_MODEL)
@@ -91,4 +100,8 @@ async def build_deps(
         thread_id=cfg.PIPELINE_THREAD_ID,
         client_session=client_session,
         async_mongo_client=async_mongo_client,
+        search_service=search_service,
+        embedding_client=embedding_client,
+        pair_mode=cfg.PIPELINE_PAIR_MODE,
+        retrieval_k=cfg.PIPELINE_RETRIEVAL_K,
     )

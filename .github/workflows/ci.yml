@@ -34,6 +34,8 @@ env:
   AUTH0_CLIENT_ID: "mock-client-id"
   AUTH0_CLIENT_SECRET: "mock-client-secret"
   AUTH0_AUDIENCE: "https://test.auth0.com/api/v2/"
+  OPENSEARCH_HOST: "localhost"
+  OPENSEARCH_PORT: "9200"
 
 jobs:
   lint-and-typecheck:
@@ -120,7 +122,48 @@ jobs:
         run: uv sync --locked --dev
 
       - name: Run MongoDB repository integration tests
-        run: uv run pytest tests/integration/test_mongo_jobs_repo.py
+        run: uv run pytest tests/integration/test_mongo_jobs_repo.py tests/integration/test_jobs_api.py
+
+  test-search:
+    name: Search & Retrieval Smoke (OpenSearch)
+    runs-on: ubuntu-latest
+    services:
+      opensearch:
+        image: opensearchproject/opensearch:2.19.0
+        ports:
+          - 9200:9200
+        env:
+          discovery.type: single-node
+          DISABLE_SECURITY_PLUGIN: "true"
+          DISABLE_INSTALL_DEMO_CONFIG: "true"
+          OPENSEARCH_JAVA_OPTS: "-Xms512m -Xmx512m"
+          bootstrap.memory_lock: "false"
+        options: >-
+          --health-cmd "curl -f http://localhost:9200/_cluster/health || exit 1"
+          --health-interval 15s
+          --health-timeout 5s
+          --health-retries 20
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: "latest"
+          enable-cache: true
+
+      - name: Set up Python
+        run: uv python install 3.13
+
+      - name: Install dependencies
+        run: uv sync --locked --dev
+
+      - name: Run OpenSearch integration and retrieval smoke tests
+        run: >
+          uv run pytest
+          tests/integration/test_search_service.py
+          benchmarks/retrieval/test_retrieval_smoke.py
 
   docker-build:
     name: Docker Build Validation

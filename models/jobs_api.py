@@ -21,6 +21,7 @@ class SortOrder(StrEnum):
 class JobFeedQuery(BaseModel):
     """Filter and sort parameters for the paginated job feed."""
 
+    q: str | None = None
     remote: bool | None = None
     sources: list[str] = Field(default_factory=list)
     tags: list[str] = Field(default_factory=list)

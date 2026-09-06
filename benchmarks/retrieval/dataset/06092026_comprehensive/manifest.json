@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "dataset_version": "06092026_comprehensive",
+  "n_queries": 100,
+  "n_corpus": 387,
+  "n_qrels": 21115,
+  "embedding_model": "text-embedding-3-small",
+  "embedding_dimensions": 1536,
+  "label_source": "ATS-band proxy (Q8) from historical assessments and multi-graded role relevance",
+  "source_type": "entries",
+  "username": "cshadiev",
+  "exported_at": "2026-09-06T13:04:30.147179+00:00",
+  "smoke_query_ids": [
+    "q001",
+    "q002",
+    "q003",
+    "q004",
+    "q005",
+    "q006",
+    "q007",
+    "q008",
+    "q009",
+    "q010"
+  ],
+  "ks": [
+    5,
+    10,
+    20
+  ]
+}

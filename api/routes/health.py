@@ -2,7 +2,7 @@ from typing import Any
 
 from fastapi import APIRouter, Response, status
 
-from api.deps import AppJobsRepository
+from api.deps import AppJobsRepository, AppSearchService
 from logger_provider import LoggerProvider
 
 router = APIRouter(tags=["health"])
@@ -19,14 +19,20 @@ async def healthz() -> dict[str, str]:
 
 
 @router.get("/readyz")
-async def readyz(jobs_repository: AppJobsRepository, response: Response) -> dict[str, Any]:
+async def readyz(
+    jobs_repository: AppJobsRepository,
+    search_service: AppSearchService,
+    response: Response,
+) -> dict[str, Any]:
     """
     Readiness probe endpoint.
-    Verifies that required backend dependencies (e.g. MongoDB) are healthy and ready to accept traffic.
+    Verifies that required backend dependencies (MongoDB, OpenSearch) are healthy.
     """
     mongo_healthy = await jobs_repository.ping()
+    opensearch_healthy = await search_service.ping()
     checks = {
         "mongodb": "ok" if mongo_healthy else "unreachable",
+        "opensearch": "ok" if opensearch_healthy else "unreachable",
     }
     all_ready = all(check_status == "ok" for check_status in checks.values())
 

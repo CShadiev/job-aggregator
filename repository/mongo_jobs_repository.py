@@ -1,5 +1,8 @@
-from collections.abc import Sequence
+from __future__ import annotations
+
+from collections.abc import AsyncIterator, Sequence
 from datetime import UTC, datetime
+from typing import TYPE_CHECKING
 
 from pymongo import AsyncMongoClient, UpdateOne
 from pymongo.errors import DuplicateKeyError
@@ -23,6 +26,10 @@ from models.pipeline import PipelineStage
 from models.screening import ScreeningRecord, ScreeningResult
 from models.users import UserProfile
 from models.validators import ts_validator
+from search.models import DenormalizedAssessment
+
+if TYPE_CHECKING:
+    from search.search_service import SearchService
 
 config = ConfigProvider.get_config()
 log = LoggerProvider.get_logger()
@@ -54,8 +61,10 @@ class MongoJobsRepository:
         self,
         client: AsyncMongoClient,
         database: str | None = None,
+        search_service: SearchService | None = None,
     ) -> None:
         self._client = client
+        self._search = search_service
         self._db = client[database or config.MONGODB_DATABASE]
         self._jobs = self._db[config.MONGODB_JOBS_COLLECTION]
         self._checkpoints = self._db[config.MONGODB_CHECKPOINTS_COLLECTION]
@@ -92,18 +101,32 @@ class MongoJobsRepository:
         )
 
     async def store_assessment(
-        self, assessment: FitAssessment, username: str, job_uid: str
+        self,
+        assessment: FitAssessment,
+        username: str,
+        job_uid: str,
+        job: JobPosting | None = None,
     ) -> None:
-        await self._assessments.insert_one(
-            {
-                "username": username,
-                "job_uid": job_uid,
-                "assessment": assessment.model_dump(mode="json"),
-            }
-        )
-        # create default job application status for the job
         job_application_status = JobApplicationStatus(username=username, job_uid=job_uid)
+        doc: dict = {
+            "username": username,
+            "job_uid": job_uid,
+            "assessment": assessment.model_dump(mode="json"),
+            "status": job_application_status.model_dump(mode="json"),
+        }
+        if job is not None:
+            doc["job"] = job.model_dump(mode="json")
+        await self._assessments.insert_one(doc)
         await self._applications.insert_one(job_application_status.model_dump())
+        if self._search is not None and job is not None:
+            await self._search.index_assessment(
+                DenormalizedAssessment.from_parts(
+                    assessment=assessment,
+                    username=username,
+                    job=job,
+                    status=job_application_status,
+                )
+            )
 
     async def store_many_assessments(
         self, assessments: list[tuple[FitAssessment, str, str]]
@@ -270,6 +293,17 @@ class MongoJobsRepository:
             return
         await self._jobs.insert_many([posting.model_dump() for posting in postings])
 
+    async def get_job(self, uid: str) -> JobPosting | None:
+        doc = await self._jobs.find_one({"uid": uid})
+        if doc is None:
+            return None
+        return JobPosting.model_validate(doc)
+
+    async def iter_jobs(self) -> AsyncIterator[JobPosting]:
+        cursor = self._jobs.find()
+        async for doc in cursor:
+            yield JobPosting.model_validate(doc)
+
     async def upsert_jobs(self, postings: Sequence[JobPosting]) -> None:
         """Insert or update jobs by ``uid`` (duplicate-safe for pipeline resume)."""
         if not postings:
@@ -397,9 +431,16 @@ class MongoJobsRepository:
         )
         status = status.model_copy(update=updates)
 
+        status_dump = status.model_dump(mode="json")
         result = await self._applications.update_one(
             {"username": username, "job_uid": job_uid}, {"$set": status.model_dump()}, upsert=True
         )
+        await self._assessments.update_many(
+            {"username": username, "job_uid": job_uid},
+            {"$set": {"status": status_dump}},
+        )
+        if self._search is not None:
+            await self._search.update_assessment_status(username, job_uid, status)
         log.info(f"Modified count: {result.modified_count}")
 
 

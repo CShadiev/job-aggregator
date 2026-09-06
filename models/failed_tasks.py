@@ -10,6 +10,8 @@ NodeName = Literal[
     "normalize",
     "dedupe",
     "persist_jobs",
+    "embed_jobs",
+    "build_pairs",
     "screen",
     "assess",
     "cover_letter",

@@ -1,0 +1,5 @@
+{
+  "metric": "ndcg@10",
+  "hybrid_ndcg_at_10": 0.35,
+  "note": "Initial conservative floor for the synthetic smoke split. Tighten after a measured full run."
+}

@@ -1,0 +1,6 @@
+{
+  "dataset_version": "06092026_comprehensive",
+  "metric": "ndcg@10",
+  "hybrid_ndcg_at_10": 0.35,
+  "note": "Conservative baseline floor for comprehensive evaluation harness."
+}

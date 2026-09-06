@@ -3,9 +3,10 @@ from unittest.mock import AsyncMock
 import pytest
 from fastapi.testclient import TestClient
 
-from api.deps import get_jobs_repository
+from api.deps import get_jobs_repository, get_search_service
 from main import app
 from repository.mongo_jobs_repository import MongoJobsRepository
+from search.search_service import SearchService
 
 
 @pytest.fixture
@@ -22,12 +23,18 @@ def test_healthz_endpoint(client):
 def test_readyz_endpoint_healthy(client):
     mock_repo = AsyncMock(spec=MongoJobsRepository)
     mock_repo.ping.return_value = True
+    mock_search = AsyncMock(spec=SearchService)
+    mock_search.ping.return_value = True
 
     app.dependency_overrides[get_jobs_repository] = lambda: mock_repo
+    app.dependency_overrides[get_search_service] = lambda: mock_search
     try:
         response = client.get("/readyz")
         assert response.status_code == 200
-        assert response.json() == {"status": "ready", "checks": {"mongodb": "ok"}}
+        assert response.json() == {
+            "status": "ready",
+            "checks": {"mongodb": "ok", "opensearch": "ok"},
+        }
     finally:
         app.dependency_overrides.clear()
 
@@ -35,11 +42,36 @@ def test_readyz_endpoint_healthy(client):
 def test_readyz_endpoint_unhealthy(client):
     mock_repo = AsyncMock(spec=MongoJobsRepository)
     mock_repo.ping.return_value = False
+    mock_search = AsyncMock(spec=SearchService)
+    mock_search.ping.return_value = True
 
     app.dependency_overrides[get_jobs_repository] = lambda: mock_repo
+    app.dependency_overrides[get_search_service] = lambda: mock_search
     try:
         response = client.get("/readyz")
         assert response.status_code == 503
-        assert response.json() == {"status": "unready", "checks": {"mongodb": "unreachable"}}
+        assert response.json() == {
+            "status": "unready",
+            "checks": {"mongodb": "unreachable", "opensearch": "ok"},
+        }
+    finally:
+        app.dependency_overrides.clear()
+
+
+def test_readyz_endpoint_opensearch_unhealthy(client):
+    mock_repo = AsyncMock(spec=MongoJobsRepository)
+    mock_repo.ping.return_value = True
+    mock_search = AsyncMock(spec=SearchService)
+    mock_search.ping.return_value = False
+
+    app.dependency_overrides[get_jobs_repository] = lambda: mock_repo
+    app.dependency_overrides[get_search_service] = lambda: mock_search
+    try:
+        response = client.get("/readyz")
+        assert response.status_code == 503
+        assert response.json() == {
+            "status": "unready",
+            "checks": {"mongodb": "ok", "opensearch": "unreachable"},
+        }
     finally:
         app.dependency_overrides.clear()

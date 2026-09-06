@@ -2,7 +2,7 @@ from pathlib import Path
 
 from fastapi import APIRouter, Response
 
-from api.deps import AppCurrentUser, AppJobsRepository, AppObjectStorage
+from api.deps import AppCurrentUser, AppJobsRepository, AppObjectStorage, AppSearchService
 from config import ConfigProvider
 from logger_provider import LoggerProvider
 from models.fit_assessment import CoverLetterContent
@@ -20,11 +20,25 @@ async def get_jobs(
     request: PaginatedDataRequest[JobFeedQuery],
     user: AppCurrentUser,
     jobs_repository: AppJobsRepository,
+    search_service: AppSearchService,
 ) -> PaginatedDataResponse[JobFeedItem]:
     """
-    Get all jobs.
+    Personalized assessed-job feed with optional keyword search ``q``.
     """
-    return await jobs_repository.get_job_feed_items(request, user.username)
+    try:
+        return await search_service.search_user_feed(
+            username=user.username,
+            query=request.query,
+            page=request.page,
+            page_size=request.page_size,
+        )
+    except Exception:
+        log.exception(
+            "OpenSearch feed query failed; falling back to MongoDB",
+            event="jobs_search_fallback",
+            username=user.username,
+        )
+        return await jobs_repository.get_job_feed_items(request, user.username)
 
 
 @router.patch("/{job_uid}/status")

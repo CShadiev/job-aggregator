@@ -15,6 +15,8 @@ from orchestration.state import (
     cleared_batch_state,
     new_pair_state,
 )
+from search.models import IndexedJob, SearchFilters
+from search.text import flatten_profile, job_embedding_text
 
 log = LoggerProvider.get_logger()
 
@@ -23,6 +25,10 @@ def make_batch_nodes(deps: PipelineDeps) -> dict[str, Any]:
     repository = deps.repository
     collection_service = deps.collection_service
     thread_id = deps.thread_id
+    search_service = deps.search_service
+    embedding_client = deps.embedding_client
+    pair_mode = deps.pair_mode
+    retrieval_k = deps.retrieval_k
 
     async def collect(state: PipelineState) -> dict[str, Any]:
         cycle_id = state["cycle_id"] or str(uuid4())
@@ -133,21 +139,109 @@ def make_batch_nodes(deps: PipelineDeps) -> dict[str, Any]:
             raise
         return {}
 
+    async def embed_jobs(state: PipelineState) -> dict[str, Any]:
+        cycle_id = state["cycle_id"]
+        unique_jobs = state["unique_jobs"]
+        if not unique_jobs:
+            log.info("No unique jobs to embed", event="pipeline_embed_jobs", cycle_id=cycle_id)
+            return {}
+        try:
+            postings = [JobPosting.model_validate(job) for job in unique_jobs]
+            texts = [job_embedding_text(p.title, p.description_raw) for p in postings]
+            vectors = await embedding_client.embed_texts(texts)
+            docs = [
+                IndexedJob.from_posting(posting, vector)
+                for posting, vector in zip(postings, vectors, strict=True)
+            ]
+            await search_service.bulk_index_jobs(docs)
+            log.info(
+                "Indexed {n_jobs} jobs into OpenSearch",
+                event="pipeline_embed_jobs",
+                cycle_id=cycle_id,
+                n_jobs=len(docs),
+            )
+        except Exception as exc:
+            await repository.store_failed_task(
+                FailedTask(
+                    node="embed_jobs",
+                    thread_id=thread_id,
+                    cycle_id=cycle_id,
+                    error=str(exc),
+                    payload={"n_jobs": len(unique_jobs)},
+                )
+            )
+            raise
+        return {}
+
     async def build_pairs(state: PipelineState) -> dict[str, Any]:
         cycle_id = state["cycle_id"]
         unique_jobs = state["unique_jobs"]
-        profiles = await repository.get_user_profiles()
-        usernames = [p.username for p in profiles]
-        pairs = build_pair_list(usernames, unique_jobs)
-        log.info(
-            "Built {n_pairs} pairs from {n_jobs} jobs × {n_users} users",
-            event="pipeline_build_pairs",
-            cycle_id=cycle_id,
-            n_pairs=len(pairs),
-            n_jobs=len(unique_jobs),
-            n_users=len(usernames),
-        )
+        try:
+            profiles = await repository.get_user_profiles()
+            usernames = [p.username for p in profiles]
+            if pair_mode == "cartesian":
+                pairs = build_pair_list(usernames, unique_jobs)
+            else:
+                pairs = await _retrieve_topk_pairs(
+                    unique_jobs=unique_jobs,
+                    profiles=profiles,
+                    k=retrieval_k,
+                )
+            n_pairs = len(pairs)
+            n_jobs = len(unique_jobs)
+            n_users = len(usernames)
+            llm_calls_saved = max(n_users * n_jobs - n_pairs, 0)
+            log.info(
+                "Built {n_pairs} pairs from {n_jobs} jobs × {n_users} users",
+                event="pipeline_build_pairs",
+                cycle_id=cycle_id,
+                n_pairs=n_pairs,
+                n_jobs=n_jobs,
+                n_users=n_users,
+                k=retrieval_k,
+                mode=pair_mode,
+                llm_calls_saved=llm_calls_saved,
+            )
+        except Exception as exc:
+            await repository.store_failed_task(
+                FailedTask(
+                    node="build_pairs",
+                    thread_id=thread_id,
+                    cycle_id=cycle_id,
+                    error=str(exc),
+                    payload={"n_jobs": len(unique_jobs), "mode": pair_mode},
+                )
+            )
+            raise
         return {"pairs": pairs}
+
+    async def _retrieve_topk_pairs(
+        *,
+        unique_jobs: list[dict[str, Any]],
+        profiles: list,
+        k: int,
+    ) -> list[dict[str, Any]]:
+        if not unique_jobs or not profiles:
+            return []
+        jobs_by_uid = {job["uid"]: job for job in unique_jobs}
+        uids = list(jobs_by_uid)
+        pairs: list[dict[str, Any]] = []
+        for profile in profiles:
+            query_text = flatten_profile(profile)
+            query_vector = await embedding_client.embed_profile(profile)
+            hits = await search_service.search_jobs(
+                query_text=query_text,
+                query_vector=query_vector,
+                filters=SearchFilters(uids=uids),
+                mode="hybrid",
+                size=k,
+            )
+            for hit in hits.hits:
+                job = jobs_by_uid.get(hit.uid)
+                if job is None:
+                    continue
+                pairs.append({"username": profile.username, "job_uid": job["uid"], "job": job})
+        return pairs
 
     def fanout(state: PipelineState) -> list[Send] | str:
         pairs = state["pairs"]
@@ -191,6 +285,7 @@ def make_batch_nodes(deps: PipelineDeps) -> dict[str, Any]:
         "normalize": normalize,
         "dedupe": dedupe,
         "persist_jobs": persist_jobs,
+        "embed_jobs": embed_jobs,
         "build_pairs": build_pairs,
         "fanout": fanout,
         "finalize": finalize,
