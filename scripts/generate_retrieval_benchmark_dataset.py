@@ -1261,7 +1261,9 @@ async def generate_dataset(
 
         if qid == "q001":
             for job in jobs:
-                grade = ats_score_to_grade(job.ats_score, screened_through=job.worth_full_assessment)
+                grade = ats_score_to_grade(
+                    job.ats_score, screened_through=job.worth_full_assessment
+                )
                 if grade > 0:
                     qrels_rows.append({"query_id": qid, "uid": job.uid, "grade": grade})
         elif qdef.get("type") in ("persona", "search"):
@@ -1385,7 +1387,11 @@ async def generate_dataset(
     loaded = load_dataset(out_dir)
     assert len(loaded.corpus) == len(jobs)
     assert len(loaded.queries) == len(queries_data)
-    log.info("Validation successful: load_dataset loaded %d docs and %d queries", len(loaded.corpus), len(loaded.queries))
+    log.info(
+        "Validation successful: load_dataset loaded %d docs and %d queries",
+        len(loaded.corpus),
+        len(loaded.queries),
+    )
 
     return out_dir
 
