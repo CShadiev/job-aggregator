@@ -22,6 +22,7 @@ log = LoggerProvider.get_logger()
 
 
 def make_batch_nodes(deps: PipelineDeps) -> dict[str, Any]:
+    """Construct node functions for the main batch pipeline spine."""
     repository = deps.repository
     collection_service = deps.collection_service
     thread_id = deps.thread_id

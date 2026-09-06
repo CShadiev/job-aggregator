@@ -1,3 +1,5 @@
+"""Unit tests for the DeduplicationAgent reconciliation logic."""
+
 from pydantic_ai.models.test import TestModel
 
 from agents.deduplication import DeduplicationAgent
@@ -7,11 +9,15 @@ from ..helpers.job_posting import make_job_posting, make_normalized_batch
 
 
 def get_agent() -> DeduplicationAgent:
+    """Create a DeduplicationAgent instance backed by a dummy TestModel."""
     return DeduplicationAgent(model=TestModel())
 
 
 class TestReconcile:
+    """Test suite for DeduplicationAgent._reconcile output mapping."""
+
     def test_happy_path(self):
+        """Verify normal reconciliation of LLM response with original raw postings."""
         agent = get_agent()
         postings = [
             make_job_posting(uid="test:0", title="Sr. Engineer", company="Google Inc."),
@@ -36,6 +42,7 @@ class TestReconcile:
             assert processed.company_normalized == entry.company
 
     def test_missing_entry_returns_partial_response(self):
+        """Verify that jobs missing from the LLM output are returned as failed jobs."""
         agent = get_agent()
         postings = [
             make_job_posting(uid="test:0"),
@@ -52,6 +59,7 @@ class TestReconcile:
         assert failed[0].posting.uid == "test:1"
 
     def test_unknown_id_ignored(self):
+        """Verify that unrecognized job IDs returned by the LLM are safely ignored."""
         agent = get_agent()
         posting = make_job_posting(uid="test:0")
         temp_map = {"0": posting}
@@ -69,6 +77,7 @@ class TestReconcile:
         assert failed == []
 
     def test_duplicate_id_first_wins(self):
+        """Verify that when an ID is repeated in the LLM output, the first entry wins."""
         agent = get_agent()
         posting = make_job_posting(uid="test:0", title="Original Title")
         temp_map = {"0": posting}
@@ -87,6 +96,7 @@ class TestReconcile:
         assert failed == []
 
     def test_empty_batch_output(self):
+        """Verify handling when the LLM returns an empty list of normalized jobs."""
         agent = get_agent()
         postings = [
             make_job_posting(uid="test:0"),
@@ -100,6 +110,7 @@ class TestReconcile:
         assert len(failed) == 2
 
     def test_field_mapping_preserves_original_fields(self):
+        """Verify that raw posting metadata and timestamps are preserved during reconciliation."""
         agent = get_agent()
         posting = make_job_posting(
             uid="test:42",

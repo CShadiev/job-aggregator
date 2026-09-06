@@ -1,3 +1,5 @@
+"""Unit tests for cover letter generation agent and PDF export tool."""
+
 from pathlib import Path
 
 import pytest
@@ -17,12 +19,14 @@ log = LoggerProvider.get_logger()
 
 
 def get_sample_cover_letter_content():
+    """Load sample cover letter JSON model from test datasets."""
     path = Path("tests") / "datasets" / "sample_cover_letter.json"
     return CoverLetterContent.model_validate_json(path.read_text())
 
 
 @pytest.mark.priced
 async def test_cover_letter_generation_happy_path():
+    """Test generating a cover letter using live LLM inference."""
     model = ModelFactory.get_model(Model.GROK_4_5)
     agent = CoverLetterGenerationAgent(model=model)
 
@@ -37,6 +41,7 @@ async def test_cover_letter_generation_happy_path():
 
 
 async def test_pdf_from_cover_letter_content():
+    """Test rendering a CoverLetterContent instance to a PDF file."""
     cover_letter_content = get_sample_cover_letter_content()
     pdf_path = Path("tests") / "datasets" / "sample_cover_letter.pdf"
 

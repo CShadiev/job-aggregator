@@ -1,3 +1,5 @@
+"""Clean LinkedIn job UIDs by stripping URL prefixes across collections."""
+
 from pymongo import UpdateOne
 
 from config import ConfigProvider
@@ -7,7 +9,8 @@ from repository.mongo_jobs_repository import AsyncMongoClient
 log = LoggerProvider.get_logger()
 
 
-async def clean_uids():
+async def clean_uids() -> None:
+    """Strip URL prefixes from LinkedIn job identifiers across jobs, applications, and assessments collections."""
     config = ConfigProvider.get_config()
     mongo_client = AsyncMongoClient(
         host=config.MONGODB_HOST,

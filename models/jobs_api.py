@@ -1,3 +1,5 @@
+"""Pydantic models and enums for the jobs HTTP API."""
+
 from enum import StrEnum
 
 from pydantic import BaseModel, Field
@@ -8,12 +10,16 @@ from models.job_application import ApplicationStage, CoverLetterPdfKey, JobAppli
 
 
 class JobFeedSortField(StrEnum):
+    """Sort field options for the job feed query."""
+
     POSTED_AT = "posted_at"
     CV_ATS_MATCH_SCORE = "cv_ats_match_score"
     PROFILE_ATS_MATCH_SCORE = "profile_ats_match_score"
 
 
 class SortOrder(StrEnum):
+    """Sort order direction."""
+
     ASC = "asc"
     DESC = "desc"
 
@@ -49,6 +55,8 @@ class UpdateJobStatusRequest(BaseModel):
 
 
 class JobFeedItem(BaseModel):
+    """Combined job posting, fit assessment, and user application status for feed rendering."""
+
     job: JobPosting
     fit: FitAssessment
     status: JobApplicationStatus | None = None

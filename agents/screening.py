@@ -1,3 +1,5 @@
+"""AI agent for screening job postings against candidate CVs."""
+
 import json
 from pathlib import Path
 
@@ -14,6 +16,11 @@ class ScreeningAgent:
     """Screens a job posting using CV only — whether full fit assessment is worthwhile."""
 
     def __init__(self, model: models.Model):
+        """Initialize the screening agent with a model and prompt template.
+
+        Args:
+            model: PydanticAI model instance.
+        """
         self.model = model
         self.agent: Agent[None, ScreeningAgentOutput] = Agent(
             model=model,
@@ -37,6 +44,7 @@ class ScreeningAgent:
         )
 
     def _build_screening_prompt(self, job: JobPosting) -> str:
+        """Construct the prompt string by formatting the screening template with the job posting payload."""
         job_payload = json.dumps(
             job.model_dump(mode="json", include=set(_JOB_FIELDS)),
             indent=2,
@@ -45,6 +53,7 @@ class ScreeningAgent:
 
     @staticmethod
     def _cv_content(cv: Path | bytes) -> BinaryContent:
+        """Wrap CV file path or byte buffer into a PydanticAI BinaryContent object."""
         if isinstance(cv, Path):
             return BinaryContent.from_path(cv)
         return BinaryContent(data=cv, media_type="application/pdf")

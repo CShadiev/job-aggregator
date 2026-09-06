@@ -1,3 +1,5 @@
+"""Test helper utilities and fixtures for constructing job postings and test databases."""
+
 from datetime import UTC, datetime
 
 from pymongo import AsyncMongoClient
@@ -11,6 +13,7 @@ from tests.datasets.job_feed_items import generate_job_feed_items
 
 
 def make_job_posting(**overrides) -> JobPosting:
+    """Create a JobPosting model instance with sensible test defaults and optional overrides."""
     defaults = {
         "uid": "test:1",
         "source": "test",
@@ -28,6 +31,7 @@ def make_job_posting(**overrides) -> JobPosting:
 
 
 def make_normalized_batch(entries: list[tuple[str, str, str]]) -> NormalizedBatch:
+    """Construct a NormalizedBatch instance from a list of (id, title, company) tuples."""
     return NormalizedBatch(
         jobs=[
             NormalizedJobEntry(id=id_, title=title, company=company)
@@ -37,6 +41,7 @@ def make_normalized_batch(entries: list[tuple[str, str, str]]) -> NormalizedBatc
 
 
 async def setup_test_db(username: str):
+    """Seed the test MongoDB database with standard sample job feed items and assessments."""
     config = ConfigProvider.get_config()
     mongo_client = AsyncMongoClient(
         host=config.MONGODB_HOST,

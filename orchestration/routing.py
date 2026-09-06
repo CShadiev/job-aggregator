@@ -6,6 +6,7 @@ from orchestration.state import PairState
 
 
 def route_after_screen(state: PairState) -> Literal["assess", "pair_end"]:
+    """Determine next graph node after screening based on worth_full_assessment flag."""
     if state["skipped_reason"]:
         return "pair_end"
     if state["screening"].get("worth_full_assessment"):
@@ -18,6 +19,7 @@ def route_after_assess(
     *,
     min_cv_score: float,
 ) -> Literal["cover_letter", "pair_end"]:
+    """Determine next graph node after assessment based on ATS score threshold."""
     if state["skipped_reason"]:
         return "pair_end"
     assessment = state["assessment"] or {}

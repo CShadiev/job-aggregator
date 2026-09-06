@@ -1,3 +1,5 @@
+"""Migration script to backfill default JobApplicationStatus documents for existing assessments."""
+
 from pymongo import InsertOne
 
 from config import ConfigProvider
@@ -8,7 +10,8 @@ from repository.mongo_jobs_repository import AsyncMongoClient
 log = LoggerProvider.get_logger()
 
 
-async def add_default_statuses():
+async def add_default_statuses() -> None:
+    """Scan existing assessments collection and insert missing default JobApplicationStatus records."""
     config = ConfigProvider.get_config()
     mongo_client = AsyncMongoClient(
         host=config.MONGODB_HOST,

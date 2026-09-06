@@ -49,6 +49,7 @@ _SAMPLE_SEED = 0
 
 
 def _utc_today_ddmmyyyy() -> str:
+    """Return current UTC date formatted as DDMMYYYY."""
     return datetime.now(UTC).strftime("%d%m%Y")
 
 
@@ -143,6 +144,7 @@ async def _load_candidates(repo: MongoJobsRepository, username: str) -> list[dic
 
 
 def _job_payload(job: JobPosting) -> dict:
+    """Serialize JobPosting model to dict including export fields."""
     return job.model_dump(mode="json", include=set(_JOB_EXPORT_FIELDS))
 
 
@@ -155,6 +157,7 @@ def _write_dataset(
     actual: dict[FitCategory, int],
     cv_bytes: bytes,
 ) -> None:
+    """Write entries.jsonl, cv.pdf, and manifest.json to the dataset version directory."""
     if out_dir.exists():
         log.warning("Dataset directory {} already exists; overwriting", out_dir)
         shutil.rmtree(out_dir)
@@ -206,6 +209,7 @@ def _write_dataset(
 
 
 async def export_dataset(args: argparse.Namespace) -> Path:
+    """Extract screening benchmark candidates, perform stratified quota sampling, and export to disk."""
     config = ConfigProvider.get_config()
     dataset_version = args.dataset_version or _utc_today_ddmmyyyy()
     out_dir = Path(args.dataset_root) / dataset_version
@@ -263,6 +267,7 @@ async def export_dataset(args: argparse.Namespace) -> Path:
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build and configure argument parser for the screening dataset export CLI."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--dataset-root",
@@ -290,6 +295,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main() -> None:
+    """CLI entrypoint for exporting a screening benchmark dataset."""
     args = build_parser().parse_args()
     if args.n != _FIXED_N:
         raise SystemExit(

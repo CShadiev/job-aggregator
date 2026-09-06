@@ -26,6 +26,7 @@ def _parse_timestamp(value: str) -> datetime:
 
 
 async def fix_job_timestamp_types() -> None:
+    """Find MongoDB jobs with ISO string timestamps and convert them to UTC datetime objects."""
     config = ConfigProvider.get_config()
     mongo_client = AsyncMongoClient(
         host=config.MONGODB_HOST,

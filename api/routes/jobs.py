@@ -1,3 +1,5 @@
+"""HTTP endpoints for job feed search, application status updates, and cover letter retrieval."""
+
 from pathlib import Path
 
 from fastapi import APIRouter, Response

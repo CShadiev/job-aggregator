@@ -1,3 +1,5 @@
+"""Unit tests for search text extraction, HTML stripping, and profile flattening."""
+
 from models.users import (
     CareerGoals,
     Contact,
@@ -15,6 +17,7 @@ from search.text import flatten_profile, job_embedding_text, profile_text_hash, 
 
 
 def test_strip_html_unescapes_and_collapses():
+    """Verify HTML tags and HTML entities are stripped and whitespace collapsed."""
     raw = "<p>Hello&nbsp;<b>world</b></p>"
     assert "Hello" in strip_html(raw)
     assert "world" in strip_html(raw)
@@ -23,6 +26,7 @@ def test_strip_html_unescapes_and_collapses():
 
 
 def test_job_embedding_text_joins_title_and_clean_description():
+    """Verify job embedding text formats title and stripped description."""
     text = job_embedding_text("Engineer", "<p>Build APIs</p>")
     assert text.startswith("Engineer")
     assert "Build APIs" in text
@@ -31,6 +35,7 @@ def test_job_embedding_text_joins_title_and_clean_description():
 
 
 def test_flatten_profile_includes_headline_skills_experience():
+    """Verify profile flattening string contains key skills, headline, and experience."""
     profile = _profile()
     text = flatten_profile(profile)
     assert "Backend Python engineer" in text
@@ -41,6 +46,7 @@ def test_flatten_profile_includes_headline_skills_experience():
 
 
 def _profile() -> UserProfile:
+    """Create a sample UserProfile for search text testing."""
     return UserProfile(
         profile=Profile(
             name="Ada",

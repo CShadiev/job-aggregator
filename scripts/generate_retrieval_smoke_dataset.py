@@ -183,6 +183,7 @@ _QUERIES = [
 
 
 def _unit_vector(seed: str) -> list[float]:
+    """Generate a pseudo-random deterministic unit vector from a seed string."""
     digest = hashlib.sha256(seed.encode()).digest()
     values: list[float] = []
     counter = 0
@@ -199,12 +200,14 @@ def _unit_vector(seed: str) -> list[float]:
 
 
 def _mix(base: list[float], other: list[float], weight: float) -> list[float]:
+    """Linearly interpolate and normalize two vectors."""
     mixed = [weight * a + (1.0 - weight) * b for a, b in zip(base, other, strict=True)]
     norm = math.sqrt(sum(v * v for v in mixed)) or 1.0
     return [v / norm for v in mixed]
 
 
 def main() -> None:
+    """Generate synthetic jobs, queries, and qrels for smoke testing and save to disk."""
     _OUT.mkdir(parents=True, exist_ok=True)
     job_vectors = {uid: _unit_vector(f"job::{uid}") for uid, *_ in _JOBS}
     corpus_lines = []

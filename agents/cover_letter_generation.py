@@ -1,3 +1,5 @@
+"""AI agent for generating personalized cover letters."""
+
 import json
 from pathlib import Path
 
@@ -28,6 +30,11 @@ class CoverLetterGenerationAgent:
     """Generates a tailored cover letter from a profile, posting and fit assessment."""
 
     def __init__(self, model: models.Model):
+        """Initialize the cover letter generation agent with a model and prompt template.
+
+        Args:
+            model: PydanticAI model instance.
+        """
         self.model = model
         self.agent: Agent[None, CoverLetterContent] = Agent(
             model=model,
@@ -52,6 +59,7 @@ class CoverLetterGenerationAgent:
         job: JobPosting,
         fit_assessment: FitAssessment,
     ) -> str:
+        """Construct the prompt string by combining profile, job posting, and assessment payloads."""
         profile_json = user_profile.model_dump_json(indent=2)
         job_payload = json.dumps(
             job.model_dump(mode="json", include=set(_JOB_FIELDS)),

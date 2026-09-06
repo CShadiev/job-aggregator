@@ -20,6 +20,11 @@ log = LoggerProvider.get_logger()
 
 
 async def migrate(*, batch_size: int) -> None:
+    """Migrate historical assessments by embedding denormalized job and status docs, then indexing into OpenSearch.
+
+    Args:
+        batch_size: Bulk write batch size for MongoDB and OpenSearch operations.
+    """
     config = ConfigProvider.get_config()
     mongo = AsyncMongoClient(
         host=config.MONGODB_HOST,
@@ -92,6 +97,7 @@ async def migrate(*, batch_size: int) -> None:
 
 
 def main() -> None:
+    """Parse CLI arguments and run the denormalized assessment migration."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--batch-size", type=int, default=100)
     args = parser.parse_args()

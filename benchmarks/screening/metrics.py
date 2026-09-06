@@ -8,6 +8,7 @@ ERROR_LABEL = "error"
 
 
 def _require_same_length(*seqs: list) -> None:
+    """Ensure all provided input sequences have identical lengths."""
     if len({len(s) for s in seqs}) != 1:
         raise ValueError("all input lists must have the same length")
 
@@ -96,6 +97,7 @@ def band_binary_accuracy(
 
 
 def _mean(values: list[float]) -> float:
+    """Compute arithmetic mean of a float list, returning 0.0 for empty inputs."""
     return sum(values) / len(values) if values else 0.0
 
 

@@ -34,6 +34,7 @@ class ScreeningRecord(BaseModel):
     model: str
 
     def to_result(self) -> ScreeningResult:
+        """Convert the persisted record to a public ScreeningResult."""
         return ScreeningResult(
             worth_full_assessment=self.worth_full_assessment,
             confidence=self.confidence,

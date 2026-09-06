@@ -13,6 +13,8 @@ from benchmarks.fit_assessment.metrics import (
 
 
 class TestScoreToCategory:
+    """Tests for converting ATS score to discrete fit category."""
+
     @pytest.mark.parametrize(
         ("score", "expected"),
         [
@@ -25,30 +27,40 @@ class TestScoreToCategory:
         ],
     )
     def test_boundaries(self, score: float, expected: FitCategory):
+        """Verify score range boundaries for categories."""
         assert score_to_category(score) is expected
 
 
 class TestExactAccuracy:
+    """Tests for exact match classification accuracy."""
+
     def test_all_correct(self):
+        """Verify 100% accuracy on perfect category match."""
         gold = [FitCategory.LOW, FitCategory.MODERATE, FitCategory.GOOD]
         pred: list[FitCategory | None] = list(gold)
         assert exact_accuracy(gold, pred) == 1.0
 
     def test_none_never_matches(self):
+        """Verify None prediction does not match gold category."""
         gold = [FitCategory.LOW, FitCategory.MODERATE]
         pred = [None, FitCategory.MODERATE]
         assert exact_accuracy(gold, pred) == 0.5
 
     def test_empty(self):
+        """Verify 0.0 returned on empty input lists."""
         assert exact_accuracy([], []) == 0.0
 
     def test_length_mismatch(self):
+        """Verify ValueError raised on mismatched list lengths."""
         with pytest.raises(ValueError):
             exact_accuracy([FitCategory.LOW], [])
 
 
 class TestAdjacentAccuracy:
+    """Tests for relaxed adjacent-category accuracy."""
+
     def test_exact_and_neighbors(self):
+        """Verify that neighboring category predictions count as acceptable."""
         gold = [
             FitCategory.LOW,
             FitCategory.LOW,
@@ -65,7 +77,10 @@ class TestAdjacentAccuracy:
 
 
 class TestConfusionMatrix:
+    """Tests for multi-class confusion matrix generation."""
+
     def test_with_error_column(self):
+        """Verify confusion matrix with error column for failed predictions."""
         gold = [FitCategory.LOW, FitCategory.MODERATE, FitCategory.GOOD]
         pred = [FitCategory.LOW, None, FitCategory.MODERATE]
         matrix = confusion_matrix(gold, pred)
@@ -75,6 +90,7 @@ class TestConfusionMatrix:
         assert ERROR_LABEL in matrix["low"]
 
     def test_without_error_column(self):
+        """Verify confusion matrix without error column when all predictions succeed."""
         gold = [FitCategory.LOW]
         pred: list[FitCategory | None] = [FitCategory.LOW]
         matrix = confusion_matrix(gold, pred)
@@ -82,7 +98,10 @@ class TestConfusionMatrix:
 
 
 class TestPerClassPrf:
+    """Tests for per-category precision, recall, and F1 calculations."""
+
     def test_perfect(self):
+        """Verify per-class metrics on perfect predictions."""
         gold = [FitCategory.LOW, FitCategory.MODERATE, FitCategory.GOOD]
         pred: list[FitCategory | None] = list(gold)
         metrics = per_class_prf(gold, pred)
@@ -93,6 +112,7 @@ class TestPerClassPrf:
             assert metrics[cls]["support"] == 1.0
 
     def test_none_counts_as_false_negative(self):
+        """Verify None prediction counts as a false negative for recall."""
         gold = [FitCategory.GOOD, FitCategory.GOOD]
         pred: list[FitCategory | None] = [FitCategory.GOOD, None]
         metrics = per_class_prf(gold, pred)

@@ -1,3 +1,5 @@
+"""Collection service coordinating job retrieval across scrapers, normalization, and deduplication."""
+
 from datetime import UTC, datetime, timedelta
 
 from agents.deduplication import DeduplicationAgent

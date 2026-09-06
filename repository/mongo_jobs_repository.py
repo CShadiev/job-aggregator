@@ -1,3 +1,5 @@
+"""MongoDB jobs repository implementation and aggregation pipeline builders."""
+
 from __future__ import annotations
 
 from collections.abc import AsyncIterator, Sequence
@@ -38,10 +40,12 @@ FailedEntry = InvalidEntry | FailedJobPosting
 
 
 def _to_utc(value: datetime) -> datetime:
+    """Normalize datetime value to timezone-aware UTC."""
     return ts_validator(value)
 
 
 def _job_posting_to_processing_doc(posting: JobPosting, stage: str) -> dict:
+    """Serialize a JobPosting into a MongoDB processing queue document with an attached pipeline stage."""
     return {**posting.model_dump(), "pipeline_stage": stage}
 
 
@@ -63,6 +67,13 @@ class MongoJobsRepository:
         database: str | None = None,
         search_service: SearchService | None = None,
     ) -> None:
+        """Initialize repository collections with an AsyncMongoClient and optional OpenSearch service.
+
+        Args:
+            client: Connected AsyncMongoClient instance.
+            database: Optional MongoDB database name override.
+            search_service: Optional SearchService for dual-write index synchronization.
+        """
         self._client = client
         self._search = search_service
         self._db = client[database or config.MONGODB_DATABASE]
@@ -86,6 +97,14 @@ class MongoJobsRepository:
             return False
 
     async def get_checkpoint(self, source_id: str) -> datetime | None:
+        """Fetch high-water mark timestamp for the specified scraper source identifier.
+
+        Args:
+            source_id: Unique label of the source (e.g. "stepstone").
+
+        Returns:
+            Checkpoint datetime in UTC, or None if not set.
+        """
         doc = await self._checkpoints.find_one(
             {"_id": source_id}, projection={"checkpoint": 1, "_id": 0}
         )
@@ -94,6 +113,12 @@ class MongoJobsRepository:
         return _to_utc(doc["checkpoint"])
 
     async def set_checkpoint(self, source_id: str, checkpoint: datetime) -> None:
+        """Persist high-water mark timestamp for the specified scraper source.
+
+        Args:
+            source_id: Unique label of the source.
+            checkpoint: New checkpoint timestamp in UTC.
+        """
         await self._checkpoints.update_one(
             {"_id": source_id},
             {"$set": {"checkpoint": _to_utc(checkpoint)}},
@@ -107,6 +132,14 @@ class MongoJobsRepository:
         job_uid: str,
         job: JobPosting | None = None,
     ) -> None:
+        """Store candidate fit assessment, initialize application status, and sync with OpenSearch.
+
+        Args:
+            assessment: Evaluated FitAssessment model.
+            username: Candidate username.
+            job_uid: Target job identifier.
+            job: Optional JobPosting instance for denormalized search indexing.
+        """
         job_application_status = JobApplicationStatus(username=username, job_uid=job_uid)
         doc: dict = {
             "username": username,
@@ -131,6 +164,11 @@ class MongoJobsRepository:
     async def store_many_assessments(
         self, assessments: list[tuple[FitAssessment, str, str]]
     ) -> None:
+        """Batch insert raw fit assessment documents into the assessments collection.
+
+        Args:
+            assessments: List of (FitAssessment, username, job_uid) tuples.
+        """
         await self._assessments.insert_many(
             [
                 {
@@ -143,6 +181,14 @@ class MongoJobsRepository:
         )
 
     async def get_existing_uids(self, uids: set[str]) -> set[str]:
+        """Query MongoDB jobs collection and return UIDs that already exist.
+
+        Args:
+            uids: Set of candidate job UIDs.
+
+        Returns:
+            Set of existing UIDs found in the jobs collection.
+        """
         if not uids:
             return set()
         cursor = self._jobs.find({"uid": {"$in": list(uids)}}, projection={"uid": 1, "_id": 0})
@@ -153,6 +199,15 @@ class MongoJobsRepository:
         keys: set[tuple[str, str]],
         since: datetime,
     ) -> set[tuple[str, str]]:
+        """Find matching (title_normalized, company_normalized) pairs posted on or after *since*.
+
+        Args:
+            keys: Set of (title_normalized, company_normalized) tuples.
+            since: Minimum posting timestamp threshold.
+
+        Returns:
+            Set of existing (title_normalized, company_normalized) tuples found in the collection.
+        """
         if not keys:
             return set()
         since_utc = _to_utc(since)
@@ -279,27 +334,50 @@ class MongoJobsRepository:
         await self._failed.insert_many(failed_docs)
 
     async def get_user_profiles(self) -> list[UserProfile]:
+        """Fetch all user profiles from MongoDB."""
         cursor = self._user_profiles.find()
         return [UserProfile.model_validate(doc) async for doc in cursor]
 
     async def get_user_profile(self, username: str) -> UserProfile | None:
+        """Fetch a single user profile document by username.
+
+        Args:
+            username: Target candidate username.
+
+        Returns:
+            UserProfile instance, or None if not found.
+        """
         doc = await self._user_profiles.find_one({"username": username})
         if doc is None:
             return None
         return UserProfile.model_validate(doc)
 
     async def store_processed_jobs(self, postings: Sequence[JobPosting]) -> None:
+        """Insert processed job postings into the jobs collection.
+
+        Args:
+            postings: Sequence of JobPosting instances to store.
+        """
         if not postings:
             return
         await self._jobs.insert_many([posting.model_dump() for posting in postings])
 
     async def get_job(self, uid: str) -> JobPosting | None:
+        """Fetch a single job posting by unique ID.
+
+        Args:
+            uid: Job posting unique identifier.
+
+        Returns:
+            JobPosting instance, or None if not found.
+        """
         doc = await self._jobs.find_one({"uid": uid})
         if doc is None:
             return None
         return JobPosting.model_validate(doc)
 
     async def iter_jobs(self) -> AsyncIterator[JobPosting]:
+        """Asynchronously iterate over all job postings in the jobs collection."""
         cursor = self._jobs.find()
         async for doc in cursor:
             yield JobPosting.model_validate(doc)
@@ -326,6 +404,14 @@ class MongoJobsRepository:
         result: ScreeningResult,
         model: str,
     ) -> None:
+        """Persist candidate screening decision to the screenings collection.
+
+        Args:
+            username: Candidate username.
+            job_uid: Target job unique identifier.
+            result: ScreeningResult containing worth_full_assessment and confidence.
+            model: Name of the model used to perform screening.
+        """
         record = ScreeningRecord(
             username=username,
             job_uid=job_uid,
@@ -339,18 +425,41 @@ class MongoJobsRepository:
             pass
 
     async def get_screening(self, username: str, job_uid: str) -> ScreeningResult | None:
+        """Retrieve persisted screening decision for a candidate and job.
+
+        Args:
+            username: Candidate username.
+            job_uid: Target job unique identifier.
+
+        Returns:
+            ScreeningResult if found, otherwise None.
+        """
         doc = await self._screenings.find_one({"username": username, "job_uid": job_uid})
         if doc is None:
             return None
         return ScreeningRecord.model_validate(doc).to_result()
 
     async def get_assessment(self, username: str, job_uid: str) -> FitAssessment | None:
+        """Retrieve persisted fit assessment for a candidate and job.
+
+        Args:
+            username: Candidate username.
+            job_uid: Target job unique identifier.
+
+        Returns:
+            FitAssessment if found, otherwise None.
+        """
         doc = await self._assessments.find_one({"username": username, "job_uid": job_uid})
         if doc is None:
             return None
         return FitAssessment.model_validate(doc["assessment"])
 
     async def store_failed_task(self, task: FailedTask) -> None:
+        """Record node-level task failure in the failed_tasks collection.
+
+        Args:
+            task: FailedTask instance containing failure envelope details.
+        """
         await self._failed_tasks.insert_one(task.model_dump())
 
     async def get_application_cover_letter_key(
@@ -358,6 +467,15 @@ class MongoJobsRepository:
         username: str,
         job_uid: str,
     ) -> str | None:
+        """Fetch the object storage key of a generated cover letter for an application.
+
+        Args:
+            username: Candidate username.
+            job_uid: Target job unique identifier.
+
+        Returns:
+            Cover letter storage key string if present, otherwise None.
+        """
         doc = await self._applications.find_one(
             {"username": username, "job_uid": job_uid},
             projection={"cover_letter_key": 1, "_id": 0},
@@ -407,6 +525,11 @@ class MongoJobsRepository:
     async def insert_many_job_application_statuses(
         self, statuses: list[JobApplicationStatus]
     ) -> None:
+        """Batch insert job application status records into MongoDB.
+
+        Args:
+            statuses: List of JobApplicationStatus models to insert.
+        """
         await self._applications.insert_many([status.model_dump() for status in statuses])
 
     async def update_job_application_status(
@@ -448,6 +571,7 @@ def _build_job_feed_pipeline(
     request: PaginatedDataRequest[JobFeedQuery],
     username: str,
 ) -> list[dict]:
+    """Construct MongoDB aggregation pipeline stages to join assessments, jobs, and user application statuses."""
     query = request.query
     sort_field = {
         JobFeedSortField.POSTED_AT: "job.posted_at",
@@ -559,6 +683,7 @@ def _build_job_feed_pipeline(
 
 
 def _to_job_feed_item(doc: dict, username: str) -> JobFeedItem:
+    """Parse MongoDB aggregation output document into a typed JobFeedItem instance."""
     status = None
     application = doc.get("application")
     if application:

@@ -1,3 +1,5 @@
+"""Unit tests for pair-building gating and embedding nodes in batch orchestration."""
+
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -21,6 +23,7 @@ from search.models import SearchHit, SearchHits
 
 
 def _profile(username: str = "ada") -> UserProfile:
+    """Create a minimal UserProfile for testing."""
     return UserProfile(
         profile=Profile(
             name=username,
@@ -61,6 +64,7 @@ def _profile(username: str = "ada") -> UserProfile:
 
 
 def _deps(*, pair_mode: str = "topk", retrieval_k: int = 2):
+    """Build mock PipelineDependencies for testing batch nodes."""
     deps = MagicMock()
     deps.repository = AsyncMock()
     deps.collection_service = AsyncMock()
@@ -75,6 +79,7 @@ def _deps(*, pair_mode: str = "topk", retrieval_k: int = 2):
 
 @pytest.mark.asyncio
 async def test_cartesian_mode_uses_full_product():
+    """Verify that cartesian mode creates user x job pair combinations without search."""
     deps = _deps(pair_mode="cartesian")
     deps.repository.get_user_profiles.return_value = [_profile("ada"), _profile("bob")]
     nodes = make_batch_nodes(deps)
@@ -86,6 +91,7 @@ async def test_cartesian_mode_uses_full_product():
 
 @pytest.mark.asyncio
 async def test_topk_caps_pairs_at_users_times_k():
+    """Verify that topk mode limits pairs to top K search results per user."""
     deps = _deps(pair_mode="topk", retrieval_k=2)
     deps.repository.get_user_profiles.return_value = [_profile("ada"), _profile("bob")]
     deps.search_service.search_jobs.return_value = SearchHits(
@@ -101,6 +107,7 @@ async def test_topk_caps_pairs_at_users_times_k():
 
 @pytest.mark.asyncio
 async def test_build_pairs_hard_fails_and_records_task():
+    """Verify that build_pairs records a failed task upon search errors."""
     deps = _deps(pair_mode="topk")
     deps.repository.get_user_profiles.return_value = [_profile()]
     deps.search_service.search_jobs.side_effect = RuntimeError("opensearch down")
@@ -114,6 +121,7 @@ async def test_build_pairs_hard_fails_and_records_task():
 
 @pytest.mark.asyncio
 async def test_embed_jobs_hard_fails_and_records_task():
+    """Verify that embed_jobs records a failed task on embedding client errors."""
     deps = _deps()
     deps.embedding_client.embed_texts.side_effect = RuntimeError("openai down")
     nodes = make_batch_nodes(deps)

@@ -24,6 +24,8 @@ from search.search_service import SearchService
 
 @dataclass
 class PipelineDeps:
+    """Encapsulates all clients, repositories, agents, and configuration required by pipeline nodes."""
+
     collection_service: CollectionService
     repository: MongoJobsRepository
     object_storage: ObjectStorage
@@ -42,6 +44,15 @@ class PipelineDeps:
 
 
 def build_collectors(client_session: ClientSession, config: Config) -> list:
+    """Instantiate and return list of scrapers and API collectors configured for the pipeline.
+
+    Args:
+        client_session: Shared aiohttp ClientSession.
+        config: Application configuration.
+
+    Returns:
+        List of configured ICollector implementations.
+    """
     return [
         ApifyCollector(
             client_session=client_session,
@@ -74,6 +85,16 @@ async def build_deps(
     client_session: ClientSession,
     config: Config | None = None,
 ) -> PipelineDeps:
+    """Construct and assemble all PipelineDeps dependencies.
+
+    Args:
+        async_mongo_client: Asynchronous MongoDB client.
+        client_session: Shared aiohttp ClientSession.
+        config: Optional Config instance override.
+
+    Returns:
+        Fully initialized PipelineDeps container.
+    """
     cfg = config or ConfigProvider.get_config()
     search_service = SearchService(build_opensearch_client(cfg), config=cfg)
     embedding_client = EmbeddingClient(client_session, config=cfg)

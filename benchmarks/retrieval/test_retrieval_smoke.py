@@ -21,6 +21,7 @@ _INDEX = "retrieval_smoke_jobs"
 
 @pytest.fixture
 async def search_service():
+    """Fixture providing an ephemeral SearchService instance against OpenSearch."""
     client = build_opensearch_client()
     if not await client.ping():
         await client.close()
@@ -42,6 +43,7 @@ async def search_service():
 
 
 async def test_hybrid_ndcg_meets_baseline(search_service: SearchService):
+    """Verify that hybrid retrieval nDCG@10 on the frozen smoke dataset meets the baseline floor."""
     dataset = load_dataset(_DATASET_DIR).smoke_subset()
     baseline = json.loads(_BASELINE_PATH.read_text())
     docs = [

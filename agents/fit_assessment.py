@@ -1,3 +1,5 @@
+"""AI agent for deep candidate fit assessment against job postings."""
+
 import json
 from pathlib import Path
 
@@ -28,6 +30,11 @@ class FitAssessmentAgent:
     """Assesses candidate fit for a job using CV and profile against a posting."""
 
     def __init__(self, model: models.Model):
+        """Initialize the fit assessment agent with a model and prompt template.
+
+        Args:
+            model: PydanticAI model instance.
+        """
         self.model = model
         self.agent: Agent[None, FitAssessment] = Agent(
             model=model,
@@ -52,6 +59,7 @@ class FitAssessmentAgent:
         return result.output
 
     def _build_assessment_prompt(self, user_profile: UserProfile, job: JobPosting) -> str:
+        """Construct the prompt string by combining candidate profile JSON and job posting payload."""
         profile_json = user_profile.model_dump_json(indent=2)
         job_payload = json.dumps(
             job.model_dump(mode="json", include=set(_JOB_FIELDS)),
@@ -64,6 +72,7 @@ class FitAssessmentAgent:
 
     @staticmethod
     def _cv_content(cv: Path | bytes) -> BinaryContent:
+        """Wrap CV file path or byte buffer into a PydanticAI BinaryContent object."""
         if isinstance(cv, Path):
             return BinaryContent.from_path(cv)
         return BinaryContent(data=cv, media_type="application/pdf")

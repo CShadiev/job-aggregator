@@ -42,11 +42,14 @@ _DEFAULT_PROFILE_JSON = Path("benchmarks/fit_assessment/dataset/01082026/profile
 
 
 def _utc_today_ddmmyyyy() -> str:
+    """Return current UTC date as DDMMYYYY."""
     return datetime.now(UTC).strftime("%d%m%Y")
 
 
 @dataclass
 class RawJobCandidate:
+    """Raw candidate job record parsed from MongoDB or prior benchmark exports."""
+
     uid: str
     title: str
     description_raw: str
@@ -62,14 +65,17 @@ class RawJobCandidate:
 
     @property
     def clean_description(self) -> str:
+        """HTML-stripped job description text."""
         return strip_html(self.description_raw)
 
     @property
     def embedding_text(self) -> str:
+        """Text representation passed to vector embedding models."""
         return job_embedding_text(self.title, self.description_raw)
 
     @property
     def ats_score(self) -> float | None:
+        """Preferred ATS match score (profile score falling back to cv score)."""
         if self.profile_ats_match_score is not None:
             return self.profile_ats_match_score
         return self.cv_ats_match_score
@@ -1397,6 +1403,7 @@ async def generate_dataset(
 
 
 def main() -> None:
+    """CLI entrypoint for generating and exporting the comprehensive retrieval benchmark dataset."""
     parser = argparse.ArgumentParser(
         description="Generate / export comprehensive retrieval benchmark dataset",
     )

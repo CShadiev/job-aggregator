@@ -6,6 +6,7 @@ import math
 
 
 def _require_non_negative_k(k: int) -> None:
+    """Validate that ranking depth k is a positive integer."""
     if k < 1:
         raise ValueError("k must be >= 1")
 
@@ -19,6 +20,7 @@ def recall_at_k(retrieved: list[str], relevant: set[str], k: int) -> float:
 
 
 def _dcg(gains: list[float]) -> float:
+    """Compute Discounted Cumulative Gain for an ordered list of relevance gains."""
     return sum(gain / math.log2(idx + 2) for idx, gain in enumerate(gains))
 
 

@@ -6,6 +6,14 @@ from config import Config, ConfigProvider
 
 
 def build_opensearch_client(config: Config | None = None) -> AsyncOpenSearch:
+    """Create and return an AsyncOpenSearch client instance based on application configuration.
+
+    Args:
+        config: Optional Config instance; if omitted, ConfigProvider is used.
+
+    Returns:
+        AsyncOpenSearch client configured for the target host and credentials.
+    """
     cfg = config or ConfigProvider.get_config()
     http_auth = None
     if cfg.OPENSEARCH_USER and cfg.OPENSEARCH_PASSWORD:

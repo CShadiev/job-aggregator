@@ -1,3 +1,5 @@
+"""Unit tests for OpenTelemetry tracing, span IDs, and request correlation middleware."""
+
 from uuid import UUID
 
 import pytest
@@ -16,10 +18,12 @@ from telemetry import (
 
 @pytest.fixture
 def client():
+    """Create a FastAPI TestClient instance."""
     return TestClient(app, raise_server_exceptions=False)
 
 
 def test_correlation_middleware_generates_request_id(client: TestClient):
+    """Verify that requests without X-Request-ID receive a newly generated UUID."""
     response = client.get("/healthz")
     assert response.status_code == 200
     req_id = response.headers.get("X-Request-ID")
@@ -30,6 +34,7 @@ def test_correlation_middleware_generates_request_id(client: TestClient):
 
 
 def test_correlation_middleware_preserves_request_id(client: TestClient):
+    """Verify that incoming X-Request-ID headers are preserved and propagated in response."""
     custom_id = "test-correlation-id-12345"
     response = client.get("/healthz", headers={"X-Request-ID": custom_id})
     assert response.status_code == 200
@@ -37,6 +42,7 @@ def test_correlation_middleware_preserves_request_id(client: TestClient):
 
 
 def test_telemetry_trace_and_span_ids():
+    """Verify extraction of active OpenTelemetry trace and span IDs."""
     # Outside of an active span
     assert get_current_trace_id() is None
     assert get_current_span_id() is None
@@ -54,6 +60,7 @@ def test_telemetry_trace_and_span_ids():
 
 
 def test_loguru_record_enrichment():
+    """Verify that loguru log records are enriched with trace, span, and request context."""
     logger = LoggerProvider.get_logger()
     captured_records = []
 

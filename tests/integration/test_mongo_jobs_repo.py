@@ -1,3 +1,5 @@
+"""Integration tests for MongoJobsRepository against a live MongoDB test instance."""
+
 from collections.abc import AsyncGenerator
 
 import pytest
@@ -14,6 +16,7 @@ _USERNAME = "test_user"
 
 @pytest.fixture()
 async def repo() -> AsyncGenerator[MongoJobsRepository]:
+    """Provide a seeded MongoJobsRepository connected to the test database."""
     config = ConfigProvider.get_config()
     mongo_client = AsyncMongoClient(
         host=config.MONGODB_HOST,
@@ -49,7 +52,10 @@ async def repo() -> AsyncGenerator[MongoJobsRepository]:
 
 
 class TestGetJobFeedPagination:
+    """Tests for job feed item pagination and filtering in MongoJobsRepository."""
+
     async def test_nonlast_page_returns_correct_number_of_items(self, repo: MongoJobsRepository):
+        """Verify pagination returns requested page size."""
         request = PaginatedDataRequest[JobFeedQuery](
             query=JobFeedQuery(skipped=False), page=1, page_size=100
         )
@@ -58,6 +64,7 @@ class TestGetJobFeedPagination:
         assert len(response.data) == 100
 
     async def test_skipped_jobs_are_excluded(self, repo: MongoJobsRepository):
+        """Verify skipped jobs are excluded when skipped=False filter is applied."""
         request = PaginatedDataRequest[JobFeedQuery](
             query=JobFeedQuery(skipped=False, active_only=False), page=1, page_size=1000
         )

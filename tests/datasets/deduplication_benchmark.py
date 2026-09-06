@@ -1,7 +1,11 @@
+"""Benchmark dataset entries and loaders for deduplication normalization evaluation."""
+
 from typing import TypedDict
 
 
 class BenchmarkDatasetEntry(TypedDict):
+    """Entry structure for job title and company deduplication benchmark evaluation."""
+
     title: str
     company: str
     expected_normalized_title: str
@@ -10,6 +14,7 @@ class BenchmarkDatasetEntry(TypedDict):
 
 
 def load_benchmark_dataset() -> list[BenchmarkDatasetEntry]:
+    """Return a curated benchmark dataset of raw job entries and expected normalizations."""
     return [
         {
             "title": "Software Engineer",

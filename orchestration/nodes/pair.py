@@ -17,6 +17,7 @@ log = LoggerProvider.get_logger()
 
 
 def make_pair_nodes(deps: PipelineDeps) -> dict[str, Any]:
+    """Construct node functions and routing handlers for the candidate-job pair evaluation subgraph."""
     repository = deps.repository
     object_storage = deps.object_storage
     screening_agent = deps.screening_agent

@@ -1,11 +1,15 @@
+"""Pytest test configuration and custom CLI options."""
+
 import pytest
 
 
 def pytest_addoption(parser):
+    """Register custom pytest command-line options."""
     parser.addoption("--run-priced", action="store_true", help="Run priced tests")
 
 
 def pytest_collection_modifyitems(config, items):
+    """Skip tests marked as priced unless explicitly enabled via --run-priced."""
     if not config.getoption("--run-priced"):
         skip = pytest.mark.skip(reason="Priced tests are disabled. Use --run-priced to run them")
         for item in items:

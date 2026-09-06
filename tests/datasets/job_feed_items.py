@@ -40,6 +40,7 @@ _BASE_TIME = datetime(2026, 1, 1, tzinfo=UTC)
 
 
 def _make_job_posting(i: int) -> JobPosting:
+    """Generate a deterministic sample JobPosting for index i."""
     source = _SOURCES[i % len(_SOURCES)]
     title = _TITLES[i % len(_TITLES)]
     company = _COMPANIES[i % len(_COMPANIES)]
@@ -65,6 +66,7 @@ def _make_job_posting(i: int) -> JobPosting:
 
 
 def _make_fit_assessment(i: int) -> FitAssessment:
+    """Generate a deterministic sample FitAssessment for index i."""
     cv_score = (i * 7) % 101
     profile_score = (i * 13) % 101
     deal_breakers = [f"Missing requirement {i % 5}"] if i % 5 == 0 else []
@@ -77,6 +79,7 @@ def _make_fit_assessment(i: int) -> FitAssessment:
 
 
 def _make_status(i: int, uid: str, username: str) -> JobApplicationStatus:
+    """Generate a deterministic sample JobApplicationStatus for index i and uid."""
     return JobApplicationStatus(
         username=username,
         job_uid=uid,

@@ -29,6 +29,15 @@ class EmbeddingClient:
         batch_size: int | None = None,
         config: Config | None = None,
     ) -> None:
+        """Initialize embedding client with a shared aiohttp session and configuration.
+
+        Args:
+            session: Shared aiohttp ClientSession.
+            api_key: OpenAI API key (defaults to config value).
+            model: Embedding model name.
+            batch_size: Chunk size for embedding requests.
+            config: Optional Config override.
+        """
         cfg = config or ConfigProvider.get_config()
         self._session = session
         self._api_key = api_key or cfg.OPENAI_API_KEY
@@ -36,6 +45,14 @@ class EmbeddingClient:
         self._batch_size = batch_size or cfg.EMBEDDING_BATCH_SIZE
 
     async def embed_texts(self, texts: Sequence[str]) -> list[list[float]]:
+        """Generate vector embeddings for a sequence of texts, chunking into configured batches.
+
+        Args:
+            texts: Sequence of strings to embed.
+
+        Returns:
+            List of float embedding vectors matching input order.
+        """
         if not texts:
             return []
         vectors: list[list[float]] = []
@@ -45,6 +62,14 @@ class EmbeddingClient:
         return vectors
 
     async def embed_profile(self, profile: UserProfile) -> list[float]:
+        """Embed a candidate UserProfile, using an in-memory digest cache to avoid redundant API calls.
+
+        Args:
+            profile: User profile to flatten and embed.
+
+        Returns:
+            Vector embedding of the flattened profile text.
+        """
         text = flatten_profile(profile)
         digest = profile_text_hash(text)
         cached = _profile_vector_cache.get(digest)
@@ -55,6 +80,7 @@ class EmbeddingClient:
         return vector
 
     async def _embed_batch(self, texts: list[str]) -> list[list[float]]:
+        """Send a single batch of text inputs to the OpenAI Embeddings API endpoint."""
         headers = {
             "Authorization": f"Bearer {self._api_key}",
             "Content-Type": "application/json",

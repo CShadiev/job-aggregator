@@ -29,6 +29,8 @@ class SearchFilters:
 
 @dataclass
 class SearchHit:
+    """A single matched search result containing job uid, relevance score, and source payload."""
+
     uid: str
     score: float
     source: dict[str, Any] = field(default_factory=dict)
@@ -36,6 +38,8 @@ class SearchHit:
 
 @dataclass
 class SearchHits:
+    """Container for matched search hits and the total hit count."""
+
     hits: list[SearchHit]
     total: int = 0
 
@@ -57,6 +61,7 @@ class IndexedJob(BaseModel):
 
     @classmethod
     def from_posting(cls, posting: JobPosting, embedding: list[float]) -> IndexedJob:
+        """Construct an IndexedJob from a JobPosting and computed embedding vector."""
         return cls(
             uid=posting.uid,
             title=posting.title,
@@ -85,9 +90,11 @@ class DenormalizedAssessment(BaseModel):
     job: JobPosting
 
     def document_id(self) -> str:
+        """Return the composite OpenSearch document identifier."""
         return assessment_document_id(self.username, self.job_uid)
 
     def to_opensearch_source(self) -> dict[str, Any]:
+        """Convert the denormalized assessment model to an OpenSearch index document dict."""
         job_dump = self.job.model_dump(mode="json")
         job_dump["description"] = strip_html(self.job.description_raw)
         source: dict[str, Any] = {
@@ -112,6 +119,7 @@ class DenormalizedAssessment(BaseModel):
         job: JobPosting,
         status: JobApplicationStatus | None = None,
     ) -> DenormalizedAssessment:
+        """Assemble a DenormalizedAssessment from constituent assessment, user, job, and status parts."""
         return cls(
             username=username,
             job_uid=job.uid,
@@ -124,9 +132,11 @@ class DenormalizedAssessment(BaseModel):
         )
 
     def to_feed_item(self) -> JobFeedItem:
+        """Convert the document to a public JobFeedItem model."""
         return JobFeedItem(job=self.job, fit=self.to_fit_assessment(), status=self.status)
 
     def to_fit_assessment(self) -> FitAssessment:
+        """Extract the structured FitAssessment model from the denormalized document."""
         return FitAssessment(
             cv_ats_match_score=self.cv_ats_match_score,
             profile_ats_match_score=self.profile_ats_match_score,
@@ -136,6 +146,7 @@ class DenormalizedAssessment(BaseModel):
 
     @classmethod
     def from_opensearch_source(cls, source: dict[str, Any]) -> DenormalizedAssessment:
+        """Reconstruct a DenormalizedAssessment instance from an OpenSearch source payload dict."""
         job_source = dict(source.get("job") or {})
         job_source.pop("description", None)
         return cls(
@@ -151,4 +162,5 @@ class DenormalizedAssessment(BaseModel):
 
 
 def assessment_document_id(username: str, job_uid: str) -> str:
+    """Generate the canonical OpenSearch document identifier for a candidate-job assessment."""
     return f"{username}_{job_uid}"

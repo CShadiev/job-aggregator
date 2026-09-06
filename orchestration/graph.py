@@ -11,6 +11,7 @@ from orchestration.state import PairState, PipelineState
 
 
 def build_pair_subgraph(deps: PipelineDeps) -> CompiledStateGraph:
+    """Build and compile the per-(candidate, job) evaluation subgraph."""
     nodes = make_pair_nodes(deps)
     builder = StateGraph(PairState)
     builder.add_node("screen", nodes["screen"])
@@ -38,6 +39,7 @@ def build_pipeline_graph(
     deps: PipelineDeps,
     checkpointer: BaseCheckpointSaver,
 ) -> CompiledStateGraph:
+    """Build and compile the main LangGraph job aggregation and candidate evaluation state graph."""
     batch = make_batch_nodes(deps)
     pair_pipeline = build_pair_subgraph(deps)
 

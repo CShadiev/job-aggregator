@@ -1,3 +1,5 @@
+"""Factory and registry for LLM models used by PydanticAI agents."""
+
 from enum import StrEnum
 
 from pydantic_ai.models import Model as PydanticModel
@@ -15,6 +17,8 @@ OPENAI_PROVIDER = OpenAIProvider(
 
 
 class Model(StrEnum):
+    """Supported model identifiers across providers."""
+
     GROK_4_3 = "grok-4.3"
     GROK_4_5 = "grok-4.5"
     LUNA_5_6 = "gpt-5.6-luna"
@@ -22,6 +26,8 @@ class Model(StrEnum):
 
 
 class ModelFactory:
+    """Provides cached instances of configured PydanticAI models."""
+
     _models: dict[Model, PydanticModel] = {
         Model.GROK_4_3: OpenAIResponsesModel(model_name=Model.GROK_4_3, provider=GROK_PROVIDER),
         Model.GROK_4_5: OpenAIResponsesModel(model_name=Model.GROK_4_5, provider=GROK_PROVIDER),
@@ -33,6 +39,17 @@ class ModelFactory:
 
     @classmethod
     def get_model(cls, model: Model) -> PydanticModel:
+        """Retrieve a configured PydanticAI Model instance by enum key.
+
+        Args:
+            model: The target Model identifier.
+
+        Returns:
+            The configured PydanticModel instance.
+
+        Raises:
+            ValueError: If the requested model is not found in the factory registry.
+        """
         try:
             return cls._models[model]
         except KeyError as e:

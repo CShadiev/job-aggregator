@@ -21,6 +21,11 @@ log = LoggerProvider.get_logger()
 
 
 async def backfill(*, batch_size: int) -> None:
+    """Read all jobs from MongoDB, compute OpenAI text embeddings, and bulk index them into OpenSearch.
+
+    Args:
+        batch_size: Number of jobs to batch per embedding call and OpenSearch bulk request.
+    """
     config = ConfigProvider.get_config()
     mongo = AsyncMongoClient(
         host=config.MONGODB_HOST,
@@ -50,6 +55,7 @@ async def backfill(*, batch_size: int) -> None:
 
 
 async def _flush(embedder: EmbeddingClient, search: SearchService, postings: list) -> int:
+    """Generate vector embeddings for a chunk of postings and write them to OpenSearch."""
     texts = [job_embedding_text(p.title, p.description_raw) for p in postings]
     vectors = await embedder.embed_texts(texts)
     docs = [
@@ -61,6 +67,7 @@ async def _flush(embedder: EmbeddingClient, search: SearchService, postings: lis
 
 
 def main() -> None:
+    """Parse CLI arguments and run the job embedding backfill process."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--batch-size", type=int, default=64)
     args = parser.parse_args()

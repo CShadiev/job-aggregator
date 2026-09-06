@@ -4,6 +4,8 @@ from enum import StrEnum
 
 
 class FitCategory(StrEnum):
+    """Categorical fit bands mapped from numeric ATS match scores."""
+
     LOW = "low"
     MODERATE = "moderate"
     GOOD = "good"
@@ -36,4 +38,5 @@ def is_adjacent(gold: FitCategory, pred: FitCategory) -> bool:
 
 
 def category_order() -> tuple[FitCategory, ...]:
+    """Return canonical low-to-high ordering of FitCategory values."""
     return _CATEGORY_ORDER

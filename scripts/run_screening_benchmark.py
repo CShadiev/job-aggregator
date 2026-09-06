@@ -35,6 +35,8 @@ _FAILURE_ABORT_RATIO = 0.20
 
 @dataclass
 class EntryResult:
+    """Individual screening entry result containing gold labels, predictions, and errors."""
+
     id: str
     job_uid: str
     gold_cv_score: float
@@ -47,6 +49,8 @@ class EntryResult:
 
 @dataclass
 class BenchmarkRun:
+    """Aggregated screening benchmark execution run metadata, results, and token metrics."""
+
     dataset_version: str
     dataset_path: Path
     model: str
@@ -60,12 +64,14 @@ class BenchmarkRun:
 
 
 def _list_versions(dataset_root: Path) -> list[str]:
+    """Return sorted list of dataset version folder names under dataset_root."""
     if not dataset_root.is_dir():
         return []
     return sorted(p.name for p in dataset_root.iterdir() if p.is_dir())
 
 
 def resolve_dataset_dir(dataset_root: Path, dataset_version: str | None) -> Path:
+    """Resolve directory path for the requested or single available dataset version."""
     versions = _list_versions(dataset_root)
     if dataset_version:
         dataset_dir = dataset_root / dataset_version
@@ -88,6 +94,7 @@ def resolve_dataset_dir(dataset_root: Path, dataset_version: str | None) -> Path
 
 
 def load_dataset(dataset_dir: Path) -> tuple[dict, list[dict], Path]:
+    """Load manifest, entries, and CV path from the dataset directory."""
     manifest_path = dataset_dir / "manifest.json"
     entries_path = dataset_dir / "entries.jsonl"
     cv_path = dataset_dir / "cv.pdf"
@@ -114,6 +121,7 @@ def load_dataset(dataset_dir: Path) -> tuple[dict, list[dict], Path]:
 
 
 def _parse_model(model_name: str) -> Model:
+    """Validate and convert model name string to Model enum member."""
     try:
         return Model(model_name)
     except ValueError as exc:
@@ -127,6 +135,7 @@ async def _screen_entry(
     cv_path: Path,
     entry: dict,
 ) -> EntryResult:
+    """Screen a single dataset entry using the ScreeningAgent."""
     gold = entry["gold"]
     result = EntryResult(
         id=entry["id"],
@@ -148,6 +157,7 @@ async def _screen_entry(
 
 
 async def run_benchmark(args: argparse.Namespace) -> Path:
+    """Execute the offline screening benchmark evaluation, writing report and JSONL results."""
     dataset_dir = resolve_dataset_dir(Path(args.dataset_root), args.dataset_version)
     manifest, entries, cv_path = load_dataset(dataset_dir)
 
@@ -213,14 +223,17 @@ async def run_benchmark(args: argparse.Namespace) -> Path:
 
 
 def _fmt_pct(value: float) -> str:
+    """Format float as percentage string."""
     return f"{value:.1%}"
 
 
 def _fmt_float(value: float) -> str:
+    """Format float to 3 decimal places."""
     return f"{value:.3f}"
 
 
 def _fmt_matrix(matrix: dict[str, dict[str, int]]) -> str:
+    """Render binary confusion matrix as a markdown table."""
     cols = list(next(iter(matrix.values())).keys()) if matrix else ["true", "false"]
     header = "| gold \\ pred | " + " | ".join(cols) + " |"
     sep = "|" + "|".join(["---"] * (len(cols) + 1)) + "|"
@@ -233,6 +246,7 @@ def _fmt_matrix(matrix: dict[str, dict[str, int]]) -> str:
 
 
 def _fmt_band_table(bands: dict[str, dict[str, float]]) -> str:
+    """Render per-fit-band accuracy as a markdown table."""
     lines = [
         "| band | n | binary gold | correct | accuracy |",
         "|---|---|---|---|---|",
@@ -248,6 +262,7 @@ def _fmt_band_table(bands: dict[str, dict[str, float]]) -> str:
 
 
 def _render_report(run: BenchmarkRun) -> str:
+    """Render markdown screening report from run results and template."""
     results = run.results
     n = len(results)
     failed = sum(1 for r in results if r.error is not None)
@@ -310,6 +325,7 @@ def _render_report(run: BenchmarkRun) -> str:
 
 
 def _write_results_jsonl(path: Path, run: BenchmarkRun) -> None:
+    """Save raw run predictions and gold labels to JSONL file."""
     with path.open("w", encoding="utf-8") as fh:
         meta = {
             "type": "meta",
@@ -342,6 +358,7 @@ def _write_results_jsonl(path: Path, run: BenchmarkRun) -> None:
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build CLI argument parser for the screening benchmark runner."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--dataset-root",
@@ -376,6 +393,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main() -> None:
+    """CLI entrypoint for running the screening benchmark."""
     args = build_parser().parse_args()
     if args.concurrency < 1:
         raise SystemExit("--concurrency must be >= 1")

@@ -35,6 +35,15 @@ _KS = (5, 10, 20)
 
 
 async def run_benchmark(dataset: RetrievalDataset, reports_dir: Path) -> dict:
+    """Run retrieval evaluation comparing BM25, k-NN, and hybrid retrieval modes over the dataset.
+
+    Args:
+        dataset: RetrievalDataset containing corpus, queries, and relevance labels.
+        reports_dir: Directory where JSON and markdown reports will be written.
+
+    Returns:
+        Dictionary summarizing aggregated retrieval metrics across modes.
+    """
     config = ConfigProvider.get_config()
     search = SearchService(
         build_opensearch_client(config),
@@ -90,6 +99,7 @@ async def run_benchmark(dataset: RetrievalDataset, reports_dir: Path) -> dict:
 
 
 async def _index_corpus(search: SearchService, dataset: RetrievalDataset) -> None:
+    """Recreate temporary benchmark index and bulk index all corpus documents."""
     if await search._client.indices.exists(index=search.jobs_index):
         await search._client.indices.delete(index=search.jobs_index)
     await search.ensure_indices()
@@ -112,6 +122,7 @@ async def _index_corpus(search: SearchService, dataset: RetrievalDataset) -> Non
 
 
 def _format_markdown_report(report: dict) -> str:
+    """Format retrieval evaluation results into markdown tables."""
     headline_rows = []
     cutoff_rows = []
     for mode in _MODES:
@@ -153,6 +164,7 @@ def _format_markdown_report(report: dict) -> str:
 
 
 def _write_reports(reports_dir: Path, report: dict, per_mode_rows: dict) -> None:
+    """Write benchmark results as JSON and Markdown reports."""
     reports_dir.mkdir(parents=True, exist_ok=True)
     stamp = report["timestamp"]
     json_path = reports_dir / f"{stamp}.json"
@@ -163,6 +175,7 @@ def _write_reports(reports_dir: Path, report: dict, per_mode_rows: dict) -> None
 
 
 def main() -> None:
+    """CLI entrypoint for running the retrieval benchmark."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--dataset-root", type=Path, default=_DEFAULT_DATASET_ROOT)
     parser.add_argument("--dataset-version", default=None)

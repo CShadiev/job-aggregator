@@ -1,3 +1,5 @@
+"""Logging configuration and Loguru provider with OpenTelemetry and correlation support."""
+
 from __future__ import annotations
 
 import sys
@@ -64,6 +66,8 @@ def _stdout_format(record: Record) -> str:
 
 
 class LoggerProvider:
+    """Configures Loguru logger handlers, formatters, and provides the singleton logger instance."""
+
     _LOG_DIR.mkdir(parents=True, exist_ok=True)
     logger.remove()
     logger.configure(patcher=_patch_record)
@@ -96,4 +100,5 @@ class LoggerProvider:
 
     @classmethod
     def get_logger(cls) -> loguru.Logger:
+        """Return configured Loguru logger instance."""
         return logger

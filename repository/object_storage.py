@@ -1,3 +1,5 @@
+"""S3-backed object storage repository for cover letters and candidate CVs."""
+
 import boto3
 from mypy_boto3_s3 import S3Client
 
@@ -8,11 +10,14 @@ log = LoggerProvider.get_logger()
 
 
 class S3ClientProvider:
+    """Singleton provider for configuring and caching boto3 S3Client instances."""
+
     cfg = ConfigProvider.get_config()
     client: S3Client | None = None
 
     @classmethod
-    def get_s3_client(cls):
+    def get_s3_client(cls) -> S3Client:
+        """Create or return the cached boto3 S3 client instance."""
         if cls.client is None:
             cls.client = boto3.client(
                 "s3",
@@ -25,17 +30,26 @@ class S3ClientProvider:
 
 
 class ObjectStorage:
-    """
-    Implementation of the object storage using S3.
-    """
+    """Implementation of the object storage using S3."""
 
     def __init__(self) -> None:
+        """Initialize ObjectStorage with configured bucket name and S3 client."""
         cfg = ConfigProvider.get_config()
         self.bucket_name = cfg.S3_BUCKET_NAME
         self.s3_client = S3ClientProvider.get_s3_client()
         self.ROOT = "job-aggregator"
 
     def upload_coverletter(self, username: str, job_id: str, file_path: str) -> str:
+        """Upload a generated cover letter PDF file to S3.
+
+        Args:
+            username: Candidate username.
+            job_id: Job posting identifier.
+            file_path: Local filesystem path of the PDF.
+
+        Returns:
+            The S3 object key where the file was stored.
+        """
         object_key = f"{self.ROOT}/{username}/cover_letters/{job_id}.pdf"
         upload_log = log.bind(username=username, job_id=job_id, object_key=object_key)
         upload_log.debug("Uploading cover letter PDF to S3")
@@ -44,6 +58,16 @@ class ObjectStorage:
         return object_key
 
     def upload_coverletter_json(self, username: str, job_id: str, file_path: str) -> str:
+        """Upload structured cover letter JSON data to S3.
+
+        Args:
+            username: Candidate username.
+            job_id: Job posting identifier.
+            file_path: Local filesystem path of the JSON file.
+
+        Returns:
+            The S3 object key where the file was stored.
+        """
         object_key = f"{self.ROOT}/{username}/cover_letters/{job_id}.json"
         upload_log = log.bind(username=username, job_id=job_id, object_key=object_key)
         upload_log.debug("Uploading cover letter JSON to S3")
@@ -52,6 +76,16 @@ class ObjectStorage:
         return object_key
 
     def get_coverletter(self, username: str, job_id: str, file_path: str) -> str:
+        """Download a cover letter PDF file from S3 to a local file path.
+
+        Args:
+            username: Candidate username.
+            job_id: Job posting identifier.
+            file_path: Target destination path on local disk.
+
+        Returns:
+            The destination file path.
+        """
         object_key = f"{self.ROOT}/{username}/cover_letters/{job_id}.pdf"
         log.bind(username=username, job_id=job_id, object_key=object_key).debug(
             "Downloading cover letter from S3"
@@ -60,6 +94,16 @@ class ObjectStorage:
         return file_path
 
     def get_coverletter_md(self, username: str, job_id: str, file_path: str) -> str:
+        """Download a cover letter Markdown file from S3 to a local file path.
+
+        Args:
+            username: Candidate username.
+            job_id: Job posting identifier.
+            file_path: Target destination path on local disk.
+
+        Returns:
+            The destination file path.
+        """
         object_key = f"{self.ROOT}/{username}/cover_letters/{job_id}.md"
         log.bind(username=username, job_id=job_id, object_key=object_key).debug(
             "Downloading cover letter from S3"
@@ -68,6 +112,16 @@ class ObjectStorage:
         return file_path
 
     def get_coverletter_json(self, username: str, job_id: str, file_path: str) -> str:
+        """Download a cover letter JSON file from S3 to a local file path.
+
+        Args:
+            username: Candidate username.
+            job_id: Job posting identifier.
+            file_path: Target destination path on local disk.
+
+        Returns:
+            The destination file path.
+        """
         object_key = f"{self.ROOT}/{username}/cover_letters/{job_id}.json"
         log.bind(username=username, job_id=job_id, object_key=object_key).debug(
             "Downloading cover letter JSON from S3"
@@ -82,10 +136,27 @@ class ObjectStorage:
         return response["Body"].read()
 
     def get_user_cv(self, username: str) -> bytes:
+        """Retrieve the raw binary PDF bytes for a candidate's CV from S3.
+
+        Args:
+            username: Candidate username.
+
+        Returns:
+            Raw PDF bytes of the CV.
+        """
         object_key = f"{self.ROOT}/{username}/cv.pdf"
         return self.get_object_bytes(object_key)
 
     def upload_user_cv(self, username: str, file_path: str) -> str:
+        """Upload a candidate's CV PDF file to S3.
+
+        Args:
+            username: Candidate username.
+            file_path: Local filesystem path of the CV PDF.
+
+        Returns:
+            The S3 object key.
+        """
         object_key = f"{self.ROOT}/{username}/cv.pdf"
         self.s3_client.upload_file(file_path, self.bucket_name, object_key)
         return object_key

@@ -17,12 +17,14 @@ from search.text import job_embedding_text
 
 
 def _vector(on_at: int, dim: int = 1536) -> list[float]:
+    """Create a unit-like one-hot test embedding vector."""
     values = [0.0] * dim
     values[on_at % dim] = 1.0
     return values
 
 
 def _job(uid: str, title: str, description: str) -> JobPosting:
+    """Create a sample JobPosting instance for search service indexing."""
     return JobPosting(
         uid=uid,
         source="test",
@@ -39,6 +41,7 @@ def _job(uid: str, title: str, description: str) -> JobPosting:
 
 @pytest.fixture
 async def search_service():
+    """Provide an isolated SearchService instance configured with temporary test indices."""
     client = build_opensearch_client()
     if not await client.ping():
         await client.close()
@@ -63,6 +66,7 @@ async def search_service():
 
 @pytest.mark.asyncio
 async def test_bm25_knn_and_hybrid_return_hits(search_service: SearchService):
+    """Verify BM25, k-NN, and hybrid search methods retrieve indexed jobs."""
     python_job = _job("j-py", "Python Backend Engineer", "FastAPI MongoDB Python APIs")
     react_job = _job("j-js", "React Frontend Engineer", "TypeScript React CSS")
     await search_service.bulk_index_jobs(
@@ -106,6 +110,7 @@ async def test_bm25_knn_and_hybrid_return_hits(search_service: SearchService):
 
 @pytest.mark.asyncio
 async def test_search_user_feed_keyword_and_filters(search_service: SearchService):
+    """Verify search_user_feed query filtering on keywords and minimum ATS score."""
     job = _job("feed-1", "Kubernetes Platform Engineer", "Terraform Go Kubernetes")
     assessment = FitAssessment(
         cv_ats_match_score=88,

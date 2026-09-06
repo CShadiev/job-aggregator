@@ -20,6 +20,7 @@ tracer = get_tracer("job-aggregator.pipeline")
 
 
 def _sync_mongo_client(config) -> MongoClient:
+    """Instantiate a synchronous MongoClient used by LangGraph checkpointer."""
     return MongoClient(
         host=config.MONGODB_HOST,
         port=config.MONGODB_PORT,
@@ -33,6 +34,7 @@ async def run_once(
     graph,
     config,
 ) -> None:
+    """Execute a single end-to-end pipeline run over the compiled graph."""
     invoke_config = {
         "configurable": {"thread_id": config.PIPELINE_THREAD_ID},
         "max_concurrency": config.PIPELINE_PAIR_CONCURRENCY,
@@ -61,6 +63,7 @@ async def run_once(
 
 
 async def _async_main() -> None:
+    """Async orchestration entrypoint initializing dependencies and triggering a single run."""
     config = ConfigProvider.get_config()
     setup_telemetry()
     async_mongo = AsyncMongoClient(
@@ -97,6 +100,7 @@ async def _async_main() -> None:
 
 
 def main() -> None:
+    """Top-level CLI entrypoint running the orchestration scheduler loop."""
     config = ConfigProvider.get_config()
     log.info(
         "{service}: Starting LangGraph pipeline",

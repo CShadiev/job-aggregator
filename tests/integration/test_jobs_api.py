@@ -5,12 +5,14 @@ from models.jobs_api import JobFeedQuery
 
 
 def test_job_feed_query_accepts_optional_q():
+    """Verify JobFeedQuery model parses optional query string parameter q."""
     query = JobFeedQuery(q="Kubernetes", skipped=False)
     assert query.q == "Kubernetes"
     assert JobFeedQuery().q is None
 
 
 def test_openapi_job_feed_query_includes_q():
+    """Verify OpenAPI schema includes q property in JobFeedQuery definition."""
     schema = app.openapi()
     job_feed_query = schema["components"]["schemas"]["JobFeedQuery"]
     assert "q" in job_feed_query["properties"]
@@ -19,6 +21,7 @@ def test_openapi_job_feed_query_includes_q():
 
 
 def test_openapi_jobs_search_request_uses_job_feed_query():
+    """Verify /jobs/search endpoint OpenAPI schema uses JobFeedQuery in request payload."""
     schema = app.openapi()
     search = schema["paths"]["/jobs/search"]["post"]
     ref = search["requestBody"]["content"]["application/json"]["schema"]

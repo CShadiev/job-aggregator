@@ -32,11 +32,15 @@ class FitAssessment(BaseModel):
 
 
 class CoverLetterSection(BaseModel):
+    """A single titled section of a generated cover letter."""
+
     title: str
     content: list[str]
 
 
 class CoverLetterContent(BaseModel):
+    """Structured content of a generated cover letter including contact info and body sections."""
+
     name: str
     title: str
     email: str

@@ -1,3 +1,5 @@
+"""HTTP endpoints for user authentication and token refresh operations."""
+
 from fastapi import APIRouter, HTTPException, status
 
 from api.deps import AppAuth0Client

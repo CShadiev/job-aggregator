@@ -9,4 +9,5 @@ def category_to_worth(category: FitCategory) -> bool:
 
 
 def score_to_worth(score: float) -> bool:
+    """Convert a numeric ATS match score to a binary screening decision (worth full assessment)."""
     return category_to_worth(score_to_category(score))

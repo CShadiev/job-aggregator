@@ -1,3 +1,5 @@
+"""Auth0 authentication service and JWT token validation."""
+
 import json
 from urllib.request import urlopen
 
@@ -54,6 +56,11 @@ class Auth0ClientWrapper:
     """
 
     def __init__(self, config: Config):
+        """Initialize Auth0 client wrapper with credentials and SDK endpoints.
+
+        Args:
+            config: Application configuration containing Auth0 settings.
+        """
         self.config = config
         self.domain = config.AUTH0_DOMAIN
         self.client_id = config.AUTH0_CLIENT_ID

@@ -6,7 +6,7 @@ from models.collection_service import JobPosting
 
 
 class LinkedinApifyParser:
-    """Parse raw Indeed dataset items produced by an Apify actor into JobPostings."""
+    """Parse raw LinkedIn dataset items produced by an Apify actor into JobPostings."""
 
     def __init__(self, source_tag: str):
         """Initialise the parser.

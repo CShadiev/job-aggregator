@@ -1,3 +1,5 @@
+"""AI agent for deduplication and canonical normalization of job postings."""
+
 import asyncio
 import json
 from pathlib import Path
@@ -13,7 +15,14 @@ CONFIG = ConfigProvider.get_config()
 
 
 class DeduplicationAgent:
+    """Agent that extracts and normalizes canonical job titles and company names using an LLM."""
+
     def __init__(self, model: models.Model):
+        """Initialize the deduplication agent with a model and prompt template.
+
+        Args:
+            model: PydanticAI model instance.
+        """
         self.model = model
         self.agent: Agent[None, NormalizedBatch] = Agent(
             model=model,
@@ -24,13 +33,18 @@ class DeduplicationAgent:
     async def normalize(
         self, postings: list[JobPosting], batch_size: int = CONFIG.DEDUPLICATION_BATCH_SIZE
     ) -> NormalizationResult:
-        """
-        Normalize job titles and company names for each posting.
+        """Normalize job titles and company names for each posting.
 
         Postings are split into fixed-size batches (``DEDUPLICATION_BATCH_SIZE``)
         and processed concurrently.
-        """
 
+        Args:
+            postings: List of JobPosting instances to normalize.
+            batch_size: Batch size for chunking postings before sending to the agent.
+
+        Returns:
+            NormalizationResult containing processed and failed postings.
+        """
         batches = [postings[i : i + batch_size] for i in range(0, len(postings), batch_size)]
 
         results = await asyncio.gather(*[self._process_batch(batch) for batch in batches])

@@ -1,3 +1,5 @@
+"""Integration tests and accuracy benchmarks for DeduplicationAgent using live LLM models."""
+
 import pytest
 from pydantic_ai import ModelResponse, capture_run_messages
 from pydantic_ai.usage import RunUsage
@@ -18,6 +20,7 @@ DEDUPLICATION_METRIC_MAX = 0.10
 
 
 def get_agent() -> DeduplicationAgent:
+    """Create DeduplicationAgent configured with the benchmark model."""
     model = ModelFactory.get_model(MODEL_NAME)
     return DeduplicationAgent(model)
 
@@ -25,6 +28,7 @@ def get_agent() -> DeduplicationAgent:
 def count_deduped_by_normalized_key(
     processed: list,
 ) -> int:
+    """Count unique (title_normalized, company_normalized) pairs across processed postings."""
     seen: set[tuple[str, str]] = set()
     for posting in processed:
         key = (posting.title_normalized, posting.company_normalized)
@@ -34,6 +38,7 @@ def count_deduped_by_normalized_key(
 
 @pytest.mark.priced
 async def test_benchmark_normalization_accuracy():
+    """Run normalization benchmark against curated gold dataset and evaluate accuracy."""
     dataset = load_benchmark_dataset()
     assert len(dataset) == 30
 

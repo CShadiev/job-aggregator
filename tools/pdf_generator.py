@@ -1,3 +1,5 @@
+"""PDF generator for styled candidate cover letters using FPDF2."""
+
 import fpdf
 from fpdf.enums import XPos, YPos
 
@@ -11,6 +13,15 @@ FONT_SIZE_CONTENT = 9
 
 
 def generate_cover_letter(cover_letter_content: CoverLetterContent, output_path: str) -> int:
+    """Render a structured cover letter as a styled PDF document.
+
+    Args:
+        cover_letter_content: Cover letter data model containing contact info and sections.
+        output_path: File path where the generated PDF will be written.
+
+    Returns:
+        The total number of pages in the generated PDF.
+    """
     pdf = fpdf.FPDF()
     pdf.add_font("Comfortaa", "", "tools/fonts/Comfortaa-Medium.ttf")
     pdf.add_font("Comfortaa", "B", "tools/fonts/Comfortaa-Bold.ttf")

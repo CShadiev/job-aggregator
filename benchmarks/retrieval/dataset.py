@@ -13,6 +13,8 @@ _DEFAULT_ROOT = Path("benchmarks/retrieval/dataset")
 
 @dataclass(frozen=True)
 class CorpusDoc:
+    """Corpus document representation containing job metadata and vector embedding."""
+
     uid: str
     title: str
     description: str
@@ -27,6 +29,8 @@ class CorpusDoc:
 
 @dataclass(frozen=True)
 class Query:
+    """Evaluation query containing identifier, text query, and vector embedding."""
+
     query_id: str
     text: str
     embedding: list[float]
@@ -34,6 +38,8 @@ class Query:
 
 @dataclass(frozen=True)
 class RetrievalDataset:
+    """Frozen retrieval benchmark dataset containing manifest, corpus, queries, and relevance judgments."""
+
     version: str
     path: Path
     manifest: dict[str, Any]
@@ -42,18 +48,22 @@ class RetrievalDataset:
     qrels: dict[str, dict[str, int]]
 
     def relevant_uids(self, query_id: str) -> set[str]:
+        """Return set of job UIDs with positive relevance grade for the query."""
         return {uid for uid, grade in self.qrels.get(query_id, {}).items() if grade > 0}
 
     def grades(self, query_id: str) -> dict[str, int]:
+        """Return mapping of job UID to integer relevance grade for the query."""
         return dict(self.qrels.get(query_id, {}))
 
     def posted_at_dt(self, uid: str) -> datetime:
+        """Extract posting timestamp datetime for the specified job UID."""
         for doc in self.corpus:
             if doc.uid == uid:
                 return datetime.fromisoformat(doc.posted_at.replace("Z", "+00:00"))
         return datetime.fromisoformat("2026-01-01T00:00:00+00:00")
 
     def smoke_subset(self) -> RetrievalDataset:
+        """Filter dataset down to the small smoke query subset defined in manifest."""
         smoke_ids = set(self.manifest.get("smoke_query_ids") or [])
         if not smoke_ids:
             return self
@@ -72,6 +82,7 @@ class RetrievalDataset:
 
 
 def resolve_dataset_dir(dataset_root: Path, dataset_version: str | None) -> Path:
+    """Resolve the specific version subdirectory within a benchmark dataset root directory."""
     if not dataset_root.is_dir():
         raise SystemExit(f"Dataset root not found: {dataset_root}")
     versions = sorted(p.name for p in dataset_root.iterdir() if p.is_dir())
@@ -90,6 +101,7 @@ def resolve_dataset_dir(dataset_root: Path, dataset_version: str | None) -> Path
 
 
 def load_dataset(dataset_dir: Path) -> RetrievalDataset:
+    """Load and parse manifest, corpus, queries, and relevance labels from a dataset directory."""
     manifest = json.loads((dataset_dir / "manifest.json").read_text())
     corpus = [
         CorpusDoc(**_load_jsonl_obj(line)) for line in _read_jsonl(dataset_dir / "corpus.jsonl")
@@ -113,10 +125,12 @@ def load_dataset(dataset_dir: Path) -> RetrievalDataset:
 
 
 def _read_jsonl(path: Path) -> list[str]:
+    """Read non-empty lines from a JSONL file."""
     return [line for line in path.read_text().splitlines() if line.strip()]
 
 
 def _load_jsonl_obj(line: str, allowed: set[str] | None = None) -> dict[str, Any]:
+    """Parse JSON line into a dict, optionally filtering by allowed keys."""
     obj = json.loads(line)
     if allowed is not None:
         return {key: obj[key] for key in allowed if key in obj}
