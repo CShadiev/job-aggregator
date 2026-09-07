@@ -307,12 +307,12 @@ The `SearchService.search_user_feed` method powers `POST /jobs/search` by queryi
 - **`scripts/backfill_job_embeddings.py`:** Iterates historical MongoDB jobs, generates dense vector embeddings via `EmbeddingClient`, and bulk-indexes into OpenSearch `jobs`.
 - **`scripts/migrate_denormalized_assessments.py`:** Denormalizes legacy MongoDB assessments by embedding related `job` and `status` objects, then bulk-indexes into OpenSearch `assessments`.
 
-### 5. Offline Retrieval Benchmark Harness (`benchmarks/retrieval/`)
+### 5. Offline Retrieval Gating Benchmark Harness (`benchmarks/retrieval/`)
 
-- Compares retrieval performance across BM25, k-NN, and Hybrid RRF against frozen datasets:
-  - `06092026`: CI smoke dataset (10 queries, 20 documents).
-  - `06092026_comprehensive`: Gold-standard benchmark (100 queries, 387 documents, 21k+ relevance judgements).
-- Evaluates **Recall@K**, **nDCG@K**, and **MRR** across multiple rank cutoffs ($K \in \{5, 10, 20\}$).
+- Focuses on the **retrieval gating function** of the search module (`build_pairs`): reducing candidate jobs to assess while retaining fitting jobs.
+- Evaluates BM25, k-NN, and Hybrid RRF against a frozen 300-entry dataset (`05082026`) repurposed from the screening benchmark with precomputed 1536-d `text-embedding-3-small` vectors.
+- All 300 postings are queried against a single candidate profile extracted from `cv.pdf` (`query_text` via `flatten_profile` and `query_vector` via `EmbeddingClient`).
+- Evaluates **Good Recall@K**, **Moderate Recall@K**, **Fitting Recall@K**, **Naive Recall@K** (expected random sampling baseline), **Reduction Rate**, **LLM Calls Saved**, **nDCG@K**, and **MRR** across rank cutoffs ($K \in \{20, 50, 90, 100, 150\}$).
 
 ---
 
@@ -361,4 +361,4 @@ The `SearchService.search_user_feed` method powers `POST /jobs/search` by queryi
    - [`tests/integration/test_search_service.py`](../tests/integration/test_search_service.py): Runs against a live OpenSearch instance, validating `ensure_indices`, `bulk_index_jobs`, BM25 / k-NN / Hybrid retrieval, and `search_user_feed` filtering and pagination.
 
 3. **CI Retrieval Smoke Benchmark:**
-   - [`benchmarks/retrieval/test_retrieval_smoke.py`](../benchmarks/retrieval/test_retrieval_smoke.py): Executes fast, zero-cost retrieval regression tests in GitHub Actions CI against a local OpenSearch service container.
+   - [`benchmarks/retrieval/test_retrieval_smoke.py`](../benchmarks/retrieval/test_retrieval_smoke.py): Executes fast, zero-cost retrieval gating regression tests in GitHub Actions CI against an OpenSearch service container, asserting that hybrid retrieval preserves baseline floors for Good Recall@20, Fitting Recall@90, and MRR on the frozen candidate benchmark.

@@ -1,4 +1,4 @@
-"""Ranking metrics for the retrieval benchmark. Pure functions, no I/O."""
+"""Ranking and gating metrics for the retrieval benchmark. Pure functions, no I/O."""
 
 from __future__ import annotations
 
@@ -17,6 +17,46 @@ def recall_at_k(retrieved: list[str], relevant: set[str], k: int) -> float:
     if not relevant:
         return 0.0
     return len(set(retrieved[:k]) & relevant) / len(relevant)
+
+
+def fitting_recall_at_k(retrieved: list[str], fitting_uids: set[str], k: int) -> float:
+    """Fraction of fitting jobs (worth_full_assessment=True) captured in top-``k``."""
+    return recall_at_k(retrieved, fitting_uids, k)
+
+
+def good_recall_at_k(retrieved: list[str], good_uids: set[str], k: int) -> float:
+    """Fraction of top-tier 'good' jobs captured in top-``k``."""
+    return recall_at_k(retrieved, good_uids, k)
+
+
+def moderate_recall_at_k(retrieved: list[str], moderate_uids: set[str], k: int) -> float:
+    """Fraction of 'moderate' fit jobs captured in top-``k``."""
+    return recall_at_k(retrieved, moderate_uids, k)
+
+
+def naive_recall_at_k(k: int, n_total: int) -> float:
+    """Expected recall of any positive class if a sample of ``k`` items is drawn uniformly at random without replacement.
+
+    For a corpus of size ``N`` and positive set of size ``R``, the expected count of positive items
+    in a random sample of size ``k`` is ``k * (R / N)``, yielding expected recall
+    ``(k * R / N) / R = min(1.0, k / N)``.
+    """
+    _require_non_negative_k(k)
+    if n_total <= 0:
+        return 0.0
+    return min(1.0, float(k) / float(n_total))
+
+
+def gating_reduction_rate(k: int, n_total: int) -> float:
+    """Fraction of corpus jobs eliminated from downstream assessment at cutoff ``k``."""
+    if n_total <= 0:
+        return 0.0
+    return max(0.0, float(n_total - min(k, n_total)) / n_total)
+
+
+def llm_calls_saved(k: int, n_total: int) -> int:
+    """Number of downstream LLM assessments avoided at cutoff ``k``."""
+    return max(0, n_total - k)
 
 
 def _dcg(gains: list[float]) -> float:

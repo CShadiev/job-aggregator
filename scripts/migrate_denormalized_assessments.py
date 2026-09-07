@@ -73,8 +73,8 @@ async def migrate(*, batch_size: int) -> None:
                     {"_id": doc["_id"]},
                     {
                         "$set": {
-                            "job": job.model_dump(mode="json"),
-                            "status": status.model_dump(mode="json"),
+                            "job": job.model_dump(),
+                            "status": status.model_dump(),
                         }
                     },
                 )

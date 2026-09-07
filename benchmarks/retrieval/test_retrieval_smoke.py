@@ -1,4 +1,4 @@
-"""CI smoke: index a frozen split and fail if nDCG@10 regresses."""
+"""CI smoke: index frozen gating benchmark and fail if gating quality regresses."""
 
 from __future__ import annotations
 
@@ -9,12 +9,16 @@ from pathlib import Path
 import pytest
 
 from benchmarks.retrieval.dataset import load_dataset
-from benchmarks.retrieval.metrics import ndcg_at_k
+from benchmarks.retrieval.metrics import (
+    fitting_recall_at_k,
+    good_recall_at_k,
+    mean_reciprocal_rank,
+)
 from search.client import build_opensearch_client
 from search.models import IndexedJob, SearchFilters
 from search.search_service import SearchService
 
-_DATASET_DIR = Path("benchmarks/retrieval/dataset/06092026")
+_DATASET_DIR = Path("benchmarks/retrieval/dataset/05082026")
 _BASELINE_PATH = _DATASET_DIR / "baseline.json"
 _INDEX = "retrieval_smoke_jobs"
 
@@ -42,9 +46,9 @@ async def search_service():
         await service.close()
 
 
-async def test_hybrid_ndcg_meets_baseline(search_service: SearchService):
-    """Verify that hybrid retrieval nDCG@10 on the frozen smoke dataset meets the baseline floor."""
-    dataset = load_dataset(_DATASET_DIR).smoke_subset()
+async def test_hybrid_gating_meets_baseline(search_service: SearchService):
+    """Verify that hybrid retrieval gating on the frozen candidate dataset meets the baseline floor."""
+    dataset = load_dataset(_DATASET_DIR)
     baseline = json.loads(_BASELINE_PATH.read_text())
     docs = [
         IndexedJob(
@@ -57,27 +61,44 @@ async def test_hybrid_ndcg_meets_baseline(search_service: SearchService):
             location=doc.location,
             url=doc.url or f"https://example.com/{doc.uid}",
             remote=doc.remote,
+            job_types=doc.job_types,
             posted_at=datetime.fromisoformat(doc.posted_at.replace("Z", "+00:00")),
         )
         for doc in dataset.corpus
     ]
     await search_service.bulk_index_jobs(docs)
 
-    scores: list[float] = []
-    for query in dataset.queries:
-        hits = await search_service.search_jobs(
-            query_text=query.text,
-            query_vector=query.embedding,
-            filters=SearchFilters(),
-            mode="hybrid",
-            size=10,
-        )
-        retrieved = [hit.uid for hit in hits.hits]
-        assert retrieved, f"hybrid search returned no hits for {query.query_id}"
-        scores.append(ndcg_at_k(retrieved, dataset.grades(query.query_id), 10))
+    candidate = dataset.candidate
+    assert candidate is not None, "Gating dataset must contain candidate.json"
 
-    mean_ndcg = sum(scores) / len(scores)
-    floor = float(baseline["hybrid_ndcg_at_10"])
-    assert mean_ndcg + 1e-9 >= floor, (
-        f"hybrid nDCG@10 {mean_ndcg:.4f} dropped below baseline {floor:.4f}"
+    hits = await search_service.search_jobs(
+        query_text=candidate.query_text,
+        query_vector=candidate.query_vector,
+        filters=SearchFilters(),
+        mode="hybrid",
+        size=150,
+    )
+    retrieved = [hit.uid for hit in hits.hits]
+    assert retrieved, "Hybrid search returned no hits for candidate query"
+
+    mrr = mean_reciprocal_rank(retrieved, dataset.fitting_uids)
+    floor_mrr = float(baseline.get("hybrid_mrr", 1.0))
+    assert mrr + 1e-9 >= floor_mrr, f"Hybrid MRR {mrr:.4f} dropped below baseline {floor_mrr:.4f}"
+
+    good_recall_20 = good_recall_at_k(retrieved, dataset.good_uids, 20)
+    floor_good_20 = float(baseline.get("hybrid_good_recall_at_20", 0.15))
+    assert good_recall_20 + 1e-9 >= floor_good_20, (
+        f"Hybrid good_recall@20 {good_recall_20:.4f} dropped below baseline {floor_good_20:.4f}"
+    )
+
+    fitting_recall_90 = fitting_recall_at_k(retrieved, dataset.fitting_uids, 90)
+    floor_fitting_90 = float(baseline.get("hybrid_fitting_recall_at_90", 0.45))
+    assert fitting_recall_90 + 1e-9 >= floor_fitting_90, (
+        f"Hybrid fitting_recall@90 {fitting_recall_90:.4f} dropped below baseline {floor_fitting_90:.4f}"
+    )
+
+    fitting_recall_150 = fitting_recall_at_k(retrieved, dataset.fitting_uids, 150)
+    floor_fitting_150 = float(baseline.get("hybrid_fitting_recall_at_150", 0.70))
+    assert fitting_recall_150 + 1e-9 >= floor_fitting_150, (
+        f"Hybrid fitting_recall@150 {fitting_recall_150:.4f} dropped below baseline {floor_fitting_150:.4f}"
     )
