@@ -1,0 +1,280 @@
+{
+  "uid": "job-agg-llm-cost",
+  "title": "LLM Cost & Token Accounting",
+  "description": "Token consumption and estimated USD spend across the screening, fit assessment, cover letter, and deduplication agents.",
+  "tags": ["job-aggregator", "llm", "cost"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "editable": true,
+  "refresh": "30s",
+  "time": { "from": "now-24h", "to": "now" },
+  "templating": {
+    "list": [
+      {
+        "name": "agent",
+        "label": "Agent",
+        "type": "query",
+        "datasource": { "type": "prometheus", "uid": "job-aggregator-prometheus" },
+        "query": "label_values(llm_tokens_total, agent)",
+        "refresh": 2,
+        "includeAll": true,
+        "multi": true,
+        "current": { "text": "All", "value": "$__all" }
+      },
+      {
+        "name": "model",
+        "label": "Model",
+        "type": "query",
+        "datasource": { "type": "prometheus", "uid": "job-aggregator-prometheus" },
+        "query": "label_values(llm_tokens_total, model)",
+        "refresh": 2,
+        "includeAll": true,
+        "multi": true,
+        "current": { "text": "All", "value": "$__all" }
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Estimated spend (last 24h)",
+      "gridPos": { "h": 5, "w": 6, "x": 0, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "job-aggregator-prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD",
+          "decimals": 2,
+          "color": { "mode": "fixed", "fixedColor": "green" }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "colorMode": "value",
+        "graphMode": "area",
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(increase(llm_cost_estimated_usd_total{agent=~\"$agent\", model=~\"$model\"}[24h]))",
+          "legendFormat": "USD"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Total tokens (last 24h)",
+      "gridPos": { "h": 5, "w": 6, "x": 6, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "job-aggregator-prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "color": { "mode": "fixed", "fixedColor": "blue" }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "colorMode": "value",
+        "graphMode": "area",
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(increase(llm_tokens_total{agent=~\"$agent\", model=~\"$model\"}[24h]))",
+          "legendFormat": "tokens"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Average cost per pipeline cycle",
+      "description": "24h spend divided by the number of pipeline cycles completed in the same window.",
+      "gridPos": { "h": 5, "w": 6, "x": 12, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "job-aggregator-prometheus" },
+      "fieldConfig": {
+        "defaults": { "unit": "currencyUSD", "decimals": 3 },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(increase(llm_cost_estimated_usd_total[24h])) / clamp_min(sum(increase(pipeline_cycle_duration_seconds_count[24h])), 1)",
+          "legendFormat": "USD/cycle"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Average tokens per assessed pair",
+      "description": "24h token consumption divided by successful assess-node executions.",
+      "gridPos": { "h": 5, "w": 6, "x": 18, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "job-aggregator-prometheus" },
+      "fieldConfig": {
+        "defaults": { "unit": "short", "decimals": 0 },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(increase(llm_tokens_total[24h])) / clamp_min(sum(increase(pipeline_tasks_total{node=\"assess\", status=\"success\"}[24h])), 1)",
+          "legendFormat": "tokens/pair"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "Spend burn rate by agent",
+      "description": "Estimated USD per hour, extrapolated from the 5-minute spend rate.",
+      "gridPos": { "h": 9, "w": 16, "x": 0, "y": 5 },
+      "datasource": { "type": "prometheus", "uid": "job-aggregator-prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD",
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 70,
+            "stacking": { "mode": "normal", "group": "A" },
+            "lineWidth": 0
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": { "displayMode": "table", "placement": "right", "calcs": ["mean", "max"] },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (agent) (rate(llm_cost_estimated_usd_total{agent=~\"$agent\", model=~\"$model\"}[5m])) * 3600",
+          "legendFormat": "{{agent}}"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "type": "piechart",
+      "title": "Prompt vs completion tokens",
+      "gridPos": { "h": 9, "w": 8, "x": 16, "y": 5 },
+      "datasource": { "type": "prometheus", "uid": "job-aggregator-prometheus" },
+      "fieldConfig": {
+        "defaults": { "unit": "short" },
+        "overrides": []
+      },
+      "options": {
+        "displayLabels": ["percent"],
+        "legend": { "displayMode": "list", "placement": "bottom", "values": ["value"] },
+        "pieType": "donut",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (agent, type) (increase(llm_tokens_total{agent=~\"$agent\", model=~\"$model\"}[$__range]))",
+          "legendFormat": "{{agent}} · {{type}}",
+          "instant": true
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "type": "table",
+      "title": "Model efficiency",
+      "description": "Runs, token split, spend, and mean latency per agent/model pair over the dashboard time range.",
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 14 },
+      "datasource": { "type": "prometheus", "uid": "job-aggregator-prometheus" },
+      "fieldConfig": {
+        "defaults": { "unit": "short" },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Cost (USD)" },
+            "properties": [
+              { "id": "unit", "value": "currencyUSD" },
+              { "id": "decimals", "value": 4 }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Mean latency" },
+            "properties": [
+              { "id": "unit", "value": "s" },
+              { "id": "decimals", "value": 2 }
+            ]
+          }
+        ]
+      },
+      "options": { "showHeader": true, "cellHeight": "sm" },
+      "targets": [
+        {
+          "refId": "Runs",
+          "expr": "sum by (agent, model) (increase(llm_request_duration_seconds_count[$__range]))",
+          "instant": true,
+          "format": "table"
+        },
+        {
+          "refId": "Prompt",
+          "expr": "sum by (agent, model) (increase(llm_tokens_total{type=\"prompt\"}[$__range]))",
+          "instant": true,
+          "format": "table"
+        },
+        {
+          "refId": "Completion",
+          "expr": "sum by (agent, model) (increase(llm_tokens_total{type=\"completion\"}[$__range]))",
+          "instant": true,
+          "format": "table"
+        },
+        {
+          "refId": "Cost",
+          "expr": "sum by (agent, model) (increase(llm_cost_estimated_usd_total[$__range]))",
+          "instant": true,
+          "format": "table"
+        },
+        {
+          "refId": "Latency",
+          "expr": "sum by (agent, model) (increase(llm_request_duration_seconds_sum[$__range])) / clamp_min(sum by (agent, model) (increase(llm_request_duration_seconds_count[$__range])), 1)",
+          "instant": true,
+          "format": "table"
+        }
+      ],
+      "transformations": [
+        { "id": "merge", "options": {} },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": { "Time": true },
+            "renameByName": {
+              "agent": "Agent",
+              "model": "Model",
+              "Value #Runs": "Runs",
+              "Value #Prompt": "Prompt tokens",
+              "Value #Completion": "Completion tokens",
+              "Value #Cost": "Cost (USD)",
+              "Value #Latency": "Mean latency"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

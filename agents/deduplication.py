@@ -3,12 +3,14 @@
 import asyncio
 import json
 from pathlib import Path
+from time import perf_counter
 
 from pydantic_ai import Agent, models
 
 from config import ConfigProvider
 from models.collection_service import JobPosting
 from models.deduplication import FailedJobPosting, NormalizationResult, NormalizedBatch
+from monitoring.metrics import record_agent_usage
 
 _PROMPT_TEMPLATE_PATH = Path(__file__).parent / "prompt_templates" / "normalize_job.md"
 CONFIG = ConfigProvider.get_config()
@@ -71,7 +73,14 @@ class DeduplicationAgent:
         prompt = self._prompt_template.format(jobs_to_process=jobs_payload)
 
         try:
+            start = perf_counter()
             result = await self.agent.run(prompt)
+            await record_agent_usage(
+                agent_name="deduplication",
+                model_name=self.model.model_name,
+                usage=result.usage(),
+                duration_seconds=perf_counter() - start,
+            )
             return self._reconcile(temp_map, result.output)
         except Exception as exc:
             error = str(exc)

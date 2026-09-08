@@ -174,6 +174,7 @@ The Docker image (`Dockerfile`) runs this API. Version tags `v*` are built and p
 | `assessments` | `{username, job_uid, assessment}` fit results |
 | `job_applications` | Per-user application status and cover-letter keys |
 | `failed_tasks` | Pipeline node failures (collect / normalize / pair LLM steps) |
+| `pricing` | LLM rate cards (`model_name`, `input_usd_per_1m`, `output_usd_per_1m`) for cost accounting |
 | `langgraph_checkpoints` / `langgraph_checkpoint_writes` | LangGraph checkpointer |
 | `job_processing` / `failed_entries` | Legacy stage-queue worker only |
 
@@ -185,6 +186,31 @@ The Docker image (`Dockerfile`) runs this API. Version tags `v*` are built and p
 | Cover letter JSON | `job-aggregator/{username}/cover_letters/{job_uid}.json` |
 
 The endpoint is configurable via `S3_ENDPOINT_URL` to support MinIO or any S3-compatible service.
+
+### Observability, cost accounting and dashboards
+
+The API and the pipeline runner are separate processes, so each publishes its own Prometheus exposition endpoint: the API on `:8000/metrics`, the worker on `:8001/metrics` (`WORKER_METRICS_PORT`). Grafana Alloy scrapes both and remote-writes to Prometheus, which Grafana reads.
+
+| Metric | Type | Labels |
+|---|---|---|
+| `llm_tokens_total` | counter | `agent`, `model`, `type` (`prompt` / `completion`) |
+| `llm_cost_estimated_usd_total` | counter | `agent`, `model` |
+| `llm_request_duration_seconds` | histogram | `agent`, `model` |
+| `search_query_duration_seconds` | histogram | `type` (`hybrid` / `bm25` / `knn`), `status` |
+| `search_feed_query_duration_seconds` | histogram | `status` |
+| `search_queries_total` / `search_hits_count` | counter / histogram | `type`, `status` |
+| `pipeline_cycle_duration_seconds` | histogram | `status` |
+| `pipeline_node_duration_seconds` | histogram | `node` |
+| `pipeline_tasks_total` | counter | `node`, `status` (`success` / `failure`) |
+| `mongo_checkpoint_duration_seconds` | histogram | — |
+| `dependency_up` | gauge | `dependency` (published by `/readyz`) |
+| `http_requests_total` / `http_request_duration_seconds` | counter / histogram | `method`, `path` (route template), `status` |
+
+Spend is estimated per call from the `pricing` collection, cached in-process for `PRICING_CACHE_TTL_SECONDS` and backed by static defaults in `monitoring/pricing.py`, so cost telemetry survives an unreachable or unseeded MongoDB.
+
+Everything under `monitoring/` is configuration as code — the Alloy pipeline, the Prometheus scrape and SLO alert rules, and three provisioned Grafana dashboards (LLM Cost & Token Accounting, Product & Search Performance, Pipeline & System Health). SLOs: 95% of corpus searches under 150ms, 95% of assessed feed queries under 200ms, and a pipeline task failure rate under 0.5%.
+
+Set `METRICS_ENABLED=false` to drop both metrics endpoints; set `METRICS_REMOTE_WRITE_URL` to ship the same timeseries to Grafana Cloud Mimir instead of the local Prometheus.
 
 ---
 
@@ -219,6 +245,12 @@ uv sync
 
 # configure secrets (copy and fill in values)
 cp .env.example .env   # or create .env manually
+
+# backing services + observability stack (Prometheus :9090, Grafana :3000, Alloy :12345)
+docker compose up -d
+
+# containerised api + pipeline worker, the two scrape targets
+docker compose --profile app up -d
 
 # run the LangGraph pipeline
 uv run run-pipeline
@@ -255,7 +287,7 @@ uv run run-fit-assessment-benchmark
 | `APIFY_LINKEDIN_PL_TASK_ID` | LinkedIn Poland Apify task |
 | `APIFY_LINKEDIN_UK_TASK_ID` | LinkedIn UK Apify task |
 
-Optional tuning variables: `DEDUPLICATION_BATCH_SIZE`, `DEDUPLICATION_MODEL`, `SCREENING_MODEL`, `FIT_ASSESSMENT_MODEL`, `COVER_LETTER_MODEL`, `COVER_LETTER_MIN_CV_SCORE`, `PIPELINE_PAIR_CONCURRENCY`, `PIPELINE_SCHEDULE_SECONDS`, `ARBEITNOW_MAX_PAGES`, `DEBUG_MODE`, `LOG_DIR`, `TEMP_DIR`, and per-collection name overrides (`MONGODB_JOBS_COLLECTION`, `MONGODB_SCREENINGS_COLLECTION`, etc.). `LOG_DIR` and `TEMP_DIR` are resolved to absolute paths (relative values are interpreted against the application root) and may point outside the app directory in production.
+Optional tuning variables: `DEDUPLICATION_BATCH_SIZE`, `DEDUPLICATION_MODEL`, `SCREENING_MODEL`, `FIT_ASSESSMENT_MODEL`, `COVER_LETTER_MODEL`, `COVER_LETTER_MIN_CV_SCORE`, `PIPELINE_PAIR_CONCURRENCY`, `PIPELINE_SCHEDULE_SECONDS`, `ARBEITNOW_MAX_PAGES`, `DEBUG_MODE`, `LOG_DIR`, `TEMP_DIR`, `METRICS_ENABLED`, `WORKER_METRICS_HOST`, `WORKER_METRICS_PORT`, `PRICING_CACHE_TTL_SECONDS`, and per-collection name overrides (`MONGODB_JOBS_COLLECTION`, `MONGODB_SCREENINGS_COLLECTION`, etc.). `LOG_DIR` and `TEMP_DIR` are resolved to absolute paths (relative values are interpreted against the application root) and may point outside the app directory in production.
 
 Default models: screening and deduplication use `gpt-5.6-luna`; fit assessment and cover letters use `gpt-5-mini` on the LangGraph path.
 

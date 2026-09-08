@@ -9,6 +9,7 @@ from models.collection_service import JobPosting
 from models.failed_tasks import FailedTask, NodeName
 from models.fit_assessment import FitAssessment
 from models.jobs_api import UpdateJobStatusRequest
+from monitoring.metrics import instrument_nodes, mark_node_failed
 from orchestration.deps import PipelineDeps
 from orchestration.routing import route_after_assess, route_after_screen
 from orchestration.state import PairState, pair_result_summary
@@ -34,6 +35,9 @@ def make_pair_nodes(deps: PipelineDeps) -> dict[str, Any]:
         error: Exception,
         extra_payload: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
+        # Pair failures are absorbed into a skip reason rather than raised, so the node
+        # instrumentation has to be told the task failed.
+        mark_node_failed()
         job = state["job"]
         username = state["username"]
         payload = {
@@ -176,11 +180,13 @@ def make_pair_nodes(deps: PipelineDeps) -> dict[str, Any]:
     def route_assess(state: PairState) -> str:
         return route_after_assess(state, min_cv_score=min_cv_score)
 
-    return {
-        "screen": screen,
-        "assess": assess,
-        "cover_letter": cover_letter,
-        "emit_pair_result": emit_pair_result,
-        "route_screen": route_screen,
-        "route_assess": route_assess,
-    }
+    return instrument_nodes(
+        {
+            "screen": screen,
+            "assess": assess,
+            "cover_letter": cover_letter,
+            "emit_pair_result": emit_pair_result,
+            "route_screen": route_screen,
+            "route_assess": route_assess,
+        }
+    )

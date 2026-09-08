@@ -6,6 +6,7 @@ from fastapi import APIRouter, Response, status
 
 from api.deps import AppJobsRepository, AppSearchService
 from logger_provider import LoggerProvider
+from monitoring.metrics import record_dependency_health
 
 router = APIRouter(tags=["health"])
 log = LoggerProvider.get_logger()
@@ -32,6 +33,8 @@ async def readyz(
     """
     mongo_healthy = await jobs_repository.ping()
     opensearch_healthy = await search_service.ping()
+    record_dependency_health(dependency="mongodb", healthy=mongo_healthy)
+    record_dependency_health(dependency="opensearch", healthy=opensearch_healthy)
     checks = {
         "mongodb": "ok" if mongo_healthy else "unreachable",
         "opensearch": "ok" if opensearch_healthy else "unreachable",

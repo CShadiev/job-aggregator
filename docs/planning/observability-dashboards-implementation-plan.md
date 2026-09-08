@@ -1,6 +1,6 @@
 # Observability, Cost Accounting & Dashboards — Implementation Plan
 
-**Status:** Ready for implementation  
+**Status:** Implemented  
 **Last updated:** 2026-09-08  
 **Open questions:** 0  
 **Origin:** Extracted from [Epic 3 (Section C)](./archive/epic-03-rag-assistant-observability.md) following completion of [Epic 2 (Hybrid Search)](./archive/epic-02-hybrid-search-retrieval-eval.md)
@@ -177,7 +177,7 @@ The metrics suite adheres to standard Prometheus naming conventions, exposed via
   - Buckets: `[5.0, 15.0, 30.0, 60.0, 120.0, 300.0, 600.0]`.
 - **`pipeline_node_duration_seconds`** (Histogram):
   - Description: Execution time of individual LangGraph nodes.
-  - Labels: `node` (`collect`, `normalize`, `deduplicate`, `persist`, `build_pairs`, `embed_jobs`, `finalize`, `screen`, `assess`, `generate_cover_letter`).
+  - Labels: `node` — the graph's own node names: `collect`, `normalize`, `dedupe`, `persist_jobs`, `embed_jobs`, `build_pairs`, `finalize`, `screen`, `assess`, `cover_letter`, `emit_pair_result`.
   - Buckets: `[0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0, 30.0]`.
 - **`pipeline_tasks_total`** (Counter):
   - Description: Total pair and batch tasks processed.
@@ -400,3 +400,18 @@ Skip dedicated synthetic traffic generator scripts (`scripts/simulate_telemetry_
 
 - Implement `tests/integration/test_telemetry.py` validating that API and worker metrics endpoints expose required metrics with valid types and labels.
 - Verify live Grafana panel rendering and alert evaluations using real pipeline executions and API searches.
+
+---
+
+## Implementation notes
+
+Recorded on 2026-09-08 after building all six phases. Where the shipped code differs from the design above, the code is authoritative.
+
+- **`record_agent_usage` is a coroutine.** Cost lookup goes through the MongoDB-backed pricing cache (Q3), so the helper is `async` and every agent awaits it immediately after `await self.agent.run(...)`. Its failure path is swallowed and logged: telemetry cannot break an agent run.
+- **Pricing is bound at process startup, not passed to agents.** `monitoring/pricing.py` exposes a process-wide `PricingCache`; the FastAPI lifespan and the pipeline runner each call `configure_pricing(mongo_client)`. Unbound caches (unit tests, offline runs) serve the static defaults, which keeps agents free of a MongoDB dependency.
+- **Node labels use the graph's real node names.** `dedupe`, `persist_jobs`, and `cover_letter` rather than the `deduplicate`/`persist`/`generate_cover_letter` placeholders used while drafting.
+- **Node instrumentation is a wrapper, not per-node code.** `instrument_nodes()` wraps each async node returned by `make_batch_nodes` and `make_pair_nodes`. Pair nodes absorb their exceptions into a skip reason instead of raising, so `_fail_pair` calls `mark_node_failed()` to flag the outcome for the wrapper.
+- **Two metrics beyond the plan.** `dependency_up{dependency}` is published by `/readyz` to back the connectivity panel on Dashboard 3, and `http_requests_total` / `http_request_duration_seconds` come from the ASGI middleware in Phase 1, labelled by route template so path parameters cannot inflate cardinality.
+- **Checkpoint latency via a subclass.** `orchestration/checkpointer.py` overrides `MongoDBSaver.put`; `aput` delegates to it in an executor thread, so one override covers both write paths.
+- **Compose gained a `worker` service and explicit commands.** The Alloy scrape target `job-aggregator-worker:8001` needs a container to exist. The image ships no `CMD`, so both `api` and `worker` now declare one (`fastapi run` and `run-pipeline`).
+- **Alloy `basic_auth` ships commented out.** An empty username/password block fails validation against the local Prometheus receiver; uncomment it when pointing `METRICS_REMOTE_WRITE_URL` at Grafana Cloud.

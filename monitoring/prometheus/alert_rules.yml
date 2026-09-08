@@ -1,0 +1,53 @@
+# SLO alert rules evaluated by Prometheus. Thresholds mirror the SLO definitions in
+# docs/planning/observability-dashboards-implementation-plan.md.
+groups:
+  - name: job-aggregator-slo
+    interval: 30s
+    rules:
+      # SLO 1 — at least 95% of corpus searches complete in under 150ms.
+      - alert: SearchLatencySLOBreach
+        expr: |
+          sum(rate(search_query_duration_seconds_bucket{le="0.15"}[5m]))
+          /
+          sum(rate(search_query_duration_seconds_count[5m])) < 0.95
+        for: 5m
+        labels:
+          severity: warning
+          slo: search_latency
+        annotations:
+          summary: "Search latency SLO breached"
+          description: >-
+            Less than 95% of jobs corpus searches completed within 150ms over the last
+            5 minutes (currently {{ $value | humanizePercentage }}).
+
+      # SLO 2 — at least 95% of assessed feed searches complete in under 200ms.
+      - alert: FeedLatencySLOBreach
+        expr: |
+          sum(rate(search_feed_query_duration_seconds_bucket{le="0.2"}[5m]))
+          /
+          sum(rate(search_feed_query_duration_seconds_count[5m])) < 0.95
+        for: 5m
+        labels:
+          severity: warning
+          slo: feed_latency
+        annotations:
+          summary: "Assessed feed latency SLO breached"
+          description: >-
+            Less than 95% of POST /jobs/search feed queries completed within 200ms over
+            the last 5 minutes (currently {{ $value | humanizePercentage }}).
+
+      # SLO 3 — pipeline task failure rate stays under 0.5%.
+      - alert: PipelineErrorBudgetDepleted
+        expr: |
+          sum(rate(pipeline_tasks_total{status="failure"}[15m]))
+          /
+          sum(rate(pipeline_tasks_total[15m])) > 0.005
+        for: 15m
+        labels:
+          severity: warning
+          slo: pipeline_error_budget
+        annotations:
+          summary: "Pipeline error budget depleted"
+          description: >-
+            Pipeline task failure rate is {{ $value | humanizePercentage }} over the last
+            15 minutes, above the 0.5% error budget.

@@ -2,12 +2,14 @@
 
 import json
 from pathlib import Path
+from time import perf_counter
 
 from pydantic_ai import Agent, models
 
 from models.collection_service import JobPosting
 from models.fit_assessment import CoverLetterContent, FitAssessment
 from models.users import UserProfile
+from monitoring.metrics import record_agent_usage
 
 _PROMPT_TEMPLATE_PATH = Path(__file__).parent / "prompt_templates" / "cover_letter_generation.md"
 
@@ -50,7 +52,14 @@ class CoverLetterGenerationAgent:
     ) -> CoverLetterContent:
         """Generate a structured cover letter for *job* using *user_profile* and *fit_assessment*."""
         prompt = self._build_generation_prompt(user_profile, job, fit_assessment)
+        start = perf_counter()
         result = await self.agent.run(prompt)
+        await record_agent_usage(
+            agent_name="cover_letter",
+            model_name=self.model.model_name,
+            usage=result.usage(),
+            duration_seconds=perf_counter() - start,
+        )
         return result.output
 
     def _build_generation_prompt(

@@ -68,6 +68,7 @@ services:
       dockerfile: Dockerfile
     container_name: job-aggregator-api
     restart: unless-stopped
+    command: ["fastapi", "run", "main.py", "--host", "0.0.0.0", "--port", "8000"]
     ports:
       - "8000:8000"
     env_file:
@@ -86,6 +87,102 @@ services:
     profiles:
       - app
 
+  # Scrape target :8001/metrics for the LangGraph pipeline, which runs in its own
+  # process and therefore needs its own Prometheus exposition endpoint.
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: job-aggregator-worker
+    restart: unless-stopped
+    command: ["run-pipeline"]
+    ports:
+      - "8001:8001"
+    env_file:
+      - .env
+    environment:
+      - MONGODB_HOST=mongodb
+      - OPENSEARCH_HOST=opensearch
+      - WORKER_METRICS_PORT=8001
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      opensearch:
+        condition: service_healthy
+    volumes:
+      - ./tmp:/app/tmp
+      - ./logs:/app/logs
+    profiles:
+      - app
+
+  alloy:
+    image: grafana/alloy:v1.12.0
+    container_name: job-aggregator-alloy
+    restart: unless-stopped
+    command:
+      - run
+      - --server.http.listen-addr=0.0.0.0:12345
+      - --storage.path=/var/lib/alloy/data
+      - /etc/alloy/config.alloy
+    ports:
+      - "12345:12345"
+    environment:
+      # Override to stream to Grafana Cloud Mimir instead of the local Prometheus.
+      METRICS_REMOTE_WRITE_URL: ${METRICS_REMOTE_WRITE_URL:-}
+    volumes:
+      - ./monitoring/alloy/config.alloy:/etc/alloy/config.alloy:ro
+      - alloy_data:/var/lib/alloy/data
+    depends_on:
+      - prometheus
+
+  prometheus:
+    image: prom/prometheus:v3.6.0
+    container_name: job-aggregator-prometheus
+    restart: unless-stopped
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=15d
+      # Alloy pushes application metrics in rather than Prometheus scraping them.
+      - --web.enable-remote-write-receiver
+      - --web.enable-lifecycle
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/prometheus/alert_rules.yml:/etc/prometheus/alert_rules.yml:ro
+      - prometheus_data:/prometheus
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:9090/-/healthy"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  grafana:
+    image: grafana/grafana:12.2.0
+    container_name: job-aggregator-grafana
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      # Local development only: no login wall in front of the dashboards.
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
+      GF_AUTH_DISABLE_LOGIN_FORM: "true"
+      GF_USERS_DEFAULT_THEME: dark
+      GF_FEATURE_TOGGLES_ENABLE: publicDashboards
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      prometheus:
+        condition: service_healthy
+
 volumes:
   mongo_data:
   opensearch_data:
+  alloy_data:
+  prometheus_data:
+  grafana_data:

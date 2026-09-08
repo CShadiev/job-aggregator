@@ -12,10 +12,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from pymongo import AsyncMongoClient
 
 from api.middleware.correlation import CorrelationIdMiddleware
-from api.routes import health, jobs, users
+from api.middleware.metrics import PrometheusMiddleware
+from api.routes import health, jobs, metrics, users
 from auth_service import Auth0ClientWrapper
 from config import ConfigProvider
 from logger_provider import LoggerProvider
+from monitoring.pricing import configure_pricing
 from repository.mongo_jobs_repository import MongoJobsRepository
 from repository.object_storage import ObjectStorage
 from search.client import build_opensearch_client
@@ -42,6 +44,7 @@ async def lifespan(_: FastAPI):
         username=config.MONGODB_USER,
         password=config.MONGODB_PASSWORD,
     )
+    configure_pricing(mongo_client, config=config)
     auth0_client = Auth0ClientWrapper(config)
     search_service = SearchService(build_opensearch_client(config), config=config)
     try:
@@ -62,8 +65,11 @@ async def lifespan(_: FastAPI):
     await search_service.close()
 
 
+metrics_middleware = [Middleware(PrometheusMiddleware)] if config.METRICS_ENABLED else []
+
 middleware = [
     Middleware(CorrelationIdMiddleware),
+    *metrics_middleware,
     Middleware(
         CORSMiddleware,
         allow_methods=["GET", "POST", "PATCH", "OPTIONS"],
@@ -83,3 +89,6 @@ instrument_fastapi(app)
 app.include_router(health.router)
 app.include_router(jobs.router)
 app.include_router(users.router)
+
+if config.METRICS_ENABLED:
+    app.include_router(metrics.router)

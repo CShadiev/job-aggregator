@@ -1,0 +1,20 @@
+# Prometheus acts as the local TSDB sink for Grafana Alloy remote write and as the
+# alert rule evaluator. Application metrics arrive by remote write rather than by
+# scraping, so the scrape_configs below only cover the observability stack itself.
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    env: local
+
+rule_files:
+  - /etc/prometheus/alert_rules.yml
+
+scrape_configs:
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  - job_name: alloy
+    static_configs:
+      - targets: ["alloy:12345"]

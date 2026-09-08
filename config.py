@@ -77,6 +77,7 @@ class Config(BaseSettings):
     MONGODB_FAILED_TASKS_COLLECTION: str = "failed_tasks"
     MONGODB_LANGGRAPH_CHECKPOINT_COLLECTION: str = "langgraph_checkpoints"
     MONGODB_LANGGRAPH_WRITES_COLLECTION: str = "langgraph_checkpoint_writes"
+    MONGODB_PRICING_COLLECTION: str = "pricing"
 
     OPENSEARCH_HOST: str = "localhost"
     OPENSEARCH_PORT: int = 9200
@@ -123,6 +124,11 @@ class Config(BaseSettings):
     OTEL_SERVICE_NAME: str = "job-aggregator"
     OTEL_EXPORTER_OTLP_ENDPOINT: str | None = None
     OTEL_TRACES_EXPORTER: str = "none"
+
+    METRICS_ENABLED: bool = True
+    WORKER_METRICS_HOST: str = "0.0.0.0"
+    WORKER_METRICS_PORT: int = 8001
+    PRICING_CACHE_TTL_SECONDS: float = 300.0
 
 
 class ConfigProvider:

@@ -2,12 +2,14 @@
 
 import json
 from pathlib import Path
+from time import perf_counter
 
 from pydantic_ai import Agent, BinaryContent, models
 
 from models.collection_service import JobPosting
 from models.fit_assessment import FitAssessment
 from models.users import UserProfile
+from monitoring.metrics import record_agent_usage
 
 _PROMPT_TEMPLATE_PATH = Path(__file__).parent / "prompt_templates" / "fit_assessment.md"
 
@@ -55,7 +57,14 @@ class FitAssessmentAgent:
             self._cv_content(cv),
         ]
 
+        start = perf_counter()
         result = await self.agent.run(user_content)
+        await record_agent_usage(
+            agent_name="fit_assessment",
+            model_name=self.model.model_name,
+            usage=result.usage(),
+            duration_seconds=perf_counter() - start,
+        )
         return result.output
 
     def _build_assessment_prompt(self, user_profile: UserProfile, job: JobPosting) -> str:

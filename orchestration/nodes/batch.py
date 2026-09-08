@@ -8,6 +8,7 @@ from langgraph.types import Overwrite, Send
 from logger_provider import LoggerProvider
 from models.collection_service import JobPosting
 from models.failed_tasks import FailedTask
+from monitoring.metrics import instrument_nodes
 from orchestration.deps import PipelineDeps
 from orchestration.state import (
     PipelineState,
@@ -281,13 +282,15 @@ def make_batch_nodes(deps: PipelineDeps) -> dict[str, Any]:
         cleared["pair_results"] = Overwrite([])
         return cleared
 
-    return {
-        "collect": collect,
-        "normalize": normalize,
-        "dedupe": dedupe,
-        "persist_jobs": persist_jobs,
-        "embed_jobs": embed_jobs,
-        "build_pairs": build_pairs,
-        "fanout": fanout,
-        "finalize": finalize,
-    }
+    return instrument_nodes(
+        {
+            "collect": collect,
+            "normalize": normalize,
+            "dedupe": dedupe,
+            "persist_jobs": persist_jobs,
+            "embed_jobs": embed_jobs,
+            "build_pairs": build_pairs,
+            "fanout": fanout,
+            "finalize": finalize,
+        }
+    )

@@ -1,0 +1,47 @@
+// Grafana Alloy telemetry pipeline for the job aggregator.
+//
+// Alloy is the single egress point for application telemetry: it scrapes the
+// Prometheus exposition endpoints of the FastAPI service and the LangGraph pipeline
+// runner, then streams the timeseries onward via remote write. Setting
+// METRICS_REMOTE_WRITE_URL redirects the same data to Grafana Cloud Mimir without
+// touching either application.
+//
+// Traces (otelcol.receiver.otlp -> Tempo) and logs (loki.source.* -> Loki) attach to
+// this collector later without changing the application metrics endpoints.
+
+logging {
+  level  = "info"
+  format = "logfmt"
+}
+
+prometheus.scrape "app_metrics" {
+  targets = [
+    {__address__ = "job-aggregator-api:8000", job = "job-aggregator-api", component = "api"},
+    {__address__ = "job-aggregator-worker:8001", job = "job-aggregator-worker", component = "worker"},
+  ]
+
+  metrics_path    = "/metrics"
+  scrape_interval = "15s"
+  scrape_timeout  = "10s"
+
+  forward_to = [prometheus.remote_write.tsdb_sink.receiver]
+}
+
+prometheus.remote_write "tsdb_sink" {
+  endpoint {
+    url = coalesce(sys.env("METRICS_REMOTE_WRITE_URL"), "http://prometheus:9090/api/v1/write")
+
+    // Grafana Cloud requires credentials; the local Prometheus receiver does not, and
+    // an empty basic_auth block would fail its own validation. Uncomment when pointing
+    // METRICS_REMOTE_WRITE_URL at Mimir.
+    basic_auth {
+      username = sys.env("METRICS_REMOTE_WRITE_USERNAME")
+      password = sys.env("METRICS_REMOTE_WRITE_PASSWORD")
+    }
+
+    queue_config {
+      capacity             = 10000
+      max_samples_per_send = 2000
+    }
+  }
+}

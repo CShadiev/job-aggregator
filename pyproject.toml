@@ -26,6 +26,7 @@ dependencies = [
     "pydantic-ai>=1.97.0",
     "pydantic-settings>=2.14.1",
     "opensearch-py>=2.8,<3",
+    "prometheus-client>=0.26.0",
     "pymongo>=4.12,<4.17",
 ]
 
@@ -98,6 +99,7 @@ known-first-party = [
     "config",
     "logger_provider",
     "models",
+    "monitoring",
     "orchestration",
     "repository",
     "search",

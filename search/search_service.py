@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+from time import perf_counter
 from typing import Any
 
 from opensearchpy import AsyncOpenSearch
@@ -13,6 +14,7 @@ from logger_provider import LoggerProvider
 from models.generics import PaginatedDataResponse
 from models.job_application import JobApplicationStatus
 from models.jobs_api import JobFeedItem, JobFeedQuery, JobFeedSortField, SortOrder
+from monitoring.metrics import record_feed_query, record_search_query
 from search.mappings import ASSESSMENTS_INDEX_SETTINGS, JOBS_INDEX_SETTINGS
 from search.models import (
     DenormalizedAssessment,
@@ -174,18 +176,51 @@ class SearchService:
         with tracer.start_as_current_span("search.jobs") as span:
             span.set_attribute("search.mode", mode)
             span.set_attribute("search.size", size)
-            filters = filters or SearchFilters()
-            if mode == "bm25":
-                if not query_text:
-                    raise ValueError("query_text is required for BM25 search")
-                return await self._search_bm25(query_text, filters, size)
-            if mode == "knn":
-                if not query_vector:
-                    raise ValueError("query_vector is required for k-NN search")
-                return await self._search_knn(query_vector, filters, size)
-            if not query_text or not query_vector:
-                raise ValueError("hybrid search requires query_text and query_vector")
-            return await self._search_hybrid(query_text, query_vector, filters, size)
+            start = perf_counter()
+            try:
+                hits = await self._dispatch_search(
+                    query_text=query_text,
+                    query_vector=query_vector,
+                    filters=filters or SearchFilters(),
+                    mode=mode,
+                    size=size,
+                )
+            except Exception:
+                record_search_query(
+                    search_type=mode,
+                    duration_seconds=perf_counter() - start,
+                    status="error",
+                )
+                raise
+            record_search_query(
+                search_type=mode,
+                duration_seconds=perf_counter() - start,
+                status="success",
+                hits=hits.total,
+            )
+            return hits
+
+    async def _dispatch_search(
+        self,
+        *,
+        query_text: str | None,
+        query_vector: list[float] | None,
+        filters: SearchFilters,
+        mode: SearchMode,
+        size: int,
+    ) -> SearchHits:
+        """Validate the arguments for *mode* and run the corresponding retrieval strategy."""
+        if mode == "bm25":
+            if not query_text:
+                raise ValueError("query_text is required for BM25 search")
+            return await self._search_bm25(query_text, filters, size)
+        if mode == "knn":
+            if not query_vector:
+                raise ValueError("query_vector is required for k-NN search")
+            return await self._search_knn(query_vector, filters, size)
+        if not query_text or not query_vector:
+            raise ValueError("hybrid search requires query_text and query_vector")
+        return await self._search_hybrid(query_text, query_vector, filters, size)
 
     async def search_user_feed(
         self,
@@ -210,9 +245,19 @@ class SearchService:
             span.set_attribute("search.page", page)
             span.set_attribute("search.page_size", page_size)
             body = _user_feed_query_body(username, query, page, page_size)
-            response = await self._client.search(index=self.assessments_index, body=body)
+            start = perf_counter()
+            try:
+                response = await self._client.search(index=self.assessments_index, body=body)
+            except Exception:
+                record_feed_query(duration_seconds=perf_counter() - start, status="error")
+                raise
             hits = response.get("hits", {})
             total = _total_hits(hits)
+            record_feed_query(
+                duration_seconds=perf_counter() - start,
+                status="success",
+                hits=total,
+            )
             items: list[JobFeedItem] = []
             for hit in hits.get("hits", []):
                 source = hit.get("_source") or {}
