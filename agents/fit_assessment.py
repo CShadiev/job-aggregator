@@ -51,6 +51,20 @@ class FitAssessmentAgent:
         job: JobPosting,
     ) -> FitAssessment:
         """Assess fit for *job* using *user_profile* and CV (*cv* as path or PDF bytes)."""
+        assessment, _, _ = await self.assess_with_usage(user_profile, cv, job)
+        return assessment
+
+    async def assess_with_usage(
+        self,
+        user_profile: UserProfile,
+        cv: Path | bytes,
+        job: JobPosting,
+    ) -> tuple[FitAssessment, int, int]:
+        """Assess fit and return ``(assessment, input_tokens, output_tokens)``.
+
+        Token counts stay off :class:`FitAssessment` so they are not persisted
+        to Mongo or OpenSearch.
+        """
         prompt = self._build_assessment_prompt(user_profile, job)
         user_content: list[str | BinaryContent] = [
             prompt,
@@ -59,13 +73,18 @@ class FitAssessmentAgent:
 
         start = perf_counter()
         result = await self.agent.run(user_content)
+        usage = result.usage()
         await record_agent_usage(
             agent_name="fit_assessment",
             model_name=self.model.model_name,
-            usage=result.usage(),
+            usage=usage,
             duration_seconds=perf_counter() - start,
         )
-        return result.output
+        return (
+            result.output,
+            int(usage.input_tokens or 0),
+            int(usage.output_tokens or 0),
+        )
 
     def _build_assessment_prompt(self, user_profile: UserProfile, job: JobPosting) -> str:
         """Construct the prompt string by combining candidate profile JSON and job posting payload."""

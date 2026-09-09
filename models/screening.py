@@ -21,6 +21,8 @@ class ScreeningResult(BaseModel):
 
     worth_full_assessment: bool
     confidence: float = Field(ge=0, le=1)
+    input_tokens: int = 0
+    output_tokens: int = 0
 
 
 class ScreeningRecord(BaseModel):

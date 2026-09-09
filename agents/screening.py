@@ -40,16 +40,19 @@ class ScreeningAgent:
 
         start = perf_counter()
         result = await self.agent.run(user_content)
+        usage = result.usage()
         await record_agent_usage(
             agent_name="screening",
             model_name=self.model.model_name,
-            usage=result.usage(),
+            usage=usage,
             duration_seconds=perf_counter() - start,
         )
         output = result.output
         return ScreeningResult(
             worth_full_assessment=bool(output.worth_full_assessment),
             confidence=output.confidence,
+            input_tokens=int(usage.input_tokens or 0),
+            output_tokens=int(usage.output_tokens or 0),
         )
 
     def _build_screening_prompt(self, job: JobPosting) -> str:

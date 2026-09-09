@@ -1,13 +1,15 @@
-"""Binary classification metrics for the screening benchmark."""
+"""Gating and binary classification metrics for the screening benchmark."""
 
 from __future__ import annotations
+
+from collections.abc import Sequence
 
 from benchmarks.fit_assessment.categories import FitCategory, category_order
 
 ERROR_LABEL = "error"
 
 
-def _require_same_length(*seqs: list) -> None:
+def _require_same_length(*seqs: Sequence) -> None:
     """Ensure all provided input sequences have identical lengths."""
     if len({len(s) for s in seqs}) != 1:
         raise ValueError("all input lists must have the same length")
@@ -115,8 +117,135 @@ def _quantile(values: list[float], q: float) -> float:
     return ordered[lo] * (1 - frac) + ordered[hi] * frac
 
 
-def confidence_summary(
+def _is_pass(value: bool | None) -> bool:
+    """True only for an explicit keep; ``None`` never passes."""
+    return value is True
+
+
+def _recall_for_bands(
+    gold_categories: list[FitCategory],
+    passed: Sequence[bool | None],
+    bands: frozenset[FitCategory],
+) -> float:
+    """Fraction of gold entries in *bands* that passed the screening gate."""
+    _require_same_length(gold_categories, passed)
+    relevant = [ok for cat, ok in zip(gold_categories, passed, strict=True) if cat in bands]
+    if not relevant:
+        return 0.0
+    return sum(1 for ok in relevant if _is_pass(ok)) / len(relevant)
+
+
+def good_recall(
+    gold_categories: list[FitCategory],
+    passed: Sequence[bool | None],
+) -> float:
+    """Fraction of gold-Good entries that passed the screening gate."""
+    return _recall_for_bands(gold_categories, passed, frozenset({FitCategory.GOOD}))
+
+
+def moderate_recall(
+    gold_categories: list[FitCategory],
+    passed: Sequence[bool | None],
+) -> float:
+    """Fraction of gold-Moderate entries that passed the screening gate."""
+    return _recall_for_bands(gold_categories, passed, frozenset({FitCategory.MODERATE}))
+
+
+def fitting_recall(
+    gold_categories: list[FitCategory],
+    passed: Sequence[bool | None],
+) -> float:
+    """Fraction of gold Good ∪ Moderate entries that passed the screening gate."""
+    return _recall_for_bands(
+        gold_categories,
+        passed,
+        frozenset({FitCategory.GOOD, FitCategory.MODERATE}),
+    )
+
+
+def n_passed(passed: Sequence[bool | None]) -> int:
+    """Count of entries that passed the screening gate."""
+    return sum(1 for value in passed if _is_pass(value))
+
+
+def reduction_rate(passed_count: int, n_total: int) -> float:
+    """Fraction of entries dropped from downstream fit assessment."""
+    if n_total <= 0:
+        return 0.0
+    return max(0.0, float(n_total - min(passed_count, n_total)) / n_total)
+
+
+def llm_calls_saved(passed_count: int, n_total: int) -> int:
+    """Number of downstream fit-assessment calls avoided."""
+    return max(0, n_total - passed_count)
+
+
+def naive_recall(passed_count: int, n_total: int) -> float:
+    """Expected recall of a random keep-set of size ``passed_count`` from ``n_total``.
+
+    For any positive class of size ``R``, a uniform sample of ``k`` items has
+    expected recall ``min(1, k / N)``.
+    """
+    if n_total <= 0:
+        return 0.0
+    return min(1.0, float(passed_count) / float(n_total))
+
+
+def cost_per_100_usd(total_usd: float, n_completed: int) -> float:
+    """Normalize screening spend to USD per 100 completed entries."""
+    if n_completed <= 0:
+        return 0.0
+    return (total_usd / n_completed) * 100.0
+
+
+def passed_at_threshold(
+    pred_worth: Sequence[bool | None],
     confidences: list[float | None],
+    threshold: float,
+) -> list[bool]:
+    """Pass iff predicted keep and confidence is at least *threshold*.
+
+    ``None`` predictions or confidences never pass. ``threshold=0.0`` matches
+    raw binary keep when every keep has a recorded confidence.
+    """
+    _require_same_length(pred_worth, confidences)
+    return [
+        worth is True and conf is not None and conf >= threshold
+        for worth, conf in zip(pred_worth, confidences, strict=True)
+    ]
+
+
+def threshold_sweep(
+    gold_categories: list[FitCategory],
+    pred_worth: Sequence[bool | None],
+    confidences: list[float | None],
+    thresholds: tuple[float, ...] | list[float],
+) -> list[dict[str, float]]:
+    """Compute gating metrics at each confidence cutoff in *thresholds*."""
+    _require_same_length(gold_categories, pred_worth, confidences)
+    n_total = len(gold_categories)
+    rows: list[dict[str, float]] = []
+    for threshold in thresholds:
+        passed = passed_at_threshold(pred_worth, confidences, threshold)
+        passed_count = n_passed(passed)
+        rows.append(
+            {
+                "threshold": float(threshold),
+                "n_passed": float(passed_count),
+                "n_total": float(n_total),
+                "reduction_rate": reduction_rate(passed_count, n_total),
+                "llm_calls_saved": float(llm_calls_saved(passed_count, n_total)),
+                "naive_recall": naive_recall(passed_count, n_total),
+                "good_recall": good_recall(gold_categories, passed),
+                "moderate_recall": moderate_recall(gold_categories, passed),
+                "fitting_recall": fitting_recall(gold_categories, passed),
+            }
+        )
+    return rows
+
+
+def confidence_summary(
+    confidences: Sequence[float | None],
     correct: list[bool | None],
     gold_categories: list[FitCategory],
 ) -> dict:

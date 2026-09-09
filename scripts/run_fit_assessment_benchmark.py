@@ -9,9 +9,6 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
 
-from pydantic_ai import ModelResponse, capture_run_messages
-from pydantic_ai.usage import RunUsage
-
 from agents.fit_assessment import FitAssessmentAgent
 from agents.model_factory import Model, ModelFactory
 from benchmarks.fit_assessment.categories import FitCategory, category_order, score_to_category
@@ -20,10 +17,13 @@ from benchmarks.fit_assessment.metrics import (
     confusion_matrix,
     exact_accuracy,
     per_class_prf,
+    score_threshold_sweep,
 )
+from benchmarks.screening.metrics import cost_per_100_usd
 from logger_provider import LoggerProvider
 from models.collection_service import JobPosting
 from models.users import UserProfile
+from monitoring.pricing import DEFAULT_RATES, UNPRICED, PricingCache
 
 log = LoggerProvider.get_logger()
 
@@ -31,6 +31,9 @@ _DEFAULT_DATASET_ROOT = Path("benchmarks/fit_assessment/dataset")
 _DEFAULT_REPORTS_DIR = Path("benchmarks/fit_assessment/reports")
 _REPORT_TEMPLATE_PATH = Path(__file__).parent / "fit_assessment_benchmark_report.md"
 _FAILURE_ABORT_RATIO = 0.20
+_PRODUCTION_CV_THRESHOLD = 80.0
+_SCORE_THRESHOLDS = (50.0, 70.0, 80.0, 90.0)
+_PRICING = PricingCache(ttl_seconds=float("inf"))
 
 
 @dataclass
@@ -49,6 +52,8 @@ class EntryResult:
     predicted_profile_category: FitCategory | None = None
     deal_breakers: list[str] | None = None
     summary: str | None = None
+    input_tokens: int = 0
+    output_tokens: int = 0
     error: str | None = None
 
 
@@ -62,7 +67,6 @@ class BenchmarkRun:
     concurrency: int
     manifest: dict
     results: list[EntryResult] = field(default_factory=list)
-    usage: RunUsage = field(default_factory=RunUsage)
     timestamp: str = field(
         default_factory=lambda: datetime.now(UTC).strftime("%Y%m%d_%H%M%S"),
     )
@@ -156,7 +160,9 @@ async def _assess_entry(
     async with semaphore:
         try:
             job = JobPosting.model_validate(entry["job"])
-            assessment = await agent.assess(profile, cv_path, job)
+            assessment, input_tokens, output_tokens = await agent.assess_with_usage(
+                profile, cv_path, job
+            )
             result.predicted_cv_score = assessment.cv_ats_match_score
             result.predicted_profile_score = assessment.profile_ats_match_score
             result.predicted_cv_category = score_to_category(assessment.cv_ats_match_score)
@@ -165,6 +171,8 @@ async def _assess_entry(
             )
             result.deal_breakers = list(assessment.deal_breakers)
             result.summary = assessment.summary
+            result.input_tokens = input_tokens
+            result.output_tokens = output_tokens
         except Exception as exc:  # noqa: BLE001 — per-entry isolation
             result.error = f"{type(exc).__name__}: {exc}"
             log.warning("Entry {} failed: {}", entry["id"], result.error)
@@ -199,17 +207,12 @@ async def run_benchmark(args: argparse.Namespace) -> Path:
         args.concurrency,
     )
 
-    with capture_run_messages() as run_records:
-        async with asyncio.TaskGroup() as tg:
-            tasks = [
-                tg.create_task(_assess_entry(agent, semaphore, profile, cv_path, entry))
-                for entry in entries
-            ]
-        run.results = [task.result() for task in tasks]
-
-    for record in run_records:
-        if isinstance(record, ModelResponse):
-            run.usage = run.usage + record.usage
+    async with asyncio.TaskGroup() as tg:
+        tasks = [
+            tg.create_task(_assess_entry(agent, semaphore, profile, cv_path, entry))
+            for entry in entries
+        ]
+    run.results = [task.result() for task in tasks]
 
     n = len(run.results)
     failed = sum(1 for r in run.results if r.error is not None)
@@ -241,6 +244,48 @@ async def run_benchmark(args: argparse.Namespace) -> Path:
 def _fmt_pct(value: float) -> str:
     """Format float as percentage string."""
     return f"{value:.1%}"
+
+
+def _fmt_recall(value: float) -> str:
+    """Format recall-style metrics to 4 decimal places."""
+    return f"{value:.4f}"
+
+
+def _fmt_usd(value: float) -> str:
+    """Format a USD amount to 4 decimal places."""
+    return f"${value:.4f}"
+
+
+def _estimate_run_cost(model: str, input_tokens: int, output_tokens: int) -> tuple[float, bool]:
+    """Return (usd, priced) using static DEFAULT_RATES; unknown models cost $0."""
+    priced = model in DEFAULT_RATES
+    rate = DEFAULT_RATES.get(model, UNPRICED)
+    return _PRICING.estimate_cost_usd(rate, input_tokens, output_tokens), priced
+
+
+def _fmt_headline_row(row: dict[str, float], cost: float) -> str:
+    """Render the production (t=80) cover-letter gating metrics as a markdown table row."""
+    return (
+        f"| {_fmt_usd(cost)} | {_fmt_pct(row['reduction_rate'])} | "
+        f"{int(row['llm_calls_saved'])} | {_fmt_recall(row['naive_recall'])} | "
+        f"{_fmt_recall(row['good_recall'])} | {_fmt_recall(row['fitting_recall'])} |"
+    )
+
+
+def _fmt_sweep_table(rows: list[dict[str, float]]) -> str:
+    """Render the CV-score threshold sweep as a markdown table."""
+    lines = [
+        "| Threshold | n passed | Reduction Rate | LLM Calls Saved | Naive Recall | Good Recall | Moderate Recall | Fitting Recall |",
+        "|---|---|---|---|---|---|---|---|",
+    ]
+    for row in rows:
+        lines.append(
+            f"| {row['threshold']:.0f} | {int(row['n_passed'])} | "
+            f"{_fmt_pct(row['reduction_rate'])} | {int(row['llm_calls_saved'])} | "
+            f"{_fmt_recall(row['naive_recall'])} | {_fmt_recall(row['good_recall'])} | "
+            f"{_fmt_recall(row['moderate_recall'])} | {_fmt_recall(row['fitting_recall'])} |"
+        )
+    return "\n".join(lines)
 
 
 def _fmt_matrix(matrix: dict[str, dict[str, int]]) -> str:
@@ -284,6 +329,35 @@ def _render_report(run: BenchmarkRun) -> str:
     pred_profile = [r.predicted_profile_category for r in results]
     gold_cv = [r.gold_cv_category for r in results]
     pred_cv = [r.predicted_cv_category for r in results]
+    pred_cv_scores = [r.predicted_cv_score for r in results]
+
+    n_good = sum(1 for c in gold_cv if c == FitCategory.GOOD)
+    n_moderate = sum(1 for c in gold_cv if c == FitCategory.MODERATE)
+    n_low = sum(1 for c in gold_cv if c == FitCategory.LOW)
+    n_fitting = n_good + n_moderate
+
+    sweep = score_threshold_sweep(gold_cv, pred_cv_scores, _SCORE_THRESHOLDS)
+    headline = next(
+        (row for row in sweep if row["threshold"] == _PRODUCTION_CV_THRESHOLD),
+        sweep[0]
+        if sweep
+        else {
+            "reduction_rate": 0.0,
+            "llm_calls_saved": 0.0,
+            "naive_recall": 0.0,
+            "good_recall": 0.0,
+            "fitting_recall": 0.0,
+        },
+    )
+
+    input_tokens = sum(r.input_tokens for r in results)
+    output_tokens = sum(r.output_tokens for r in results)
+    total_tokens = input_tokens + output_tokens
+    total_usd, priced = _estimate_run_cost(run.model, input_tokens, output_tokens)
+    cost100 = cost_per_100_usd(total_usd, completed)
+    cost_note = (
+        "" if priced else "Unpriced model; cost shown as $0.00 (not in static DEFAULT_RATES)."
+    )
 
     stratification = run.manifest.get("stratification", {})
     template = _REPORT_TEMPLATE_PATH.read_text(encoding="utf-8")
@@ -299,6 +373,14 @@ def _render_report(run: BenchmarkRun) -> str:
         completed=completed,
         n=n,
         failed=failed,
+        n_good=n_good,
+        n_moderate=n_moderate,
+        n_low=n_low,
+        n_fitting=n_fitting,
+        production_threshold=f"{_PRODUCTION_CV_THRESHOLD:.0f}",
+        headline_table=_fmt_headline_row(headline, cost100),
+        sweep_table=_fmt_sweep_table(sweep),
+        cost_note=cost_note,
         profile_exact=_fmt_pct(exact_accuracy(gold_profile, pred_profile)),
         profile_adjacent=_fmt_pct(adjacent_accuracy(gold_profile, pred_profile)),
         cv_exact=_fmt_pct(exact_accuracy(gold_cv, pred_cv)),
@@ -307,10 +389,11 @@ def _render_report(run: BenchmarkRun) -> str:
         profile_prf=_fmt_prf(per_class_prf(gold_profile, pred_profile)),
         cv_confusion=_fmt_matrix(confusion_matrix(gold_cv, pred_cv)),
         cv_prf=_fmt_prf(per_class_prf(gold_cv, pred_cv)),
-        requests=run.usage.requests,
-        input_tokens=run.usage.input_tokens,
-        output_tokens=run.usage.output_tokens,
-        total_tokens=run.usage.total_tokens,
+        requests=completed,
+        input_tokens=input_tokens,
+        output_tokens=output_tokens,
+        total_tokens=total_tokens,
+        total_usd=_fmt_usd(total_usd),
         strat_axis=stratification.get("axis"),
         strat_target=json.dumps(stratification.get("target_per_class", {}), sort_keys=True),
         strat_actual=json.dumps(stratification.get("actual_per_class", {}), sort_keys=True),
@@ -340,6 +423,8 @@ def _write_results_jsonl(path: Path, run: BenchmarkRun) -> None:
                     ),
                     "deal_breakers": r.deal_breakers or [],
                     "summary": r.summary,
+                    "input_tokens": r.input_tokens,
+                    "output_tokens": r.output_tokens,
                 }
             else:
                 predicted = None

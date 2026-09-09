@@ -1,4 +1,4 @@
-"""Category-agreement metrics for the fit-assessment benchmark."""
+"""Gating and category-agreement metrics for the fit-assessment benchmark."""
 
 from __future__ import annotations
 
@@ -6,6 +6,15 @@ from benchmarks.fit_assessment.categories import (
     FitCategory,
     category_order,
     is_adjacent,
+)
+from benchmarks.screening.metrics import (
+    fitting_recall,
+    good_recall,
+    llm_calls_saved,
+    moderate_recall,
+    n_passed,
+    naive_recall,
+    reduction_rate,
 )
 
 ERROR_LABEL = "error"
@@ -83,3 +92,40 @@ def per_class_prf(
             "support": float(support),
         }
     return result
+
+
+def passed_at_score_threshold(
+    pred_scores: list[float | None],
+    threshold: float,
+) -> list[bool]:
+    """Pass iff predicted CV score is at least *threshold*. ``None`` never passes."""
+    return [score is not None and score >= threshold for score in pred_scores]
+
+
+def score_threshold_sweep(
+    gold_categories: list[FitCategory],
+    pred_scores: list[float | None],
+    thresholds: tuple[float, ...] | list[float],
+) -> list[dict[str, float]]:
+    """Compute cover-letter gating metrics at each CV-score cutoff in *thresholds*."""
+    if len(gold_categories) != len(pred_scores):
+        raise ValueError("gold and pred must have the same length")
+    n_total = len(gold_categories)
+    rows: list[dict[str, float]] = []
+    for threshold in thresholds:
+        passed = passed_at_score_threshold(pred_scores, threshold)
+        passed_count = n_passed(passed)
+        rows.append(
+            {
+                "threshold": float(threshold),
+                "n_passed": float(passed_count),
+                "n_total": float(n_total),
+                "reduction_rate": reduction_rate(passed_count, n_total),
+                "llm_calls_saved": float(llm_calls_saved(passed_count, n_total)),
+                "naive_recall": naive_recall(passed_count, n_total),
+                "good_recall": good_recall(gold_categories, passed),
+                "moderate_recall": moderate_recall(gold_categories, passed),
+                "fitting_recall": fitting_recall(gold_categories, passed),
+            }
+        )
+    return rows
