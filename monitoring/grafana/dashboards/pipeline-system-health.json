@@ -1,7 +1,7 @@
 {
   "uid": "job-agg-pipeline-health",
   "title": "Pipeline & System Health",
-  "description": "LangGraph node timings, task error budget, checkpoint latency, and backing service reachability.",
+  "description": "LangGraph node timings, task error budget, checkpoint latency, backing service reachability, and job description stage throughput.",
   "tags": [
     "job-aggregator",
     "pipeline",
@@ -513,6 +513,59 @@
           "refId": "A",
           "expr": "sum by (status) (rate(http_requests_total[5m]))",
           "legendFormat": "{{status}}"
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "type": "timeseries",
+      "title": "Job descriptions by stage & source",
+      "description": "Volume of job descriptions moving through collection, retrieval, screening, and assessment stages, partitioned by source.",
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 27
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "grafanacloud-cshadiev-prom"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "custom": {
+            "drawStyle": "bars",
+            "lineWidth": 0,
+            "fillOpacity": 70,
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "sum",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (stage, source) (increase(job_descriptions_total[5m]))",
+          "legendFormat": "{{stage}} · {{source}}"
         }
       ]
     }
