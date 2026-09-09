@@ -202,6 +202,7 @@ The API and the pipeline runner are separate processes, so each publishes its ow
 | `pipeline_cycle_duration_seconds` | histogram | `status` |
 | `pipeline_node_duration_seconds` | histogram | `node` |
 | `pipeline_tasks_total` | counter | `node`, `status` (`success` / `failure`) |
+| `job_descriptions_total` | counter | `stage` (`collection` / `retrieval` / `screening` / `assessment`), `source` |
 | `mongo_checkpoint_duration_seconds` | histogram | — |
 | `dependency_up` | gauge | `dependency` (published by `/readyz`) |
 | `http_requests_total` / `http_request_duration_seconds` | counter / histogram | `method`, `path` (route template), `status` |

@@ -1,6 +1,7 @@
 """Integration tests for Prometheus metrics exposition, cost accounting, and instrumentation."""
 
 from collections.abc import AsyncGenerator
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from fastapi.testclient import TestClient
@@ -16,6 +17,7 @@ from monitoring.metrics import (
     mark_node_failed,
     record_agent_usage,
     record_feed_query,
+    record_job_stage,
     record_search_query,
 )
 from monitoring.pricing import DEFAULT_RATES, ModelRate, PricingCache
@@ -65,6 +67,7 @@ class TestMetricsEndpoint:
             "pipeline_cycle_duration_seconds",
             "pipeline_node_duration_seconds",
             "pipeline_tasks",
+            "job_descriptions",
             "mongo_checkpoint_duration_seconds",
             "http_requests",
             "http_request_duration_seconds",
@@ -289,3 +292,165 @@ class TestNodeInstrumentation:
             _sample_value("pipeline_tasks_total", node="screen", status="failure")
             == failure_before + 1
         )
+
+
+class TestJobDescriptionsStageAccounting:
+    """Tests for job descriptions stage tracking metrics."""
+
+    def test_record_job_stage_all_stages(self):
+        """Verify record_job_stage increments job_descriptions_total for all 4 stages and sources."""
+        stages = ["collection", "retrieval", "screening", "assessment"]
+        source = "test_source_stepstone"
+
+        for stage in stages:
+            before = _sample_value("job_descriptions_total", stage=stage, source=source)
+            record_job_stage(stage=stage, source=source, count=1)
+            after = _sample_value("job_descriptions_total", stage=stage, source=source)
+            assert after == before + 1
+
+    def test_record_job_stage_batch_increment(self):
+        """Verify count parameter increments the counter by batch size."""
+        before = _sample_value("job_descriptions_total", stage="collection", source="arbeitnow")
+        record_job_stage(stage="collection", source="arbeitnow", count=25)
+        after = _sample_value("job_descriptions_total", stage="collection", source="arbeitnow")
+        assert after == before + 25
+
+    def test_record_job_stage_source_fallback(self):
+        """Verify empty or None source falls back safely to 'unknown'."""
+        before = _sample_value("job_descriptions_total", stage="retrieval", source="unknown")
+        record_job_stage(stage="retrieval", source="", count=2)
+        after = _sample_value("job_descriptions_total", stage="retrieval", source="unknown")
+        assert after == before + 2
+
+    def test_record_job_stage_negative_ignored(self):
+        """Verify negative counts are rejected without error."""
+        before = _sample_value("job_descriptions_total", stage="screening", source="stepstone")
+        record_job_stage(stage="screening", source="stepstone", count=-5)
+        after = _sample_value("job_descriptions_total", stage="screening", source="stepstone")
+        assert after == before
+
+    async def test_collect_node_records_job_stage(self):
+        """Verify collect batch node increments collection metrics per source."""
+        from models.collection_service import CollectionResult
+        from orchestration.nodes.batch import make_batch_nodes
+        from orchestration.state import new_pipeline_state
+        from tests.helpers.job_posting import make_job_posting
+
+        deps = MagicMock()
+        deps.repository = AsyncMock()
+        deps.collection_service = AsyncMock()
+        deps.thread_id = "t1"
+        deps.pair_mode = "topk"
+        deps.retrieval_k = 2
+
+        p1 = make_job_posting(uid="u1", source="source_a")
+        p2 = make_job_posting(uid="u2", source="source_b")
+        p3 = make_job_posting(uid="u3", source="source_a")
+        deps.collection_service.collect.return_value = CollectionResult(
+            postings=[p1, p2, p3], invalid_entries=[]
+        )
+
+        before_a = _sample_value("job_descriptions_total", stage="collection", source="source_a")
+        before_b = _sample_value("job_descriptions_total", stage="collection", source="source_b")
+
+        nodes = make_batch_nodes(deps)
+        await nodes["collect"](new_pipeline_state(cycle_id="c1"))
+
+        assert (
+            _sample_value("job_descriptions_total", stage="collection", source="source_a")
+            == before_a + 2
+        )
+        assert (
+            _sample_value("job_descriptions_total", stage="collection", source="source_b")
+            == before_b + 1
+        )
+
+    async def test_build_pairs_node_records_retrieval_metrics(self):
+        """Verify build_pairs batch node increments retrieval metrics per source."""
+        from orchestration.nodes.batch import make_batch_nodes
+        from orchestration.state import new_pipeline_state
+
+        deps = MagicMock()
+        deps.repository = AsyncMock()
+        profile_mock = MagicMock()
+        profile_mock.username = "user1"
+        deps.repository.get_user_profiles.return_value = [profile_mock]
+        deps.pair_mode = "cartesian"
+
+        nodes = make_batch_nodes(deps)
+        jobs = [
+            {"uid": "j1", "source": "src_x"},
+            {"uid": "j2", "source": "src_x"},
+            {"uid": "j3", "source": "src_y"},
+        ]
+
+        before_x = _sample_value("job_descriptions_total", stage="retrieval", source="src_x")
+        before_y = _sample_value("job_descriptions_total", stage="retrieval", source="src_y")
+
+        await nodes["build_pairs"](new_pipeline_state(cycle_id="c2", unique_jobs=jobs))
+
+        assert (
+            _sample_value("job_descriptions_total", stage="retrieval", source="src_x")
+            == before_x + 2
+        )
+        assert (
+            _sample_value("job_descriptions_total", stage="retrieval", source="src_y")
+            == before_y + 1
+        )
+
+    async def test_pair_nodes_screen_and_assess_record_metrics(self):
+        """Verify screen and assess pair nodes record screening and assessment metrics."""
+        from models.fit_assessment import FitAssessment
+        from models.screening import ScreeningResult
+        from orchestration.nodes.pair import make_pair_nodes
+        from orchestration.state import new_pair_state
+        from tests.helpers.job_posting import make_job_posting
+
+        deps = MagicMock()
+        deps.repository = AsyncMock()
+        deps.repository.get_screening.return_value = None
+        deps.repository.get_assessment.return_value = None
+        deps.repository.get_user_profile.return_value = MagicMock()
+        deps.object_storage = MagicMock()
+        deps.object_storage.get_user_cv.return_value = "Sample CV text"
+        deps.screening_agent = AsyncMock()
+        deps.screening_agent.screen.return_value = ScreeningResult(
+            worth_full_assessment=True, confidence=0.9
+        )
+        deps.fit_assessment_agent = AsyncMock()
+        deps.fit_assessment_agent.assess.return_value = FitAssessment(
+            cv_ats_match_score=85.0,
+            profile_ats_match_score=80.0,
+            summary="Strong fit",
+        )
+        deps.screening_model = "test-model"
+        deps.thread_id = "t1"
+        deps.cover_letter_min_cv_score = 80
+
+        posting = make_job_posting(uid="job_pair_1", source="source_pair_test")
+        state = new_pair_state(
+            cycle_id="c3",
+            username="candidate1",
+            job=posting.model_dump(mode="json"),
+        )
+
+        nodes = make_pair_nodes(deps)
+
+        before_screen = _sample_value(
+            "job_descriptions_total", stage="screening", source="source_pair_test"
+        )
+        await nodes["screen"](state)
+        assert (
+            _sample_value("job_descriptions_total", stage="screening", source="source_pair_test")
+            == before_screen + 1
+        )
+
+        before_assess = _sample_value(
+            "job_descriptions_total", stage="assessment", source="source_pair_test"
+        )
+        await nodes["assess"](state)
+        assert (
+            _sample_value("job_descriptions_total", stage="assessment", source="source_pair_test")
+            == before_assess + 1
+        )
+

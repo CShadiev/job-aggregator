@@ -8,7 +8,7 @@ from langgraph.types import Overwrite, Send
 from logger_provider import LoggerProvider
 from models.collection_service import JobPosting
 from models.failed_tasks import FailedTask
-from monitoring.metrics import instrument_nodes
+from monitoring.metrics import instrument_nodes, record_job_stage
 from orchestration.deps import PipelineDeps
 from orchestration.state import (
     PipelineState,
@@ -51,6 +51,17 @@ def make_batch_nodes(deps: PipelineDeps) -> dict[str, Any]:
                     payload={"entry": invalid.entry},
                 )
             )
+        counts: dict[str, int] = {}
+        for posting in result.postings:
+            src = (
+                posting.get("source")
+                if isinstance(posting, dict)
+                else getattr(posting, "source", None)
+            ) or "unknown"
+            counts[src] = counts.get(src, 0) + 1
+        for src, count in counts.items():
+            record_job_stage(stage="collection", source=src, count=count)
+
         # Overwrite batch channels at cycle start so prior checkpoint lists do not stick.
         return {
             "cycle_id": cycle_id,
@@ -204,6 +215,17 @@ def make_batch_nodes(deps: PipelineDeps) -> dict[str, Any]:
                 mode=pair_mode,
                 llm_calls_saved=llm_calls_saved,
             )
+            counts: dict[str, int] = {}
+            for pair in pairs:
+                job_data = pair.get("job")
+                src = (
+                    job_data.get("source")
+                    if isinstance(job_data, dict)
+                    else getattr(job_data, "source", None)
+                ) or "unknown"
+                counts[src] = counts.get(src, 0) + 1
+            for src, count in counts.items():
+                record_job_stage(stage="retrieval", source=src, count=count)
         except Exception as exc:
             await repository.store_failed_task(
                 FailedTask(

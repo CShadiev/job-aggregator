@@ -2,36 +2,55 @@
   "uid": "job-agg-llm-cost",
   "title": "LLM Cost & Token Accounting",
   "description": "Token consumption and estimated USD spend across the screening, fit assessment, cover letter, and deduplication agents.",
-  "tags": ["job-aggregator", "llm", "cost"],
+  "tags": [
+    "job-aggregator",
+    "llm",
+    "cost"
+  ],
   "timezone": "browser",
   "schemaVersion": 39,
   "version": 1,
   "editable": true,
   "refresh": "30s",
-  "time": { "from": "now-24h", "to": "now" },
+  "time": {
+    "from": "now-24h",
+    "to": "now"
+  },
   "templating": {
     "list": [
       {
         "name": "agent",
         "label": "Agent",
         "type": "query",
-        "datasource": { "type": "prometheus", "uid": "job-aggregator-prometheus" },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "grafanacloud-cshadiev-prom"
+        },
         "query": "label_values(llm_tokens_total, agent)",
         "refresh": 2,
         "includeAll": true,
         "multi": true,
-        "current": { "text": "All", "value": "$__all" }
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        }
       },
       {
         "name": "model",
         "label": "Model",
         "type": "query",
-        "datasource": { "type": "prometheus", "uid": "job-aggregator-prometheus" },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "grafanacloud-cshadiev-prom"
+        },
         "query": "label_values(llm_tokens_total, model)",
         "refresh": 2,
         "includeAll": true,
         "multi": true,
-        "current": { "text": "All", "value": "$__all" }
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        }
       }
     ]
   },
@@ -40,18 +59,35 @@
       "id": 1,
       "type": "stat",
       "title": "Estimated spend (last 24h)",
-      "gridPos": { "h": 5, "w": 6, "x": 0, "y": 0 },
-      "datasource": { "type": "prometheus", "uid": "job-aggregator-prometheus" },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 0,
+        "y": 0
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "grafanacloud-cshadiev-prom"
+      },
       "fieldConfig": {
         "defaults": {
           "unit": "currencyUSD",
           "decimals": 2,
-          "color": { "mode": "fixed", "fixedColor": "green" }
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "green"
+          }
         },
         "overrides": []
       },
       "options": {
-        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
         "colorMode": "value",
         "graphMode": "area",
         "textMode": "auto"
@@ -68,18 +104,35 @@
       "id": 2,
       "type": "stat",
       "title": "Total tokens (last 24h)",
-      "gridPos": { "h": 5, "w": 6, "x": 6, "y": 0 },
-      "datasource": { "type": "prometheus", "uid": "job-aggregator-prometheus" },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 6,
+        "y": 0
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "grafanacloud-cshadiev-prom"
+      },
       "fieldConfig": {
         "defaults": {
           "unit": "short",
           "decimals": 0,
-          "color": { "mode": "fixed", "fixedColor": "blue" }
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "blue"
+          }
         },
         "overrides": []
       },
       "options": {
-        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
         "colorMode": "value",
         "graphMode": "area",
         "textMode": "auto"
@@ -97,14 +150,31 @@
       "type": "stat",
       "title": "Average cost per pipeline cycle",
       "description": "24h spend divided by the number of pipeline cycles completed in the same window.",
-      "gridPos": { "h": 5, "w": 6, "x": 12, "y": 0 },
-      "datasource": { "type": "prometheus", "uid": "job-aggregator-prometheus" },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 12,
+        "y": 0
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "grafanacloud-cshadiev-prom"
+      },
       "fieldConfig": {
-        "defaults": { "unit": "currencyUSD", "decimals": 3 },
+        "defaults": {
+          "unit": "currencyUSD",
+          "decimals": 3
+        },
         "overrides": []
       },
       "options": {
-        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
         "colorMode": "value",
         "graphMode": "none",
         "textMode": "auto"
@@ -122,14 +192,31 @@
       "type": "stat",
       "title": "Average tokens per assessed pair",
       "description": "24h token consumption divided by successful assess-node executions.",
-      "gridPos": { "h": 5, "w": 6, "x": 18, "y": 0 },
-      "datasource": { "type": "prometheus", "uid": "job-aggregator-prometheus" },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 18,
+        "y": 0
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "grafanacloud-cshadiev-prom"
+      },
       "fieldConfig": {
-        "defaults": { "unit": "short", "decimals": 0 },
+        "defaults": {
+          "unit": "short",
+          "decimals": 0
+        },
         "overrides": []
       },
       "options": {
-        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
         "colorMode": "value",
         "graphMode": "none",
         "textMode": "auto"
@@ -147,23 +234,44 @@
       "type": "timeseries",
       "title": "Spend burn rate by agent",
       "description": "Estimated USD per hour, extrapolated from the 5-minute spend rate.",
-      "gridPos": { "h": 9, "w": 16, "x": 0, "y": 5 },
-      "datasource": { "type": "prometheus", "uid": "job-aggregator-prometheus" },
+      "gridPos": {
+        "h": 9,
+        "w": 16,
+        "x": 0,
+        "y": 5
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "grafanacloud-cshadiev-prom"
+      },
       "fieldConfig": {
         "defaults": {
           "unit": "currencyUSD",
           "custom": {
             "drawStyle": "bars",
             "fillOpacity": 70,
-            "stacking": { "mode": "normal", "group": "A" },
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            },
             "lineWidth": 0
           }
         },
         "overrides": []
       },
       "options": {
-        "legend": { "displayMode": "table", "placement": "right", "calcs": ["mean", "max"] },
-        "tooltip": { "mode": "multi", "sort": "desc" }
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "mean",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
       },
       "targets": [
         {
@@ -177,17 +285,41 @@
       "id": 6,
       "type": "piechart",
       "title": "Prompt vs completion tokens",
-      "gridPos": { "h": 9, "w": 8, "x": 16, "y": 5 },
-      "datasource": { "type": "prometheus", "uid": "job-aggregator-prometheus" },
+      "gridPos": {
+        "h": 9,
+        "w": 8,
+        "x": 16,
+        "y": 5
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "grafanacloud-cshadiev-prom"
+      },
       "fieldConfig": {
-        "defaults": { "unit": "short" },
+        "defaults": {
+          "unit": "short"
+        },
         "overrides": []
       },
       "options": {
-        "displayLabels": ["percent"],
-        "legend": { "displayMode": "list", "placement": "bottom", "values": ["value"] },
+        "displayLabels": [
+          "percent"
+        ],
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "values": [
+            "value"
+          ]
+        },
         "pieType": "donut",
-        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
       },
       "targets": [
         {
@@ -203,28 +335,59 @@
       "type": "table",
       "title": "Model efficiency",
       "description": "Runs, token split, spend, and mean latency per agent/model pair over the dashboard time range.",
-      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 14 },
-      "datasource": { "type": "prometheus", "uid": "job-aggregator-prometheus" },
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 14
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "grafanacloud-cshadiev-prom"
+      },
       "fieldConfig": {
-        "defaults": { "unit": "short" },
+        "defaults": {
+          "unit": "short"
+        },
         "overrides": [
           {
-            "matcher": { "id": "byName", "options": "Cost (USD)" },
+            "matcher": {
+              "id": "byName",
+              "options": "Cost (USD)"
+            },
             "properties": [
-              { "id": "unit", "value": "currencyUSD" },
-              { "id": "decimals", "value": 4 }
+              {
+                "id": "unit",
+                "value": "currencyUSD"
+              },
+              {
+                "id": "decimals",
+                "value": 4
+              }
             ]
           },
           {
-            "matcher": { "id": "byName", "options": "Mean latency" },
+            "matcher": {
+              "id": "byName",
+              "options": "Mean latency"
+            },
             "properties": [
-              { "id": "unit", "value": "s" },
-              { "id": "decimals", "value": 2 }
+              {
+                "id": "unit",
+                "value": "s"
+              },
+              {
+                "id": "decimals",
+                "value": 2
+              }
             ]
           }
         ]
       },
-      "options": { "showHeader": true, "cellHeight": "sm" },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm"
+      },
       "targets": [
         {
           "refId": "Runs",
@@ -258,11 +421,16 @@
         }
       ],
       "transformations": [
-        { "id": "merge", "options": {} },
+        {
+          "id": "merge",
+          "options": {}
+        },
         {
           "id": "organize",
           "options": {
-            "excludeByName": { "Time": true },
+            "excludeByName": {
+              "Time": true
+            },
             "renameByName": {
               "agent": "Agent",
               "model": "Model",

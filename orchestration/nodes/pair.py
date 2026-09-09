@@ -9,7 +9,7 @@ from models.collection_service import JobPosting
 from models.failed_tasks import FailedTask, NodeName
 from models.fit_assessment import FitAssessment
 from models.jobs_api import UpdateJobStatusRequest
-from monitoring.metrics import instrument_nodes, mark_node_failed
+from monitoring.metrics import instrument_nodes, mark_node_failed, record_job_stage
 from orchestration.deps import PipelineDeps
 from orchestration.routing import route_after_assess, route_after_screen
 from orchestration.state import PairState, pair_result_summary
@@ -72,6 +72,7 @@ def make_pair_nodes(deps: PipelineDeps) -> dict[str, Any]:
         existing = await repository.get_screening(username, job.uid)
         if existing is not None:
             _log.info("Reusing stored screening")
+            record_job_stage(stage="screening", source=job.source)
             return {"screening": existing.model_dump(mode="json")}
 
         try:
@@ -87,6 +88,7 @@ def make_pair_nodes(deps: PipelineDeps) -> dict[str, Any]:
                 "Screened job worth_full_assessment={worth}",
                 worth=result.worth_full_assessment,
             )
+            record_job_stage(stage="screening", source=job.source)
             return {"screening": result.model_dump(mode="json")}
         except Exception as exc:
             return await _fail_pair(state, node="screen", error=exc)
@@ -99,6 +101,7 @@ def make_pair_nodes(deps: PipelineDeps) -> dict[str, Any]:
         existing = await repository.get_assessment(username, job.uid)
         if existing is not None:
             _log.info("Reusing stored assessment")
+            record_job_stage(stage="assessment", source=job.source)
             return {"assessment": existing.model_dump(mode="json")}
 
         try:
@@ -116,6 +119,7 @@ def make_pair_nodes(deps: PipelineDeps) -> dict[str, Any]:
                 "Assessed job cv_ats_match_score={score}",
                 score=assessment.cv_ats_match_score,
             )
+            record_job_stage(stage="assessment", source=job.source)
             return {"assessment": assessment.model_dump(mode="json")}
         except Exception as exc:
             return await _fail_pair(state, node="assess", error=exc)

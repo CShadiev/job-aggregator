@@ -38,6 +38,7 @@ AgentName = Literal["screening", "fit_assessment", "cover_letter", "deduplicatio
 SearchType = Literal["hybrid", "bm25", "knn", "feed"]
 Status = Literal["success", "error"]
 TaskStatus = Literal["success", "failure"]
+JobStage = Literal["collection", "retrieval", "screening", "assessment"]
 
 # --- LLM & cost -----------------------------------------------------------------
 
@@ -109,6 +110,12 @@ pipeline_tasks_total = Counter(
     "pipeline_tasks_total",
     "Batch and pair tasks processed, by node and outcome.",
     ["node", "status"],
+)
+
+job_descriptions_total = Counter(
+    "job_descriptions_total",
+    "Job descriptions processed through each pipeline stage, by stage and source.",
+    ["stage", "source"],
 )
 
 mongo_checkpoint_duration_seconds = Histogram(
@@ -242,6 +249,38 @@ def record_pipeline_cycle(*, duration_seconds: float, status: Status) -> None:
         pipeline_cycle_duration_seconds.labels(status=status).observe(duration_seconds)
     except Exception as exc:
         log.warning("Failed to record pipeline cycle metrics: {exc}", exc=str(exc))
+
+
+def record_job_stage(
+    stage: JobStage,
+    source: str = "unknown",
+    count: int = 1,
+) -> None:
+    """Record job descriptions moving through a pipeline stage.
+
+    Args:
+        stage: Pipeline stage (``collection``, ``retrieval``, ``screening``, ``assessment``).
+        source: Origin data source (e.g. ``"arbeitnow"``, ``"stepstone"``).
+        count: Number of job descriptions to increment (defaults to 1).
+    """
+    try:
+        if count < 0:
+            log.warning("Negative count passed to record_job_stage: {count}", count=count)
+            return
+        if count == 0:
+            return
+        source_label = str(source).strip() if source and str(source).strip() else "unknown"
+        job_descriptions_total.labels(stage=stage, source=source_label).inc(count)
+    except Exception as exc:
+        log.warning(
+            "Failed to record job stage metric for {stage}/{source}: {exc}",
+            stage=stage,
+            source=source,
+            exc=str(exc),
+        )
+
+
+record_job_descriptions = record_job_stage
 
 
 def record_http_request(

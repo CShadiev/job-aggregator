@@ -2,20 +2,35 @@
   "uid": "job-agg-pipeline-health",
   "title": "Pipeline & System Health",
   "description": "LangGraph node timings, task error budget, checkpoint latency, and backing service reachability.",
-  "tags": ["job-aggregator", "pipeline", "health"],
+  "tags": [
+    "job-aggregator",
+    "pipeline",
+    "health"
+  ],
   "timezone": "browser",
   "schemaVersion": 39,
   "version": 1,
   "editable": true,
   "refresh": "30s",
-  "time": { "from": "now-12h", "to": "now" },
+  "time": {
+    "from": "now-12h",
+    "to": "now"
+  },
   "panels": [
     {
       "id": 1,
       "type": "stat",
       "title": "Worker scrape status",
-      "gridPos": { "h": 5, "w": 6, "x": 0, "y": 0 },
-      "datasource": { "type": "prometheus", "uid": "job-aggregator-prometheus" },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 0,
+        "y": 0
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "grafanacloud-cshadiev-prom"
+      },
       "fieldConfig": {
         "defaults": {
           "unit": "short",
@@ -23,8 +38,16 @@
             {
               "type": "value",
               "options": {
-                "0": { "text": "DOWN", "color": "red", "index": 0 },
-                "1": { "text": "UP", "color": "green", "index": 1 }
+                "0": {
+                  "text": "DOWN",
+                  "color": "red",
+                  "index": 0
+                },
+                "1": {
+                  "text": "UP",
+                  "color": "green",
+                  "index": 1
+                }
               }
             }
           ]
@@ -32,7 +55,13 @@
         "overrides": []
       },
       "options": {
-        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
         "colorMode": "background",
         "graphMode": "none",
         "textMode": "auto"
@@ -49,14 +78,31 @@
       "id": 2,
       "type": "stat",
       "title": "Last cycle duration",
-      "gridPos": { "h": 5, "w": 6, "x": 6, "y": 0 },
-      "datasource": { "type": "prometheus", "uid": "job-aggregator-prometheus" },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 6,
+        "y": 0
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "grafanacloud-cshadiev-prom"
+      },
       "fieldConfig": {
-        "defaults": { "unit": "s", "decimals": 1 },
+        "defaults": {
+          "unit": "s",
+          "decimals": 1
+        },
         "overrides": []
       },
       "options": {
-        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
         "colorMode": "value",
         "graphMode": "area"
       },
@@ -73,8 +119,16 @@
       "type": "stat",
       "title": "Task success rate",
       "description": "Successful node executions as a share of all executions. Error budget: 99.5%.",
-      "gridPos": { "h": 5, "w": 6, "x": 12, "y": 0 },
-      "datasource": { "type": "prometheus", "uid": "job-aggregator-prometheus" },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 12,
+        "y": 0
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "grafanacloud-cshadiev-prom"
+      },
       "fieldConfig": {
         "defaults": {
           "unit": "percentunit",
@@ -82,15 +136,27 @@
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              { "color": "red", "value": null },
-              { "color": "green", "value": 0.995 }
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 0.995
+              }
             ]
           }
         },
         "overrides": []
       },
       "options": {
-        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
         "colorMode": "background",
         "graphMode": "none"
       },
@@ -106,8 +172,16 @@
       "id": 4,
       "type": "stat",
       "title": "Failed tasks",
-      "gridPos": { "h": 5, "w": 6, "x": 18, "y": 0 },
-      "datasource": { "type": "prometheus", "uid": "job-aggregator-prometheus" },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 18,
+        "y": 0
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "grafanacloud-cshadiev-prom"
+      },
       "fieldConfig": {
         "defaults": {
           "unit": "short",
@@ -115,15 +189,27 @@
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              { "color": "green", "value": null },
-              { "color": "red", "value": 1 }
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
             ]
           }
         },
         "overrides": []
       },
       "options": {
-        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
         "colorMode": "background",
         "graphMode": "none"
       },
@@ -139,18 +225,41 @@
       "id": 5,
       "type": "timeseries",
       "title": "Node execution time (p95)",
-      "gridPos": { "h": 9, "w": 14, "x": 0, "y": 5 },
-      "datasource": { "type": "prometheus", "uid": "job-aggregator-prometheus" },
+      "gridPos": {
+        "h": 9,
+        "w": 14,
+        "x": 0,
+        "y": 5
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "grafanacloud-cshadiev-prom"
+      },
       "fieldConfig": {
         "defaults": {
           "unit": "s",
-          "custom": { "drawStyle": "line", "lineWidth": 1, "fillOpacity": 8, "showPoints": "never" }
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 8,
+            "showPoints": "never"
+          }
         },
         "overrides": []
       },
       "options": {
-        "legend": { "displayMode": "table", "placement": "right", "calcs": ["mean", "max"] },
-        "tooltip": { "mode": "multi", "sort": "desc" }
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "mean",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
       },
       "targets": [
         {
@@ -164,16 +273,33 @@
       "id": 6,
       "type": "bargauge",
       "title": "Slowest nodes (p95, range)",
-      "gridPos": { "h": 9, "w": 10, "x": 14, "y": 5 },
-      "datasource": { "type": "prometheus", "uid": "job-aggregator-prometheus" },
+      "gridPos": {
+        "h": 9,
+        "w": 10,
+        "x": 14,
+        "y": 5
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "grafanacloud-cshadiev-prom"
+      },
       "fieldConfig": {
-        "defaults": { "unit": "s", "decimals": 2 },
+        "defaults": {
+          "unit": "s",
+          "decimals": 2
+        },
         "overrides": []
       },
       "options": {
         "displayMode": "gradient",
         "orientation": "horizontal",
-        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
       },
       "targets": [
         {
@@ -188,8 +314,16 @@
       "id": 7,
       "type": "timeseries",
       "title": "Task failures by node",
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 14 },
-      "datasource": { "type": "prometheus", "uid": "job-aggregator-prometheus" },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 14
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "grafanacloud-cshadiev-prom"
+      },
       "fieldConfig": {
         "defaults": {
           "unit": "short",
@@ -197,14 +331,26 @@
             "drawStyle": "bars",
             "lineWidth": 0,
             "fillOpacity": 80,
-            "stacking": { "mode": "normal", "group": "A" }
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            }
           }
         },
         "overrides": []
       },
       "options": {
-        "legend": { "displayMode": "table", "placement": "right", "calcs": ["sum"] },
-        "tooltip": { "mode": "multi", "sort": "desc" }
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "sum"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
       },
       "targets": [
         {
@@ -219,18 +365,37 @@
       "type": "timeseries",
       "title": "Checkpoint & indexing latency (p95)",
       "description": "MongoDB checkpoint writes by MongoDBSaver, alongside the embed_jobs node that performs OpenSearch bulk indexing.",
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 14 },
-      "datasource": { "type": "prometheus", "uid": "job-aggregator-prometheus" },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 14
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "grafanacloud-cshadiev-prom"
+      },
       "fieldConfig": {
         "defaults": {
           "unit": "s",
-          "custom": { "drawStyle": "line", "lineWidth": 1, "fillOpacity": 8, "showPoints": "never" }
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 8,
+            "showPoints": "never"
+          }
         },
         "overrides": []
       },
       "options": {
-        "legend": { "displayMode": "list", "placement": "bottom" },
-        "tooltip": { "mode": "multi", "sort": "desc" }
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
       },
       "targets": [
         {
@@ -250,8 +415,16 @@
       "type": "stat",
       "title": "Backing service reachability",
       "description": "Published by the API readiness probe; scrape /readyz to refresh.",
-      "gridPos": { "h": 5, "w": 12, "x": 0, "y": 22 },
-      "datasource": { "type": "prometheus", "uid": "job-aggregator-prometheus" },
+      "gridPos": {
+        "h": 5,
+        "w": 12,
+        "x": 0,
+        "y": 22
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "grafanacloud-cshadiev-prom"
+      },
       "fieldConfig": {
         "defaults": {
           "unit": "short",
@@ -259,8 +432,16 @@
             {
               "type": "value",
               "options": {
-                "0": { "text": "UNREACHABLE", "color": "red", "index": 0 },
-                "1": { "text": "OK", "color": "green", "index": 1 }
+                "0": {
+                  "text": "UNREACHABLE",
+                  "color": "red",
+                  "index": 0
+                },
+                "1": {
+                  "text": "OK",
+                  "color": "green",
+                  "index": 1
+                }
               }
             }
           ]
@@ -268,7 +449,13 @@
         "overrides": []
       },
       "options": {
-        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
         "colorMode": "background",
         "graphMode": "none",
         "textMode": "value_and_name"
@@ -285,8 +472,16 @@
       "id": 10,
       "type": "timeseries",
       "title": "API request rate by status",
-      "gridPos": { "h": 5, "w": 12, "x": 12, "y": 22 },
-      "datasource": { "type": "prometheus", "uid": "job-aggregator-prometheus" },
+      "gridPos": {
+        "h": 5,
+        "w": 12,
+        "x": 12,
+        "y": 22
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "grafanacloud-cshadiev-prom"
+      },
       "fieldConfig": {
         "defaults": {
           "unit": "reqps",
@@ -294,15 +489,24 @@
             "drawStyle": "line",
             "lineWidth": 1,
             "fillOpacity": 25,
-            "stacking": { "mode": "normal", "group": "A" },
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            },
             "showPoints": "never"
           }
         },
         "overrides": []
       },
       "options": {
-        "legend": { "displayMode": "list", "placement": "bottom" },
-        "tooltip": { "mode": "multi", "sort": "desc" }
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
       },
       "targets": [
         {
