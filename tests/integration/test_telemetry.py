@@ -13,6 +13,7 @@ from pymongo import AsyncMongoClient
 from config import ConfigProvider
 from main import app
 from monitoring.metrics import (
+    JobStage,
     instrument_node,
     mark_node_failed,
     record_agent_usage,
@@ -299,7 +300,7 @@ class TestJobDescriptionsStageAccounting:
 
     def test_record_job_stage_all_stages(self):
         """Verify record_job_stage increments job_descriptions_total for all 4 stages and sources."""
-        stages = ["collection", "retrieval", "screening", "assessment"]
+        stages: list[JobStage] = ["collection", "retrieval", "screening", "assessment"]
         source = "test_source_stepstone"
 
         for stage in stages:
@@ -453,4 +454,3 @@ class TestJobDescriptionsStageAccounting:
             _sample_value("job_descriptions_total", stage="assessment", source="source_pair_test")
             == before_assess + 1
         )
-
