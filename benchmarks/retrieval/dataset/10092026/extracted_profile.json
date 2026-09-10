@@ -1,0 +1,561 @@
+{
+  "profile": {
+    "name": "Chingiz Shadiev",
+    "title": "Backend / Full-Stack Developer",
+    "location": "Berlin, Germany",
+    "contact": {
+      "email": "ch.shadiev@gmail.com",
+      "linkedin": "https://linkedin.com/in/chingizshadiev",
+      "website": "https://cshadiev.dev",
+      "telegram": null
+    }
+  },
+  "summary": {
+    "headline": "Backend-focused Full-Stack Developer specializing in Python, FastAPI, and AWS",
+    "description": "Backend-focused full-stack developer with 9 years of experience building production systems end-to-end, from architecture through deployment. Strong specialization in Python, FastAPI, SQL, asynchronous APIs, cloud infrastructure, and CI/CD, complemented by solid React and TypeScript experience. Finance and investment-domain background, including an MSc in Banking and Finance and CFA Level I, with growing specialization in AI engineering, agentic workflows, and RAG."
+  },
+  "keyDifferentiators": [
+    {
+      "title": "End-to-end product delivery",
+      "description": "Builds and ships production systems across backend architecture, frontend applications, databases, security, containerization, and deployment."
+    },
+    {
+      "title": "Python and FastAPI specialization",
+      "description": "Strong hands-on experience designing Python/FastAPI services, async APIs, data-processing systems, and integrations with financial and operational platforms."
+    },
+    {
+      "title": "Finance and fintech domain expertise",
+      "description": "Combines professional experience in investment portfolio management and financial reporting with an MSc in Banking and Finance and CFA Level I."
+    },
+    {
+      "title": "Quantified operational impact",
+      "description": "Delivered measurable improvements including 75% faster reporting, 20% faster procurement and quality workflows, 10% higher plant output, and 7% fewer defects."
+    },
+    {
+      "title": "Emerging AI engineering capability",
+      "description": "Developing agentic AI, LangChain/LangGraph workflows, vector database, and RAG solutions through professional certification and personal projects."
+    }
+  ],
+  "certifications": [
+    {
+      "name": "AWS Certified Developer – Associate",
+      "issuer": "Amazon Web Services",
+      "date": "Nov 2025",
+      "score": "866/1000",
+      "details": null,
+      "link": null
+    },
+    {
+      "name": "IBM RAG & Agentic AI Professional",
+      "issuer": "IBM",
+      "date": "Jan 2026",
+      "score": null,
+      "details": "8-course specialization",
+      "link": null
+    },
+    {
+      "name": "CFA Level I — Passed",
+      "issuer": "CFA Institute",
+      "date": "Dec 2016",
+      "score": null,
+      "details": null,
+      "link": null
+    },
+    {
+      "name": "RabbitMQ Training Course",
+      "issuer": "CloudAMQP",
+      "date": "May 2024",
+      "score": null,
+      "details": null,
+      "link": null
+    }
+  ],
+  "technicalSkills": {
+    "backend": [
+      {
+        "name": "Python",
+        "proficiency": 10,
+        "evidence": [
+          "9 years of professional experience",
+          "Used across FastAPI services, reporting automation, integrations, and consulting projects"
+        ]
+      },
+      {
+        "name": "FastAPI",
+        "proficiency": 10,
+        "evidence": [
+          "Designed and implemented production backends for investment and construction-management platforms"
+        ]
+      },
+      {
+        "name": "Django REST Framework",
+        "proficiency": 7,
+        "evidence": [
+          "Listed in technical expertise and used in freelance consulting stack"
+        ]
+      },
+      {
+        "name": "SQLAlchemy 2.0",
+        "proficiency": 8,
+        "evidence": [
+          "Used with FastAPI and relational databases in production systems"
+        ]
+      },
+      {
+        "name": "Pydantic",
+        "proficiency": 8,
+        "evidence": [
+          "Used in Python/FastAPI systems and freelance projects"
+        ]
+      },
+      {
+        "name": "Asynchronous APIs",
+        "proficiency": 8,
+        "evidence": [
+          "Summary identifies async APIs as a core strength"
+        ]
+      },
+      {
+        "name": "REST APIs",
+        "proficiency": 9,
+        "evidence": [
+          "Built APIs and integrated multiple broker and ERP systems"
+        ]
+      }
+    ],
+    "frontend": [
+      {
+        "name": "TypeScript",
+        "proficiency": 8,
+        "evidence": [
+          "Built production React/TypeScript investment portal"
+        ]
+      },
+      {
+        "name": "React",
+        "proficiency": 8,
+        "evidence": [
+          "Built dashboards, portals, and operational applications"
+        ]
+      },
+      {
+        "name": "Next.js",
+        "proficiency": 7,
+        "evidence": [
+          "Used in investment portfolio management platform"
+        ]
+      },
+      {
+        "name": "Redux Toolkit",
+        "proficiency": 7,
+        "evidence": [
+          "Used in construction-management applications"
+        ]
+      },
+      {
+        "name": "TanStack Query",
+        "proficiency": 6,
+        "evidence": [
+          "Listed in technical expertise"
+        ]
+      },
+      {
+        "name": "Ant Design",
+        "proficiency": 6,
+        "evidence": [
+          "Listed in technical expertise"
+        ]
+      },
+      {
+        "name": "Recharts",
+        "proficiency": 7,
+        "evidence": [
+          "Implemented data visualization in investment portal"
+        ]
+      }
+    ],
+    "infrastructure": [
+      {
+        "name": "Amazon Web Services (AWS)",
+        "proficiency": 8,
+        "evidence": [
+          "AWS used in freelance work and certified AWS Developer – Associate"
+        ]
+      },
+      {
+        "name": "Docker",
+        "proficiency": 8,
+        "evidence": [
+          "Containerized full-stack applications and production systems"
+        ]
+      },
+      {
+        "name": "GitHub Actions",
+        "proficiency": 8,
+        "evidence": [
+          "Implemented CI/CD pipelines for investment platform"
+        ]
+      },
+      {
+        "name": "Nginx",
+        "proficiency": 6,
+        "evidence": [
+          "Listed in infrastructure expertise"
+        ]
+      },
+      {
+        "name": "DigitalOcean",
+        "proficiency": 6,
+        "evidence": [
+          "Listed in infrastructure expertise"
+        ]
+      },
+      {
+        "name": "RabbitMQ",
+        "proficiency": 7,
+        "evidence": [
+          "Used in construction systems and completed CloudAMQP training"
+        ]
+      },
+      {
+        "name": "CI/CD",
+        "proficiency": 8,
+        "evidence": [
+          "Deployed containerized applications through automated pipelines"
+        ]
+      }
+    ],
+    "databases": [
+      {
+        "name": "PostgreSQL",
+        "proficiency": 7,
+        "evidence": [
+          "Listed in database expertise"
+        ]
+      },
+      {
+        "name": "MongoDB",
+        "proficiency": 8,
+        "evidence": [
+          "Designed FastAPI backend with MongoDB and implemented MongoDB encryption"
+        ]
+      },
+      {
+        "name": "ClickHouse",
+        "proficiency": 6,
+        "evidence": [
+          "Used in freelance project stack"
+        ]
+      },
+      {
+        "name": "Microsoft SQL Server",
+        "proficiency": 8,
+        "evidence": [
+          "Used in construction, oil and gas, and reporting systems"
+        ]
+      },
+      {
+        "name": "SQL",
+        "proficiency": 9,
+        "evidence": [
+          "Strong SQL background across operational and financial systems"
+        ]
+      }
+    ],
+    "aiMl": [
+      {
+        "name": "LangChain",
+        "proficiency": 7,
+        "evidence": [
+          "Used in personal projects and AI engineering work"
+        ]
+      },
+      {
+        "name": "LangGraph",
+        "proficiency": 7,
+        "evidence": [
+          "Developing agentic AI workflows with LangGraph"
+        ]
+      },
+      {
+        "name": "CrewAI",
+        "proficiency": 6,
+        "evidence": [
+          "Listed in AI/ML expertise"
+        ]
+      },
+      {
+        "name": "Retrieval-Augmented Generation (RAG)",
+        "proficiency": 7,
+        "evidence": [
+          "IBM RAG & Agentic AI Professional specialization and personal projects"
+        ]
+      },
+      {
+        "name": "Vector Databases",
+        "proficiency": 6,
+        "evidence": [
+          "Listed in AI/ML expertise"
+        ]
+      },
+      {
+        "name": "Agentic AI",
+        "proficiency": 7,
+        "evidence": [
+          "Personal projects focused on agentic AI and certified specialization"
+        ]
+      }
+    ]
+  },
+  "coreCompetencies": [
+    "Backend architecture",
+    "Full-stack web development",
+    "Python application development",
+    "FastAPI and REST API design",
+    "Asynchronous systems",
+    "SQL and data integration",
+    "Financial and portfolio management systems",
+    "Broker API integration",
+    "Enterprise workflow automation",
+    "Cloud deployment on AWS",
+    "Docker and CI/CD",
+    "Application security and RBAC",
+    "Data visualization and reporting",
+    "AI engineering and RAG",
+    "Technical consulting"
+  ],
+  "experience": [
+    {
+      "title": "Freelance Developer & Consultant",
+      "company": "Independent",
+      "startDate": "Oct 2025",
+      "endDate": "Present",
+      "responsibilities": [
+        "Provided ongoing maintenance and technical consulting for previous clients, supporting system reliability and advising on architecture decisions.",
+        "Developed personal projects specializing in agentic AI, LangChain/LangGraph workflows, and RAG architectures."
+      ],
+      "companyDescription": "Independent freelance development and technical consulting practice based in Berlin.",
+      "impact": "Continued delivering technical value across multiple engagements while deepening expertise in cloud and AI engineering.",
+      "stack": [
+        "Python",
+        "FastAPI",
+        "Pydantic AI",
+        "React",
+        "AWS",
+        "Django REST",
+        "ClickHouse"
+      ]
+    },
+    {
+      "title": "Full-Stack Developer (Python / React)",
+      "company": "Merizon Group",
+      "startDate": "Oct 2024",
+      "endDate": "Sep 2025",
+      "responsibilities": [
+        "Designed and implemented a Python/FastAPI backend with MongoDB for a unified portfolio management platform.",
+        "Integrated multiple broker APIs, including MetaTrader/MetaAPI and Tastytrade, for real-time portfolio data processing.",
+        "Built a React/TypeScript web portal with role-based access controls and Recharts data visualizations.",
+        "Automated monthly PDF and PowerPoint reporting.",
+        "Implemented Auth0 authentication, MongoDB encryption, IP whitelisting, and RBAC.",
+        "Containerized the full stack with Docker and deployed it through CI/CD pipelines."
+      ],
+      "companyDescription": "London-based private investment fund serving high-net-worth clients; role performed remotely.",
+      "impact": "Built and shipped a unified portfolio management platform that replaced manual investment workflows for high-net-worth client operations.",
+      "stack": [
+        "Python",
+        "FastAPI",
+        "MongoDB",
+        "React",
+        "Next.js",
+        "TypeScript",
+        "Docker",
+        "Auth0",
+        "GitHub Actions"
+      ]
+    },
+    {
+      "title": "Full-Stack Developer (Python / React)",
+      "company": "Perviy DSK",
+      "startDate": "Jul 2021",
+      "endDate": "Oct 2024",
+      "responsibilities": [
+        "Built IT solutions for a reinforced concrete plant covering production tracking, defect monitoring, and employee-efficiency dashboards.",
+        "Designed a centralized task-tracking system for the design department.",
+        "Automated construction quality-assessment workflows and standardized evaluation processes."
+      ],
+      "companyDescription": "Residential construction group.",
+      "impact": "Increased plant output by 10%, reduced defects by 7%, accelerated design throughput by 10%, and reduced construction quality-assessment process time by 20%.",
+      "stack": [
+        "Python",
+        "FastAPI",
+        "SQLAlchemy",
+        "React",
+        "Redux Toolkit",
+        "MS SQL Server",
+        "MongoDB",
+        "RabbitMQ",
+        "Docker"
+      ]
+    },
+    {
+      "title": "Software Developer / Analyst",
+      "company": "GazArtStroy",
+      "startDate": "Feb 2018",
+      "endDate": "Oct 2020",
+      "responsibilities": [
+        "Automated production and financial reporting for senior management.",
+        "Integrated data across two ERP systems.",
+        "Eliminated duplicate purchase orders through cross-system data integration."
+      ],
+      "companyDescription": "Oil and gas engineering company.",
+      "impact": "Reduced reporting time by 75% and accelerated procurement by 20%.",
+      "stack": [
+        "Python",
+        "R",
+        "VBA",
+        "MS SQL",
+        "Excel"
+      ]
+    },
+    {
+      "title": "VBA Developer (Internship)",
+      "company": "Kontrakta",
+      "startDate": "Jan 2017",
+      "endDate": "May 2017",
+      "responsibilities": [
+        "Developed interactive financial forecasting models for product selection and creditworthiness assessment."
+      ],
+      "companyDescription": "Financial consultancy in Vienna.",
+      "impact": null,
+      "stack": [
+        "VBA",
+        "Excel"
+      ]
+    }
+  ],
+  "education": [
+    {
+      "degree": "MSc Banking and Finance",
+      "institution": "Bangor University",
+      "location": "Wales, UK",
+      "year": 2016,
+      "classification": "Merit",
+      "modules": null,
+      "focus": [
+        "Banking",
+        "Finance"
+      ]
+    },
+    {
+      "degree": "BA Business Administration",
+      "institution": "University of Westminster",
+      "location": "London, UK",
+      "year": 2014,
+      "classification": "Honours",
+      "modules": null,
+      "focus": [
+        "Business administration"
+      ]
+    }
+  ],
+  "careerGoals": {
+    "targetRoles": [
+      "Backend Developer",
+      "Senior Backend Developer",
+      "Python Developer",
+      "FastAPI Developer",
+      "Full-Stack Developer (Python/React)",
+      "Backend Engineer",
+      "AI Engineer",
+      "Applied AI Engineer",
+      "Fintech Software Engineer"
+    ],
+    "avoidRoles": [
+      "Predominantly non-technical analyst roles",
+      "Frontend-only roles",
+      "Roles with limited backend or architecture ownership"
+    ],
+    "locationPreferences": {
+      "primary": "Berlin, Germany",
+      "remote": "Open to remote and hybrid roles, particularly with European or international companies",
+      "relocation": "Open to opportunities in Germany and potentially broader Europe; no explicit relocation preference stated"
+    },
+    "industryPreferences": {
+      "strongInterest": [
+        "Fintech",
+        "Financial services",
+        "Investment and trading technology",
+        "Portfolio management",
+        "Analytics",
+        "AI engineering",
+        "SaaS",
+        "Enterprise workflow automation"
+      ],
+      "lessInterested": [
+        "Roles unrelated to software engineering",
+        "Purely administrative or non-technical functions"
+      ]
+    },
+    "values": [
+      "End-to-end ownership",
+      "Technical quality and reliability",
+      "Measurable business impact",
+      "Continuous learning",
+      "Practical innovation",
+      "Secure and maintainable systems",
+      "International and collaborative work"
+    ],
+    "seekingInRole": [
+      "Backend ownership and architecture responsibility",
+      "Opportunities to work with Python, FastAPI, AWS, and modern databases",
+      "Exposure to AI engineering, RAG, and agentic systems",
+      "Fintech, investment, trading, or analytics domain relevance",
+      "Ability to deliver measurable product and operational improvements",
+      "A role combining independent execution with technical collaboration"
+    ]
+  },
+  "workAuthorization": [],
+  "roleFitSignals": {
+    "strongFit": [
+      "Python/FastAPI backend engineering roles",
+      "Backend or full-stack roles involving React and TypeScript",
+      "Fintech, investment, portfolio management, trading, and financial analytics products",
+      "AWS, Docker, CI/CD, and API integration roles",
+      "Engineering teams building data-intensive operational systems",
+      "Applied AI roles involving RAG, LangChain, LangGraph, or agentic workflows",
+      "Roles requiring security controls, RBAC, and production deployment ownership"
+    ],
+    "moderateFit": [
+      "General senior full-stack engineering roles",
+      "Cloud application development roles outside AWS-specialist teams",
+      "Data platform and reporting applications using SQL, MongoDB, or ClickHouse",
+      "Technical consultant or solutions engineer roles with substantial implementation work",
+      "AI/ML engineering roles requiring deeper model training or advanced statistics than demonstrated in the CV"
+    ],
+    "weakFit": [
+      "Frontend-only development roles",
+      "Pure data science or machine learning research roles",
+      "Non-technical financial analyst roles",
+      "Roles centered primarily on VBA, Excel, or legacy reporting automation",
+      "Highly specialized DevOps/SRE roles without application-development responsibilities"
+    ]
+  },
+  "languages": [
+    {
+      "language": "Russian",
+      "level": "Native",
+      "context": "Native language"
+    },
+    {
+      "language": "English",
+      "level": "C1",
+      "context": "Fluent; working language"
+    },
+    {
+      "language": "German",
+      "level": "A1",
+      "context": "Learning"
+    }
+  ],
+  "username": "cshadiev"
+}

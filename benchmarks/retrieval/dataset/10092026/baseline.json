@@ -1,0 +1,8 @@
+{
+  "dataset_version": "10092026",
+  "hybrid_mrr": 1.0,
+  "hybrid_good_recall_at_20": 0.15,
+  "hybrid_fitting_recall_at_90": 0.45,
+  "hybrid_good_recall_at_150": 0.7,
+  "hybrid_fitting_recall_at_150": 0.7
+}

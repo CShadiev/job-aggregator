@@ -92,6 +92,7 @@ async def generate_dataset(
     *,
     dataset_version: str,
     model_name: str = "gpt-5.6-luna",
+    embedding_model: str | None = None,
     cached_profile_path: Path | None = None,
     force_extract: bool = False,
     deterministic_vectors: bool = False,
@@ -154,6 +155,8 @@ async def generate_dataset(
 
     # 4. Generate embeddings
     config = ConfigProvider.get_config()
+    if embedding_model is None:
+        embedding_model = config.EMBEDDING_MODEL
     async with aiohttp.ClientSession() as session:
         embed_client = EmbeddingClient(
             session,
@@ -251,7 +254,7 @@ async def generate_dataset(
         "source": {
             "screening_dataset": str(screening_dir),
             "cv_path": str(cv_path),
-            "vector_mode": "deterministic" if deterministic_vectors else "text-embedding-3-small",
+            "vector_mode": "deterministic" if deterministic_vectors else embedding_model,
         },
     }
     manifest_file = output_dir / "manifest.json"
@@ -300,6 +303,11 @@ def main() -> None:
         help="Model name for candidate profile extraction (default: gpt-5.6-luna)",
     )
     parser.add_argument(
+        "--embedding-model",
+        default=None,
+        help="Model name for embedding (default: text-embedding-3-small)",
+    )
+    parser.add_argument(
         "--cached-profile",
         type=Path,
         default=None,
@@ -330,6 +338,7 @@ def main() -> None:
             output_dir=output_dir,
             dataset_version=args.dataset_version,
             model_name=args.model,
+            embedding_model=args.embedding_model,
             cached_profile_path=args.cached_profile,
             force_extract=args.force_extract,
             deterministic_vectors=args.deterministic_vectors,

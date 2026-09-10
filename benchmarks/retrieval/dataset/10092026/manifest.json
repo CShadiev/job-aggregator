@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "dataset_version": "10092026",
+  "generated_at": "2026-09-10T06:36:15.761225+00:00",
+  "candidate_username": "cshadiev",
+  "n_entries": 300,
+  "n_fitting": 90,
+  "stratification": {
+    "good": 30,
+    "moderate": 60,
+    "low": 210
+  },
+  "positive_definition": "worth_full_assessment is true (cv_category in {moderate, good}, score >= 50)",
+  "source": {
+    "screening_dataset": "benchmarks/screening/dataset/05082026",
+    "cv_path": "benchmarks/screening/dataset/05082026/cv.pdf",
+    "vector_mode": "text-embedding-3-large"
+  }
+}
