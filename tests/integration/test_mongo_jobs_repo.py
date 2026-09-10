@@ -1,15 +1,18 @@
 """Integration tests for MongoJobsRepository against a live MongoDB test instance."""
 
 from collections.abc import AsyncGenerator
+from datetime import datetime
 
 import pytest
 from pymongo import AsyncMongoClient
 
 from config import ConfigProvider
+from models.fit_assessment import FitAssessment
 from models.generics import PaginatedDataRequest
 from models.jobs_api import JobFeedQuery
 from repository.mongo_jobs_repository import MongoJobsRepository
 from tests.datasets.job_feed_items import generate_job_feed_items
+from tests.helpers.job_posting import make_job_posting
 
 _USERNAME = "test_user"
 
@@ -74,3 +77,28 @@ class TestGetJobFeedPagination:
             item for item in response.data if item.status is not None and item.status.skipped
         ]
         assert len(skipped_jobs) == 0
+
+
+class TestStoreAssessmentTimestampTypes:
+    """Verify Mongo writes persist JobPosting timestamps as BSON datetimes."""
+
+    async def test_nested_job_timestamps_are_datetimes(self, repo: MongoJobsRepository):
+        """store_assessment must write nested job.posted_at as datetime, not ISO string."""
+        username = "datetime_type_user"
+        job = make_job_posting(uid="datetime-type:1")
+        assessment = FitAssessment(
+            cv_ats_match_score=80,
+            profile_ats_match_score=75,
+            summary="nested timestamp type check",
+        )
+        await repo.store_assessment(assessment, username, job.uid, job=job)
+        try:
+            doc = await repo._assessments.find_one({"username": username, "job_uid": job.uid})
+            assert doc is not None
+            nested = doc["job"]
+            assert isinstance(nested["posted_at"], datetime)
+            assert isinstance(nested["collected_at"], datetime)
+            assert isinstance(nested["updated_at"], datetime)
+        finally:
+            await repo._assessments.delete_many({"username": username, "job_uid": job.uid})
+            await repo._applications.delete_many({"username": username, "job_uid": job.uid})

@@ -144,11 +144,11 @@ class MongoJobsRepository:
         doc: dict = {
             "username": username,
             "job_uid": job_uid,
-            "assessment": assessment.model_dump(mode="json"),
-            "status": job_application_status.model_dump(mode="json"),
+            "assessment": assessment.model_dump(),
+            "status": job_application_status.model_dump(),
         }
         if job is not None:
-            doc["job"] = job.model_dump(mode="json")
+            doc["job"] = job.model_dump()
         await self._assessments.insert_one(doc)
         await self._applications.insert_one(job_application_status.model_dump())
         if self._search is not None and job is not None:
@@ -174,7 +174,7 @@ class MongoJobsRepository:
                 {
                     "username": username,
                     "job_uid": job_uid,
-                    "assessment": assessment.model_dump(mode="json"),
+                    "assessment": assessment.model_dump(),
                 }
                 for assessment, username, job_uid in assessments
             ]
@@ -554,9 +554,9 @@ class MongoJobsRepository:
         )
         status = status.model_copy(update=updates)
 
-        status_dump = status.model_dump(mode="json")
+        status_dump = status.model_dump()
         result = await self._applications.update_one(
-            {"username": username, "job_uid": job_uid}, {"$set": status.model_dump()}, upsert=True
+            {"username": username, "job_uid": job_uid}, {"$set": status_dump}, upsert=True
         )
         await self._assessments.update_many(
             {"username": username, "job_uid": job_uid},
