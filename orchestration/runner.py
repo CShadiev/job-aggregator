@@ -16,7 +16,7 @@ from orchestration.checkpointer import InstrumentedMongoDBSaver
 from orchestration.deps import PipelineDeps, build_deps
 from orchestration.graph import build_pipeline_graph
 from orchestration.state import new_pipeline_state
-from telemetry import cycle_id_ctx, get_tracer, setup_telemetry
+from telemetry import configure_langsmith, cycle_id_ctx, get_tracer, setup_telemetry
 
 log = LoggerProvider.get_logger()
 tracer = get_tracer("job-aggregator.pipeline")
@@ -75,6 +75,12 @@ async def _async_main() -> None:
     """Async orchestration entrypoint initializing dependencies and triggering a single run."""
     config = ConfigProvider.get_config()
     setup_telemetry()
+    log.info(
+        "LangSmith tracing {status}",
+        event="langsmith_configured",
+        status="enabled" if configure_langsmith() else "disabled",
+        project=config.LANGSMITH_PROJECT,
+    )
     async_mongo = AsyncMongoClient(
         host=config.MONGODB_HOST,
         port=config.MONGODB_PORT,

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import contextvars
+import os
 from typing import TYPE_CHECKING
 
 from opentelemetry import trace
@@ -71,6 +72,24 @@ def setup_telemetry(service_name: str | None = None) -> TracerProvider:
         _is_instrumented = True
 
     return provider
+
+
+def configure_langsmith() -> bool:
+    """Enable LangSmith tracing of LangGraph runs and report whether it is active.
+
+    LangGraph reads these variables from the process environment at run time, so
+    config stays the single source of truth even when the shell also sets them.
+    """
+    config = ConfigProvider.get_config()
+
+    if not config.LANGSMITH_API_KEY:
+        os.environ["LANGSMITH_TRACING"] = "false"
+        return False
+
+    os.environ["LANGSMITH_TRACING"] = "true"
+    os.environ["LANGSMITH_API_KEY"] = config.LANGSMITH_API_KEY
+    os.environ["LANGSMITH_PROJECT"] = config.LANGSMITH_PROJECT
+    return True
 
 
 def instrument_fastapi(app: FastAPI) -> None:

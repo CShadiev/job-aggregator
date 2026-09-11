@@ -1,5 +1,6 @@
 """Batch spine nodes: collect → normalize → dedupe → persist → build pairs → finalize."""
 
+from math import ceil
 from typing import Any
 from uuid import uuid4
 
@@ -30,7 +31,9 @@ def make_batch_nodes(deps: PipelineDeps) -> dict[str, Any]:
     search_service = deps.search_service
     embedding_client = deps.embedding_client
     pair_mode = deps.pair_mode
-    retrieval_k = deps.retrieval_k
+    retrieval_ratio = deps.retrieval_ratio
+    retrieval_min_k = deps.retrieval_min_k
+    retrieval_max_k = deps.retrieval_max_k
 
     async def collect(state: PipelineState) -> dict[str, Any]:
         cycle_id = state["cycle_id"] or str(uuid4())
@@ -192,6 +195,7 @@ def make_batch_nodes(deps: PipelineDeps) -> dict[str, Any]:
         try:
             profiles = await repository.get_user_profiles()
             usernames = [p.username for p in profiles]
+            retrieval_k = _retrieval_size(len(unique_jobs))
             if pair_mode == "cartesian":
                 pairs = build_pair_list(usernames, unique_jobs)
             else:
@@ -212,6 +216,7 @@ def make_batch_nodes(deps: PipelineDeps) -> dict[str, Any]:
                 n_jobs=n_jobs,
                 n_users=n_users,
                 k=retrieval_k,
+                ratio=retrieval_ratio,
                 mode=pair_mode,
                 llm_calls_saved=llm_calls_saved,
             )
@@ -238,6 +243,10 @@ def make_batch_nodes(deps: PipelineDeps) -> dict[str, Any]:
             )
             raise
         return {"pairs": pairs}
+
+    def _retrieval_size(n_jobs: int) -> int:
+        """Scale the top-K cutoff to a share of the current batch, clamped to the configured bounds."""
+        return min(max(ceil(n_jobs * retrieval_ratio), retrieval_min_k), retrieval_max_k)
 
     async def _retrieve_topk_pairs(
         *,

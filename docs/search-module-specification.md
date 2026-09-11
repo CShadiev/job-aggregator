@@ -290,7 +290,7 @@ The `SearchService.search_user_feed` method powers `POST /jobs/search` by queryi
 - **`embed_jobs` Node:** Executed immediately after `persist_jobs`. Computes embeddings for all newly deduplicated jobs and calls `SearchService.bulk_index_jobs`.
 - **`build_pairs` Node (Retrieval Gating):**
   - When `PIPELINE_PAIR_MODE="topk"`, iterates through candidate profiles, extracts flattened text and embedding vectors, and calls `SearchService.search_jobs(mode="hybrid", filters=SearchFilters(uids=unique_uids), size=k)`.
-  - Restricts pair generation to top-$K$ candidates (default $K=20$), replacing full Cartesian fan-out and logging `llm_calls_saved`.
+  - Restricts pair generation to top-$K$ candidates, where $K = \min(\max(\lceil \text{RATIO} \times |\text{unique\_jobs}| \rceil, \text{MIN\_K}), \text{MAX\_K})$ scales with each cycle's batch size (default 50%, clamped to $[1, 200]$), replacing full Cartesian fan-out and logging `llm_calls_saved`.
 
 ### 2. MongoDB Repository Dual-Write (`repository/mongo_jobs_repository.py`)
 
@@ -334,7 +334,9 @@ The `SearchService.search_user_feed` method powers `POST /jobs/search` by queryi
 | `EMBEDDING_DIMENSIONS` | `1536` | Vector dimensionality |
 | `EMBEDDING_BATCH_SIZE` | `64` | Batch chunk size for OpenAI embedding API calls |
 | `PIPELINE_PAIR_MODE` | `topk` | Pairing mode: `topk` (hybrid retrieval) or `cartesian` |
-| `PIPELINE_RETRIEVAL_K` | `20` | Top-$K$ cutoff for pipeline retrieval gating |
+| `PIPELINE_RETRIEVAL_RATIO` | `0.5` | Share of the deduplicated batch retrieved per profile; sets the top-$K$ cutoff for pipeline retrieval gating (must be in $(0, 1]$) |
+| `PIPELINE_RETRIEVAL_MIN_K` | `1` | Floor on the top-$K$ cutoff, so small batches still yield candidates |
+| `PIPELINE_RETRIEVAL_MAX_K` | `200` | Cap on the top-$K$ cutoff, bounding LLM cost on unusually large batches (must be $\geq$ `PIPELINE_RETRIEVAL_MIN_K`) |
 
 ### Observability & Telemetry
 

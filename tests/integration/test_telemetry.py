@@ -342,7 +342,9 @@ class TestJobDescriptionsStageAccounting:
         deps.collection_service = AsyncMock()
         deps.thread_id = "t1"
         deps.pair_mode = "topk"
-        deps.retrieval_k = 2
+        deps.retrieval_ratio = 0.5
+        deps.retrieval_min_k = 1
+        deps.retrieval_max_k = 200
 
         p1 = make_job_posting(uid="u1", source="source_a")
         p2 = make_job_posting(uid="u2", source="source_b")
@@ -377,6 +379,9 @@ class TestJobDescriptionsStageAccounting:
         profile_mock.username = "user1"
         deps.repository.get_user_profiles.return_value = [profile_mock]
         deps.pair_mode = "cartesian"
+        deps.retrieval_ratio = 0.5
+        deps.retrieval_min_k = 1
+        deps.retrieval_max_k = 200
 
         nodes = make_batch_nodes(deps)
         jobs = [

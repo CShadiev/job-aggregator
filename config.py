@@ -3,7 +3,7 @@
 from pathlib import Path
 from typing import Literal
 
-from pydantic import field_validator
+from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 _APP_ROOT = Path(__file__).resolve().parent
@@ -93,7 +93,18 @@ class Config(BaseSettings):
     EMBEDDING_BATCH_SIZE: int = 64
 
     PIPELINE_PAIR_MODE: Literal["topk", "cartesian"] = "topk"
-    PIPELINE_RETRIEVAL_K: int = 20
+    PIPELINE_RETRIEVAL_RATIO: float = Field(default=0.5, gt=0.0, le=1.0)
+    PIPELINE_RETRIEVAL_MIN_K: int = Field(default=1, ge=1)
+    PIPELINE_RETRIEVAL_MAX_K: int = Field(default=200, ge=1)
+
+    @model_validator(mode="after")
+    def check_retrieval_bounds(self) -> "Config":
+        """Reject an inverted retrieval window, where the cap would undercut the floor."""
+        if self.PIPELINE_RETRIEVAL_MAX_K < self.PIPELINE_RETRIEVAL_MIN_K:
+            raise ValueError(
+                "PIPELINE_RETRIEVAL_MAX_K must be greater than or equal to PIPELINE_RETRIEVAL_MIN_K"
+            )
+        return self
 
     SCREENING_MODEL: str = "gpt-5.6-luna"
     FIT_ASSESSMENT_MODEL: str = "gpt-5-mini"
@@ -124,6 +135,10 @@ class Config(BaseSettings):
     OTEL_SERVICE_NAME: str = "job-aggregator"
     OTEL_EXPORTER_OTLP_ENDPOINT: str | None = None
     OTEL_TRACES_EXPORTER: str = "none"
+
+    # Tracing of graph nodes, edges and state is enabled only when the key is set.
+    LANGSMITH_API_KEY: str | None = None
+    LANGSMITH_PROJECT: str = "job-aggregator-pipeline"
 
     METRICS_ENABLED: bool = True
     WORKER_METRICS_HOST: str = "0.0.0.0"

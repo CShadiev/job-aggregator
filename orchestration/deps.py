@@ -40,7 +40,9 @@ class PipelineDeps:
     search_service: SearchService
     embedding_client: EmbeddingClient
     pair_mode: str
-    retrieval_k: int
+    retrieval_ratio: float
+    retrieval_min_k: int
+    retrieval_max_k: int
 
 
 def build_collectors(client_session: ClientSession, config: Config) -> list:
@@ -124,5 +126,7 @@ async def build_deps(
         search_service=search_service,
         embedding_client=embedding_client,
         pair_mode=cfg.PIPELINE_PAIR_MODE,
-        retrieval_k=cfg.PIPELINE_RETRIEVAL_K,
+        retrieval_ratio=cfg.PIPELINE_RETRIEVAL_RATIO,
+        retrieval_min_k=cfg.PIPELINE_RETRIEVAL_MIN_K,
+        retrieval_max_k=cfg.PIPELINE_RETRIEVAL_MAX_K,
     )

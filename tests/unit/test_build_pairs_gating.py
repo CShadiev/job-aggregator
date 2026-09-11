@@ -63,7 +63,13 @@ def _profile(username: str = "ada") -> UserProfile:
     )
 
 
-def _deps(*, pair_mode: str = "topk", retrieval_k: int = 2):
+def _deps(
+    *,
+    pair_mode: str = "topk",
+    retrieval_ratio: float = 0.5,
+    retrieval_min_k: int = 1,
+    retrieval_max_k: int = 200,
+):
     """Build mock PipelineDependencies for testing batch nodes."""
     deps = MagicMock()
     deps.repository = AsyncMock()
@@ -73,7 +79,9 @@ def _deps(*, pair_mode: str = "topk", retrieval_k: int = 2):
     deps.embedding_client = AsyncMock()
     deps.embedding_client.embed_profile.return_value = [0.1] * 8
     deps.pair_mode = pair_mode
-    deps.retrieval_k = retrieval_k
+    deps.retrieval_ratio = retrieval_ratio
+    deps.retrieval_min_k = retrieval_min_k
+    deps.retrieval_max_k = retrieval_max_k
     return deps
 
 
@@ -92,7 +100,7 @@ async def test_cartesian_mode_uses_full_product():
 @pytest.mark.asyncio
 async def test_topk_caps_pairs_at_users_times_k():
     """Verify that topk mode limits pairs to top K search results per user."""
-    deps = _deps(pair_mode="topk", retrieval_k=2)
+    deps = _deps(pair_mode="topk", retrieval_ratio=0.4)
     deps.repository.get_user_profiles.return_value = [_profile("ada"), _profile("bob")]
     deps.search_service.search_jobs.return_value = SearchHits(
         hits=[SearchHit(uid="j1", score=1.0), SearchHit(uid="j2", score=0.5)]
@@ -103,6 +111,37 @@ async def test_topk_caps_pairs_at_users_times_k():
     assert len(result["pairs"]) <= 2 * 2
     assert {pair["username"] for pair in result["pairs"]} == {"ada", "bob"}
     assert all(pair["job"]["uid"] in {"j1", "j2"} for pair in result["pairs"])
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("ratio", "n_jobs", "min_k", "max_k", "expected_k"),
+    [
+        (0.5, 10, 1, 200, 5),
+        (0.5, 5, 1, 200, 3),
+        (1.0, 4, 1, 200, 4),
+        (0.01, 3, 1, 200, 1),
+        (0.5, 1000, 1, 200, 200),
+        (0.5, 20, 15, 200, 15),
+        (0.5, 20, 15, 12, 12),
+    ],
+)
+async def test_topk_size_scales_with_batch_share(
+    ratio: float, n_jobs: int, min_k: int, max_k: int, expected_k: int
+):
+    """Verify the retrieval cutoff is a share of the batch, rounded up and clamped to bounds."""
+    deps = _deps(
+        pair_mode="topk",
+        retrieval_ratio=ratio,
+        retrieval_min_k=min_k,
+        retrieval_max_k=max_k,
+    )
+    deps.repository.get_user_profiles.return_value = [_profile("ada")]
+    deps.search_service.search_jobs.return_value = SearchHits(hits=[])
+    nodes = make_batch_nodes(deps)
+    jobs = [{"uid": f"j{i}"} for i in range(n_jobs)]
+    await nodes["build_pairs"](new_pipeline_state(cycle_id="c1", unique_jobs=jobs))
+    assert deps.search_service.search_jobs.await_args.kwargs["size"] == expected_k
 
 
 @pytest.mark.asyncio
