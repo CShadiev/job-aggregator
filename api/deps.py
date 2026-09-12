@@ -4,6 +4,7 @@ from typing import Annotated
 
 from fastapi import Depends, Request
 
+from agents.cover_letter_generation import CoverLetterGenerationAgent
 from auth_service import Auth0ClientWrapper
 from models.users import User
 from repository.mongo_jobs_repository import MongoJobsRepository
@@ -42,8 +43,14 @@ async def get_search_service(request: Request) -> SearchService:
     return request.state.search_service
 
 
+async def get_cover_letter_agent(request: Request) -> CoverLetterGenerationAgent:
+    """Retrieve the CoverLetterGenerationAgent instance from the FastAPI application state."""
+    return request.state.cover_letter_agent
+
+
 AppAuth0Client = Annotated[Auth0ClientWrapper, Depends(get_auth0_client)]
 AppCurrentUser = Annotated[User, Depends(get_current_user)]
 AppJobsRepository = Annotated[MongoJobsRepository, Depends(get_jobs_repository)]
 AppObjectStorage = Annotated[ObjectStorage, Depends(get_object_storage)]
 AppSearchService = Annotated[SearchService, Depends(get_search_service)]
+AppCoverLetterAgent = Annotated[CoverLetterGenerationAgent, Depends(get_cover_letter_agent)]

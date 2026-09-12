@@ -1,14 +1,12 @@
 """Per-(username, job) subgraph nodes."""
 
-from pathlib import Path
 from typing import Any
 
-from config import ConfigProvider
+from cover_letter_service import generate_and_persist_cover_letter
 from logger_provider import LoggerProvider
 from models.collection_service import JobPosting
 from models.failed_tasks import FailedTask, NodeName
 from models.fit_assessment import FitAssessment
-from models.jobs_api import UpdateJobStatusRequest
 from monitoring.metrics import instrument_nodes, mark_node_failed, record_job_stage
 from orchestration.deps import PipelineDeps
 from orchestration.routing import route_after_assess, route_after_screen
@@ -147,33 +145,23 @@ def make_pair_nodes(deps: PipelineDeps) -> dict[str, Any]:
         else:
             assessment = FitAssessment.model_validate(assessment_data)
 
-        file_path = Path(ConfigProvider.get_config().TEMP_DIR) / username / f"{job.uid}.json"
         try:
             profile = await repository.get_user_profile(username)
             if profile is None:
                 raise ValueError(f"User profile not found: {username}")
 
-            _log.info("Generating cover letter")
-            content = await cover_letter_agent.generate(profile, job, assessment)
-            file_path.parent.mkdir(parents=True, exist_ok=True)
-            file_path.write_text(content.model_dump_json(indent=2))
-            object_key = object_storage.upload_coverletter_json(
+            object_key = await generate_and_persist_cover_letter(
                 username=username,
-                job_id=job.uid,
-                file_path=str(file_path),
+                job=job,
+                assessment=assessment,
+                profile=profile,
+                agent=cover_letter_agent,
+                object_storage=object_storage,
+                repository=repository,
             )
-            await repository.update_job_application_status(
-                job_uid=job.uid,
-                username=username,
-                request=UpdateJobStatusRequest(cover_letter_key=object_key),
-            )
-            _log.info("Cover letter stored")
             return {"cover_letter_key": object_key}
         except Exception as exc:
             return await _fail_pair(state, node="cover_letter", error=exc)
-        finally:
-            if file_path.exists():
-                file_path.unlink()
 
     async def emit_pair_result(state: PairState) -> dict[str, Any]:
         return {"pair_results": [pair_result_summary(state)]}

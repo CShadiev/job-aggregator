@@ -97,6 +97,7 @@ known-first-party = [
     "benchmarks",
     "collection_service",
     "config",
+    "cover_letter_service",
     "logger_provider",
     "models",
     "monitoring",

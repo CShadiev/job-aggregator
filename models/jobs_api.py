@@ -60,3 +60,19 @@ class JobFeedItem(BaseModel):
     job: JobPosting
     fit: FitAssessment
     status: JobApplicationStatus | None = None
+
+
+class CoverLetterGenerationStatus(StrEnum):
+    """Cover letter generation state visible to API clients.
+
+    A failed generation is retried on the next request, so clients never see it.
+    """
+
+    PENDING = "pending"
+    COMPLETE = "complete"
+
+
+class CoverLetterGenerationStatusResponse(BaseModel):
+    """Response of the start-or-poll cover letter generation endpoint."""
+
+    status: CoverLetterGenerationStatus

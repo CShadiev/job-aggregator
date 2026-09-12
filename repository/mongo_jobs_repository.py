@@ -3,15 +3,16 @@
 from __future__ import annotations
 
 from collections.abc import AsyncIterator, Sequence
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING
 
-from pymongo import AsyncMongoClient, UpdateOne
+from pymongo import AsyncMongoClient, ReturnDocument, UpdateOne
 from pymongo.errors import DuplicateKeyError
 
 from config import ConfigProvider
 from logger_provider import LoggerProvider
 from models.collection_service import InvalidEntry, JobPosting
+from models.cover_letter_task import CoverLetterTask, CoverLetterTaskStatus
 from models.deduplication import FailedJobPosting
 from models.failed_tasks import FailedTask
 from models.fit_assessment import FitAssessment
@@ -86,6 +87,7 @@ class MongoJobsRepository:
         self._applications = self._db[config.MONGODB_JOB_APPLICATIONS_COLLECTION]
         self._screenings = self._db[config.MONGODB_SCREENINGS_COLLECTION]
         self._failed_tasks = self._db[config.MONGODB_FAILED_TASKS_COLLECTION]
+        self._cover_letter_tasks = self._db[config.MONGODB_COVER_LETTER_TASKS_COLLECTION]
 
     async def ping(self) -> bool:
         """Verify MongoDB connectivity by executing an admin ping command."""
@@ -483,6 +485,107 @@ class MongoJobsRepository:
         if doc is None:
             return None
         return doc.get("cover_letter_key")
+
+    async def get_cover_letter_task(self, username: str, job_uid: str) -> CoverLetterTask | None:
+        """Fetch the manual cover letter generation task for a candidate and job.
+
+        Args:
+            username: Candidate username.
+            job_uid: Target job unique identifier.
+
+        Returns:
+            CoverLetterTask if a task was ever requested, otherwise None.
+        """
+        doc = await self._cover_letter_tasks.find_one({"username": username, "job_uid": job_uid})
+        if doc is None:
+            return None
+        return CoverLetterTask.model_validate(doc)
+
+    async def claim_pending_cover_letter_task(
+        self,
+        username: str,
+        job_uid: str,
+        *,
+        ttl_seconds: int,
+    ) -> CoverLetterTask | None:
+        """Atomically take ownership of cover letter generation for a candidate and job.
+
+        A task is claimable when it does not exist, when it failed, or when it is
+        pending but past ``expires_at`` (the owning process died mid-run).
+
+        Args:
+            username: Candidate username.
+            job_uid: Target job unique identifier.
+            ttl_seconds: Lifetime of the claim before another caller may take it over.
+
+        Returns:
+            The claimed pending task, or None if a live pending or complete task won the race.
+        """
+        now = datetime.now(UTC)
+        try:
+            doc = await self._cover_letter_tasks.find_one_and_update(
+                {
+                    "username": username,
+                    "job_uid": job_uid,
+                    "$or": [
+                        {"status": CoverLetterTaskStatus.FAILED.value},
+                        {
+                            "status": CoverLetterTaskStatus.PENDING.value,
+                            "expires_at": {"$lt": now},
+                        },
+                    ],
+                },
+                {
+                    "$set": {
+                        "status": CoverLetterTaskStatus.PENDING.value,
+                        "updated_at": now,
+                        "expires_at": now + timedelta(seconds=ttl_seconds),
+                        "error": None,
+                    },
+                    "$setOnInsert": {"created_at": now},
+                },
+                upsert=True,
+                return_document=ReturnDocument.AFTER,
+            )
+        except DuplicateKeyError:
+            # A live pending or complete task exists, so the filter matched nothing and the
+            # upsert collided with the unique (username, job_uid) index.
+            return None
+        return CoverLetterTask.model_validate(doc)
+
+    async def complete_cover_letter_task(self, username: str, job_uid: str) -> None:
+        """Mark the cover letter generation task as complete and clear any previous error."""
+        await self._cover_letter_tasks.update_one(
+            {"username": username, "job_uid": job_uid},
+            {
+                "$set": {
+                    "status": CoverLetterTaskStatus.COMPLETE.value,
+                    "updated_at": datetime.now(UTC),
+                    "error": None,
+                }
+            },
+        )
+
+    async def fail_cover_letter_task(self, username: str, job_uid: str, error: str) -> None:
+        """Mark the cover letter generation task as failed, recording *error* for operators."""
+        await self._cover_letter_tasks.update_one(
+            {"username": username, "job_uid": job_uid},
+            {
+                "$set": {
+                    "status": CoverLetterTaskStatus.FAILED.value,
+                    "updated_at": datetime.now(UTC),
+                    "error": error,
+                }
+            },
+        )
+
+    async def ensure_cover_letter_task_indexes(self) -> None:
+        """Create the index the manual cover letter generation claim relies on."""
+        await self._cover_letter_tasks.create_index(
+            [("username", 1), ("job_uid", 1)],
+            unique=True,
+            name="username_job_uid_unique",
+        )
 
     async def ensure_pipeline_indexes(self) -> None:
         """Create indexes used by the LangGraph orchestration runner."""

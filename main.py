@@ -11,6 +11,8 @@ from fastapi.middleware import Middleware
 from fastapi.middleware.cors import CORSMiddleware
 from pymongo import AsyncMongoClient
 
+from agents.cover_letter_generation import CoverLetterGenerationAgent
+from agents.model_factory import Model, ModelFactory
 from api.middleware.correlation import CorrelationIdMiddleware
 from api.middleware.metrics import PrometheusMiddleware
 from api.routes import health, jobs, metrics, users
@@ -52,7 +54,11 @@ async def lifespan(_: FastAPI):
     except Exception as exc:
         log.warning("OpenSearch index bootstrap failed: {exc}", exc=str(exc))
     jobs_repository = MongoJobsRepository(mongo_client, search_service=search_service)
+    await jobs_repository.ensure_cover_letter_task_indexes()
     object_storage = ObjectStorage()
+    cover_letter_agent = CoverLetterGenerationAgent(
+        ModelFactory.get_model(Model(config.COVER_LETTER_MODEL))
+    )
     Path(config.TEMP_DIR).mkdir(parents=True, exist_ok=True)
     log.info("Dependencies initialized, application ready")
     yield {
@@ -60,6 +66,7 @@ async def lifespan(_: FastAPI):
         "auth0_client": auth0_client,
         "object_storage": object_storage,
         "search_service": search_service,
+        "cover_letter_agent": cover_letter_agent,
     }
     log.info("FastAPI application shutting down")
     await search_service.close()

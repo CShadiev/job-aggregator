@@ -78,6 +78,7 @@ class Config(BaseSettings):
     MONGODB_LANGGRAPH_CHECKPOINT_COLLECTION: str = "langgraph_checkpoints"
     MONGODB_LANGGRAPH_WRITES_COLLECTION: str = "langgraph_checkpoint_writes"
     MONGODB_PRICING_COLLECTION: str = "pricing"
+    MONGODB_COVER_LETTER_TASKS_COLLECTION: str = "cover_letter_tasks"
 
     OPENSEARCH_HOST: str = "localhost"
     OPENSEARCH_PORT: int = 9200
@@ -110,6 +111,9 @@ class Config(BaseSettings):
     FIT_ASSESSMENT_MODEL: str = "gpt-5-mini"
     COVER_LETTER_MODEL: str = "gpt-5-mini"
     COVER_LETTER_MIN_CV_SCORE: float = 80
+    # A pending manual generation task older than this is considered abandoned
+    # (e.g. the API process restarted mid-run) and may be claimed again.
+    COVER_LETTER_TASK_TTL_SECONDS: int = 90
     PIPELINE_PAIR_CONCURRENCY: int = 10
     PIPELINE_THREAD_ID: str = "job-pipeline"
     PIPELINE_SCHEDULE_SECONDS: int = 60 * 60 * 12

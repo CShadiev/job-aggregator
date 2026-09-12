@@ -1,12 +1,13 @@
 """Integration tests for MongoJobsRepository against a live MongoDB test instance."""
 
 from collections.abc import AsyncGenerator
-from datetime import datetime
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from pymongo import AsyncMongoClient
 
 from config import ConfigProvider
+from models.cover_letter_task import CoverLetterTaskStatus
 from models.fit_assessment import FitAssessment
 from models.generics import PaginatedDataRequest
 from models.jobs_api import JobFeedQuery
@@ -77,6 +78,79 @@ class TestGetJobFeedPagination:
             item for item in response.data if item.status is not None and item.status.skipped
         ]
         assert len(skipped_jobs) == 0
+
+
+class TestCoverLetterTaskClaim:
+    """Tests for the manual cover-letter task claim against a live MongoDB test instance."""
+
+    @pytest.fixture(autouse=True)
+    async def clean_tasks(self, repo: MongoJobsRepository) -> AsyncGenerator[None]:
+        """Ensure the unique index exists and no task rows leak between tests."""
+        await repo.ensure_cover_letter_task_indexes()
+        await repo._cover_letter_tasks.delete_many({"username": _USERNAME})
+        yield
+        await repo._cover_letter_tasks.delete_many({"username": _USERNAME})
+
+    async def test_claim_creates_a_pending_task(self, repo: MongoJobsRepository):
+        """A first claim inserts a pending task expiring after the requested TTL."""
+        before = datetime.now(UTC)
+        claimed = await repo.claim_pending_cover_letter_task(_USERNAME, "claim:new", ttl_seconds=90)
+
+        assert claimed is not None
+        assert claimed.status == CoverLetterTaskStatus.PENDING
+        assert claimed.error is None
+        assert before < claimed.expires_at <= before + timedelta(seconds=91)
+
+    async def test_second_claim_loses_to_a_live_pending_task(self, repo: MongoJobsRepository):
+        """Only one caller may own generation while a claim is live."""
+        first = await repo.claim_pending_cover_letter_task(_USERNAME, "claim:race", ttl_seconds=90)
+        second = await repo.claim_pending_cover_letter_task(_USERNAME, "claim:race", ttl_seconds=90)
+
+        assert first is not None
+        assert second is None
+
+    async def test_complete_task_is_never_claimable(self, repo: MongoJobsRepository):
+        """Regeneration is out of scope, so a complete task blocks further claims."""
+        await repo.claim_pending_cover_letter_task(_USERNAME, "claim:done", ttl_seconds=90)
+        await repo.complete_cover_letter_task(_USERNAME, "claim:done")
+
+        assert (
+            await repo.claim_pending_cover_letter_task(_USERNAME, "claim:done", ttl_seconds=90)
+            is None
+        )
+        task = await repo.get_cover_letter_task(_USERNAME, "claim:done")
+        assert task is not None
+        assert task.status == CoverLetterTaskStatus.COMPLETE
+
+    async def test_failed_task_is_claimable_again(self, repo: MongoJobsRepository):
+        """A failure retries on the next request and the recorded error is cleared."""
+        await repo.claim_pending_cover_letter_task(_USERNAME, "claim:failed", ttl_seconds=90)
+        await repo.fail_cover_letter_task(_USERNAME, "claim:failed", error="llm unavailable")
+
+        failed = await repo.get_cover_letter_task(_USERNAME, "claim:failed")
+        assert failed is not None
+        assert failed.status == CoverLetterTaskStatus.FAILED
+        assert failed.error == "llm unavailable"
+
+        reclaimed = await repo.claim_pending_cover_letter_task(
+            _USERNAME, "claim:failed", ttl_seconds=90
+        )
+        assert reclaimed is not None
+        assert reclaimed.status == CoverLetterTaskStatus.PENDING
+        assert reclaimed.error is None
+
+    async def test_expired_pending_task_is_claimable_again(self, repo: MongoJobsRepository):
+        """A pending claim whose owner died is taken over once it expires."""
+        expired = await repo.claim_pending_cover_letter_task(
+            _USERNAME, "claim:expired", ttl_seconds=-1
+        )
+        assert expired is not None
+
+        reclaimed = await repo.claim_pending_cover_letter_task(
+            _USERNAME, "claim:expired", ttl_seconds=90
+        )
+        assert reclaimed is not None
+        assert reclaimed.expires_at > datetime.now(UTC)
 
 
 class TestStoreAssessmentTimestampTypes:
