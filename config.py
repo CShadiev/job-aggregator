@@ -29,6 +29,7 @@ class Config(BaseSettings):
     APIFY_LINKEDIN_TASK_ID: str = "hopeful_quarter~linkedin-scraper-task"  # DE
     APIFY_LINKEDIN_UK_TASK_ID: str = "hopeful_quarter~linkedin-scraper-united-kingdom"
     APIFY_LINKEDIN_PL_TASK_ID: str = "hopeful_quarter~linkedin-scraper-poland"
+    APIFY_LINKEDIN_US_TASK_ID: str = "hopeful_quarter~linkedin-scraper-us"
 
     DEDUPLICATION_BATCH_SIZE: int = 50
     DEDUPLICATION_MAX_RETRIES: int = 3

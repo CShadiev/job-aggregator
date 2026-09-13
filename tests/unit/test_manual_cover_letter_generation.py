@@ -7,11 +7,17 @@ import pytest
 from fastapi.testclient import TestClient
 
 from agents.cover_letter_generation import CoverLetterGenerationAgent
-from api.deps import get_cover_letter_agent, get_jobs_repository, get_object_storage
+from api.deps import (
+    get_cover_letter_agent,
+    get_current_user,
+    get_jobs_repository,
+    get_object_storage,
+)
 from cover_letter_service import run_cover_letter_generation_task
 from main import app
 from models.cover_letter_task import CoverLetterTask, CoverLetterTaskStatus
 from models.fit_assessment import CoverLetterContent, CoverLetterSection
+from models.users import User
 from orchestration.nodes.pair import make_pair_nodes
 from orchestration.state import new_pair_state
 from repository.mongo_jobs_repository import MongoJobsRepository
@@ -22,7 +28,6 @@ from tests.datasets.cover_letter_sample import (
     make_sample_user_profile,
 )
 
-# api.deps.get_current_user is hardcoded to this user.
 _USERNAME = "cshadiev"
 _JOB_UID = make_sample_job_posting().uid
 _URL = f"/jobs/{_JOB_UID}/cover-letter/generate"
@@ -83,7 +88,11 @@ def scheduled(monkeypatch) -> AsyncMock:
 
 @pytest.fixture
 def client():
-    """Serve the app with storage and agent mocked; each test overrides the repository itself."""
+    """Serve the app as a signed-in user, with storage and agent mocked.
+
+    Each test overrides the repository itself to set up the state under test.
+    """
+    app.dependency_overrides[get_current_user] = lambda: User(username=_USERNAME, sub="test")
     app.dependency_overrides[get_object_storage] = lambda: MagicMock(spec=ObjectStorage)
     app.dependency_overrides[get_cover_letter_agent] = lambda: AsyncMock(
         spec=CoverLetterGenerationAgent

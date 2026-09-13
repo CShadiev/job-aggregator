@@ -72,9 +72,10 @@ def build_collectors(client_session: ClientSession, config: Config) -> list:
         ),
         ApifyCollector(
             client_session=client_session,
-            task_id=config.APIFY_LINKEDIN_UK_TASK_ID,
-            source_tag="linkedin-united-kingdom",
-            apify_parser=LinkedinApifyParser(source_tag="linkedin-united-kingdom"),
+            # hopeful_quarter~indeed-scraper-task
+            task_id=config.APIFY_LINKEDIN_US_TASK_ID,
+            source_tag="linkedin-us",
+            apify_parser=LinkedinApifyParser(source_tag="linkedin-us"),
             run_apify_task=False,
         ),
         ArbeitnowCollector(client=client_session),
