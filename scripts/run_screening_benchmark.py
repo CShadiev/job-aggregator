@@ -23,7 +23,7 @@ from benchmarks.screening.metrics import (
 )
 from logger_provider import LoggerProvider
 from models.collection_service import JobPosting
-from monitoring.pricing import DEFAULT_RATES, UNPRICED, PricingCache
+from monitoring.pricing import DEFAULT_RATES, PricingCache
 
 log = LoggerProvider.get_logger()
 
@@ -32,6 +32,8 @@ _DEFAULT_REPORTS_DIR = Path("benchmarks/screening/reports")
 _REPORT_TEMPLATE_PATH = Path(__file__).parent / "screening_benchmark_report.md"
 _FAILURE_ABORT_RATIO = 0.20
 _CONFIDENCE_THRESHOLDS = (0.0, 0.5, 0.7, 0.8, 0.9, 0.95)
+_FEED_FITTING_SHARES = (0.44, 0.59, 0.70)
+_DEFAULT_ASSESSMENT_COST_PER_CALL = 0.002135
 _PRICING = PricingCache(ttl_seconds=float("inf"))
 
 
@@ -48,6 +50,7 @@ class EntryResult:
     predicted_confidence: float | None = None
     input_tokens: int = 0
     output_tokens: int = 0
+    cache_read_tokens: int = 0
     error: str | None = None
 
 
@@ -60,6 +63,8 @@ class BenchmarkRun:
     model: str
     concurrency: int
     manifest: dict
+    prompt_template: str = "agents/prompt_templates/screening.md"
+    assessment_cost_per_call: float = _DEFAULT_ASSESSMENT_COST_PER_CALL
     results: list[EntryResult] = field(default_factory=list)
     timestamp: str = field(
         default_factory=lambda: datetime.now(UTC).strftime("%Y%m%d_%H%M%S"),
@@ -96,13 +101,13 @@ def resolve_dataset_dir(dataset_root: Path, dataset_version: str | None) -> Path
     return dataset_root / versions[0]
 
 
-def load_dataset(dataset_dir: Path) -> tuple[dict, list[dict], Path]:
-    """Load manifest, entries, and CV path from the dataset directory."""
+def load_dataset(dataset_dir: Path) -> tuple[dict, list[dict], str]:
+    """Load manifest, entries, and generated CV text from the dataset directory."""
     manifest_path = dataset_dir / "manifest.json"
     entries_path = dataset_dir / "entries.jsonl"
-    cv_path = dataset_dir / "cv.pdf"
+    cv_text_path = dataset_dir / "cv.txt"
 
-    for path in (manifest_path, entries_path, cv_path):
+    for path in (manifest_path, entries_path, cv_text_path):
         if not path.exists():
             raise SystemExit(f"Missing required dataset file: {path}")
 
@@ -120,7 +125,10 @@ def load_dataset(dataset_dir: Path) -> tuple[dict, list[dict], Path]:
             if line:
                 entries.append(json.loads(line))
 
-    return manifest, entries, cv_path
+    cv_text = cv_text_path.read_text(encoding="utf-8").strip()
+    if not cv_text:
+        raise SystemExit(f"CV text artifact is empty: {cv_text_path}")
+    return manifest, entries, cv_text
 
 
 def _parse_model(model_name: str) -> Model:
@@ -135,7 +143,7 @@ def _parse_model(model_name: str) -> Model:
 async def _screen_entry(
     agent: ScreeningAgent,
     semaphore: asyncio.Semaphore,
-    cv_path: Path,
+    cv_text: str,
     entry: dict,
 ) -> EntryResult:
     """Screen a single dataset entry using the ScreeningAgent."""
@@ -150,11 +158,12 @@ async def _screen_entry(
     async with semaphore:
         try:
             job = JobPosting.model_validate(entry["job"])
-            screening = await agent.screen(cv_path, job)
+            screening = await agent.screen(cv_text, job)
             result.predicted_worth = screening.worth_full_assessment
             result.predicted_confidence = screening.confidence
             result.input_tokens = screening.input_tokens
             result.output_tokens = screening.output_tokens
+            result.cache_read_tokens = screening.cache_read_tokens
         except Exception as exc:  # noqa: BLE001 — per-entry isolation
             result.error = f"{type(exc).__name__}: {exc}"
             log.warning("Entry {} failed: {}", entry["id"], result.error)
@@ -164,13 +173,24 @@ async def _screen_entry(
 async def run_benchmark(args: argparse.Namespace) -> Path:
     """Execute the offline screening benchmark evaluation, writing report and JSONL results."""
     dataset_dir = resolve_dataset_dir(Path(args.dataset_root), args.dataset_version)
-    manifest, entries, cv_path = load_dataset(dataset_dir)
+    manifest, entries, cv_text = load_dataset(dataset_dir)
 
     if args.limit is not None:
         entries = entries[: args.limit]
 
     model = _parse_model(args.model)
-    agent = ScreeningAgent(ModelFactory.get_model(model))
+    if model.value not in DEFAULT_RATES:
+        raise SystemExit(
+            f"Model {model.value!r} has no static rate card in DEFAULT_RATES; "
+            "refusing to produce a misleading cost report"
+        )
+    prompt_template_path = Path(args.prompt_template) if args.prompt_template is not None else None
+    if prompt_template_path is not None and not prompt_template_path.is_file():
+        raise SystemExit(f"Prompt template not found: {prompt_template_path}")
+    agent = ScreeningAgent(
+        ModelFactory.get_model(model),
+        prompt_template_path=prompt_template_path,
+    )
     semaphore = asyncio.Semaphore(args.concurrency)
 
     run = BenchmarkRun(
@@ -179,6 +199,8 @@ async def run_benchmark(args: argparse.Namespace) -> Path:
         model=model.value,
         concurrency=args.concurrency,
         manifest=manifest,
+        prompt_template=str(agent.prompt_template_path),
+        assessment_cost_per_call=args.assessment_cost_per_call,
     )
 
     log.info(
@@ -191,7 +213,7 @@ async def run_benchmark(args: argparse.Namespace) -> Path:
 
     async with asyncio.TaskGroup() as tg:
         tasks = [
-            tg.create_task(_screen_entry(agent, semaphore, cv_path, entry)) for entry in entries
+            tg.create_task(_screen_entry(agent, semaphore, cv_text, entry)) for entry in entries
         ]
     run.results = [task.result() for task in tasks]
 
@@ -242,11 +264,23 @@ def _fmt_usd(value: float) -> str:
     return f"${value:.4f}"
 
 
-def _estimate_run_cost(model: str, input_tokens: int, output_tokens: int) -> tuple[float, bool]:
-    """Return (usd, priced) using static DEFAULT_RATES; unknown models cost $0."""
-    priced = model in DEFAULT_RATES
-    rate = DEFAULT_RATES.get(model, UNPRICED)
-    return _PRICING.estimate_cost_usd(rate, input_tokens, output_tokens), priced
+def _estimate_run_cost(
+    model: str,
+    input_tokens: int,
+    output_tokens: int,
+    cache_read_tokens: int = 0,
+) -> float:
+    """Price a run from static rates, failing closed for unknown models."""
+    try:
+        rate = DEFAULT_RATES[model]
+    except KeyError as exc:
+        raise ValueError(f"No static rate card for model {model!r}") from exc
+    return _PRICING.estimate_cost_usd(
+        rate,
+        input_tokens,
+        output_tokens,
+        cache_read_tokens,
+    )
 
 
 def _fmt_headline_row(row: dict[str, float], cost: float) -> str:
@@ -303,6 +337,27 @@ def _fmt_band_table(bands: dict[str, dict[str, float]]) -> str:
     return "\n".join(lines)
 
 
+def _fmt_sensitivity_table(
+    *,
+    tnr_low: float,
+    screening_cost_per_call: float,
+    assessment_cost_per_call: float,
+) -> str:
+    """Render parameterized gate savings across representative feed compositions."""
+    rho = (
+        screening_cost_per_call / assessment_cost_per_call if assessment_cost_per_call > 0 else 0.0
+    )
+    lines = [
+        "| Fitting share | Junk share | Estimated saving |",
+        "|---|---|---|",
+    ]
+    for fitting_share in _FEED_FITTING_SHARES:
+        junk_share = 1.0 - fitting_share
+        saving = junk_share * tnr_low - rho
+        lines.append(f"| {_fmt_pct(fitting_share)} | {_fmt_pct(junk_share)} | {_fmt_pct(saving)} |")
+    return "\n".join(lines)
+
+
 def _render_report(run: BenchmarkRun) -> str:
     """Render markdown screening report from run results and template."""
     results = run.results
@@ -338,15 +393,26 @@ def _render_report(run: BenchmarkRun) -> str:
 
     input_tokens = sum(r.input_tokens for r in results)
     output_tokens = sum(r.output_tokens for r in results)
+    cache_read_tokens = sum(r.cache_read_tokens for r in results)
     total_tokens = input_tokens + output_tokens
-    total_usd, priced = _estimate_run_cost(run.model, input_tokens, output_tokens)
-    cost100 = cost_per_100_usd(total_usd, completed)
-    cost_note = (
-        "" if priced else "Unpriced model; cost shown as $0.00 (not in static DEFAULT_RATES)."
+    total_usd = _estimate_run_cost(
+        run.model,
+        input_tokens,
+        output_tokens,
+        cache_read_tokens,
     )
+    cost100 = cost_per_100_usd(total_usd, completed)
+    screening_cost_per_call = total_usd / completed if completed else 0.0
 
     prf = binary_precision_recall_f1(gold_worth, pred_worth)
     bands = band_binary_accuracy(gold_categories, gold_worth, pred_worth)
+    tnr_low = bands[FitCategory.LOW.value]["accuracy"]
+    rho = (
+        screening_cost_per_call / run.assessment_cost_per_call
+        if run.assessment_cost_per_call > 0
+        else 0.0
+    )
+    break_even_junk = rho / tnr_low if tnr_low > 0 else 0.0
     conf = confidence_summary(confidences, correct, gold_categories)
     stratification = run.manifest.get("stratification", {})
 
@@ -359,6 +425,7 @@ def _render_report(run: BenchmarkRun) -> str:
     return template.format(
         timestamp=run.timestamp,
         model=run.model,
+        prompt_template=run.prompt_template,
         dataset_version=run.dataset_version,
         dataset_path=run.dataset_path.as_posix(),
         n_entries=run.manifest.get("n_entries"),
@@ -373,8 +440,18 @@ def _render_report(run: BenchmarkRun) -> str:
         n_low=n_low,
         n_fitting=n_fitting,
         headline_table=_fmt_headline_row(headline, cost100),
+        screening_cost_per_call=_fmt_usd(screening_cost_per_call),
+        assessment_cost_per_call=_fmt_usd(run.assessment_cost_per_call),
+        cost_ratio=_fmt_pct(rho),
+        low_tnr=_fmt_pct(tnr_low),
+        break_even_junk=_fmt_pct(break_even_junk),
+        sensitivity_table=_fmt_sensitivity_table(
+            tnr_low=tnr_low,
+            screening_cost_per_call=screening_cost_per_call,
+            assessment_cost_per_call=run.assessment_cost_per_call,
+        ),
         sweep_table=_fmt_sweep_table(sweep),
-        cost_note=cost_note,
+        cost_note="",
         positive_precision=_fmt_float(prf["precision"]),
         positive_recall=_fmt_float(prf["recall"]),
         positive_f1=_fmt_float(prf["f1"]),
@@ -391,6 +468,7 @@ def _render_report(run: BenchmarkRun) -> str:
         conf_by_band=json.dumps(conf_by_band, sort_keys=True),
         requests=completed,
         input_tokens=input_tokens,
+        cache_read_tokens=cache_read_tokens,
         output_tokens=output_tokens,
         total_tokens=total_tokens,
         total_usd=_fmt_usd(total_usd),
@@ -408,6 +486,7 @@ def _write_results_jsonl(path: Path, run: BenchmarkRun) -> None:
             "type": "meta",
             "dataset_version": run.dataset_version,
             "model": run.model,
+            "prompt_template": run.prompt_template,
             "timestamp": run.timestamp,
         }
         fh.write(json.dumps(meta, ensure_ascii=False) + "\n")
@@ -418,6 +497,7 @@ def _write_results_jsonl(path: Path, run: BenchmarkRun) -> None:
                     "confidence": r.predicted_confidence,
                     "input_tokens": r.input_tokens,
                     "output_tokens": r.output_tokens,
+                    "cache_read_tokens": r.cache_read_tokens,
                 }
             else:
                 predicted = None
@@ -461,7 +541,19 @@ def build_parser() -> argparse.ArgumentParser:
         default=Model.LUNA_5_6.value,
         help=f"Model name (default: {Model.LUNA_5_6.value})",
     )
+    parser.add_argument(
+        "--prompt-template",
+        type=Path,
+        default=None,
+        help="Optional prompt template override (default: production screening.md)",
+    )
     parser.add_argument("--concurrency", type=int, default=10, help="Max concurrent screens")
+    parser.add_argument(
+        "--assessment-cost-per-call",
+        type=float,
+        default=_DEFAULT_ASSESSMENT_COST_PER_CALL,
+        help="Downstream fit-assessment USD/call used for gate economics",
+    )
     parser.add_argument(
         "--limit",
         type=int,
@@ -478,6 +570,8 @@ def main() -> None:
         raise SystemExit("--concurrency must be >= 1")
     if args.limit is not None and args.limit < 1:
         raise SystemExit("--limit must be >= 1")
+    if args.assessment_cost_per_call <= 0:
+        raise SystemExit("--assessment-cost-per-call must be > 0")
     asyncio.run(run_benchmark(args))
 
 

@@ -432,3 +432,10 @@ class TestRenderReport:
         assert "| 0.00 | 3 | 25.0% | 1 | 0.7500 | 1.0000 | 1.0000 | 1.0000 |" in report
         assert "| 0.90 | 2 | 50.0% | 2 | 0.5000 | 0.5000 | 1.0000 | 0.6667 |" in report
         assert "Fitting jobs: 3 (Good: 2, Moderate: 1, Low: 1)" in report
+
+    def test_unpriced_model_fails_closed(self):
+        """Verify benchmark accounting cannot silently publish a zero-dollar model."""
+        from scripts.run_screening_benchmark import _estimate_run_cost
+
+        with pytest.raises(ValueError, match="No static rate card"):
+            _estimate_run_cost("unknown-model", 100, 10)

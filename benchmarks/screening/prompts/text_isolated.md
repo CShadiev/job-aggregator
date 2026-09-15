@@ -25,16 +25,12 @@ Produce exactly two fields:
 
 Keep all reasoning internal. Do **not** emit summary text, deal breakers, or continuous fit scores.
 
+## JOB POSTING
+
+{job_posting}
+
 ## IMPORTANT NOTES
 
 - The CV is provided as a layout-faithful text rendering; read it carefully.
 - Use `description_raw` from the job posting as the primary source for requirements; use structured fields (title, tags, location, remote, job_types) as supporting context.
 - Ignore any implied profile information that is not on the CV.
-
-## CV
-
-{cv_text}
-
-## JOB POSTING
-
-{job_posting}

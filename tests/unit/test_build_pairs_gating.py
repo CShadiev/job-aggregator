@@ -1,5 +1,6 @@
 """Unit tests for pair-building gating and embedding nodes in batch orchestration."""
 
+import hashlib
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -8,6 +9,7 @@ from models.failed_tasks import FailedTask
 from models.users import (
     CareerGoals,
     Contact,
+    CVTextArtifact,
     Experience,
     IndustryPreferences,
     LocationPreferences,
@@ -73,6 +75,14 @@ def _deps(
     """Build mock PipelineDependencies for testing batch nodes."""
     deps = MagicMock()
     deps.repository = AsyncMock()
+    cv_bytes = b"%PDF-test"
+    deps.object_storage = MagicMock()
+    deps.object_storage.get_user_cv.return_value = cv_bytes
+    deps.cv_text_extraction_agent = AsyncMock()
+    deps.repository.get_cv_text_artifact.return_value = CVTextArtifact(
+        cv_text="# Ada CV",
+        source_sha256=hashlib.sha256(cv_bytes).hexdigest(),
+    )
     deps.collection_service = AsyncMock()
     deps.thread_id = "t1"
     deps.search_service = AsyncMock()
@@ -94,6 +104,7 @@ async def test_cartesian_mode_uses_full_product():
     jobs = [{"uid": "j1", "title": "A"}, {"uid": "j2", "title": "B"}]
     result = await nodes["build_pairs"](new_pipeline_state(cycle_id="c1", unique_jobs=jobs))
     assert len(result["pairs"]) == 4
+    assert all(pair["cv_text"] == "# Ada CV" for pair in result["pairs"])
     deps.search_service.search_jobs.assert_not_called()
 
 
@@ -111,6 +122,25 @@ async def test_topk_caps_pairs_at_users_times_k():
     assert len(result["pairs"]) <= 2 * 2
     assert {pair["username"] for pair in result["pairs"]} == {"ada", "bob"}
     assert all(pair["job"]["uid"] in {"j1", "j2"} for pair in result["pairs"])
+
+
+@pytest.mark.asyncio
+async def test_build_pairs_regenerates_cv_text_when_pdf_digest_changes():
+    """Verify a replaced CV invalidates the persisted rendering during pair build."""
+    deps = _deps(pair_mode="cartesian")
+    deps.repository.get_user_profiles.return_value = [_profile("ada")]
+    deps.repository.get_cv_text_artifact.return_value = CVTextArtifact(
+        cv_text="# Stale CV",
+        source_sha256="0" * 64,
+    )
+    deps.cv_text_extraction_agent.extract.return_value = "# Fresh CV"
+    nodes = make_batch_nodes(deps)
+    result = await nodes["build_pairs"](
+        new_pipeline_state(cycle_id="c1", unique_jobs=[{"uid": "j1", "title": "A"}])
+    )
+    assert result["pairs"][0]["cv_text"] == "# Fresh CV"
+    deps.cv_text_extraction_agent.extract.assert_awaited_once()
+    deps.object_storage.get_user_cv.assert_called_once_with("ada")
 
 
 @pytest.mark.asyncio

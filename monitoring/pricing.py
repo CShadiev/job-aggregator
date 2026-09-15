@@ -29,13 +29,35 @@ class ModelRate:
 
     input_usd_per_1m: float
     output_usd_per_1m: float
+    cached_input_usd_per_1m: float | None = None
 
 
 DEFAULT_RATES: dict[str, ModelRate] = {
-    "gpt-5.6-luna": ModelRate(input_usd_per_1m=0.20, output_usd_per_1m=1.2),
+    "gpt-5.6-luna": ModelRate(
+        input_usd_per_1m=0.20,
+        output_usd_per_1m=1.2,
+        cached_input_usd_per_1m=0.02,
+    ),
     "gpt-5-mini": ModelRate(input_usd_per_1m=0.25, output_usd_per_1m=2.0),
     "grok-4.3": ModelRate(input_usd_per_1m=3.0, output_usd_per_1m=15.0),
     "grok-4.5": ModelRate(input_usd_per_1m=3.0, output_usd_per_1m=15.0),
+    "gpt-oss-120b": ModelRate(input_usd_per_1m=0.037, output_usd_per_1m=0.17),
+    "openai/gpt-oss-120b": ModelRate(input_usd_per_1m=0.037, output_usd_per_1m=0.17),
+    "gpt-oss-120b-turbo": ModelRate(input_usd_per_1m=0.15, output_usd_per_1m=0.60),
+    "openai/gpt-oss-120b-Turbo": ModelRate(
+        input_usd_per_1m=0.15,
+        output_usd_per_1m=0.60,
+    ),
+    "glm-5.3-flash": ModelRate(
+        input_usd_per_1m=0.15,
+        output_usd_per_1m=0.50,
+        cached_input_usd_per_1m=0.03,
+    ),
+    "zai-org/GLM-5.3-Flash": ModelRate(
+        input_usd_per_1m=0.15,
+        output_usd_per_1m=0.50,
+        cached_input_usd_per_1m=0.03,
+    ),
     "text-embedding-3-small": ModelRate(input_usd_per_1m=0.02, output_usd_per_1m=0.0),
 }
 
@@ -88,10 +110,25 @@ class PricingCache:
             return UNPRICED
         return rate
 
-    def estimate_cost_usd(self, rate: ModelRate, input_tokens: int, output_tokens: int) -> float:
+    def estimate_cost_usd(
+        self,
+        rate: ModelRate,
+        input_tokens: int,
+        output_tokens: int,
+        cache_read_tokens: int = 0,
+    ) -> float:
         """Compute estimated USD spend for a single call against *rate*."""
+        cached_tokens = min(max(cache_read_tokens, 0), max(input_tokens, 0))
+        fresh_tokens = max(input_tokens, 0) - cached_tokens
+        cached_rate = (
+            rate.cached_input_usd_per_1m
+            if rate.cached_input_usd_per_1m is not None
+            else rate.input_usd_per_1m
+        )
         return (
-            input_tokens * rate.input_usd_per_1m + output_tokens * rate.output_usd_per_1m
+            fresh_tokens * rate.input_usd_per_1m
+            + cached_tokens * cached_rate
+            + max(output_tokens, 0) * rate.output_usd_per_1m
         ) / 1_000_000
 
     async def _refresh_if_stale(self) -> None:
@@ -125,6 +162,11 @@ class PricingCache:
             rates[str(name)] = ModelRate(
                 input_usd_per_1m=float(payload.get("input_usd_per_1m") or 0.0),
                 output_usd_per_1m=float(payload.get("output_usd_per_1m") or 0.0),
+                cached_input_usd_per_1m=(
+                    float(payload["cached_input_usd_per_1m"])
+                    if payload.get("cached_input_usd_per_1m") is not None
+                    else None
+                ),
             )
         return rates
 

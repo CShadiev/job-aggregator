@@ -98,6 +98,7 @@ known-first-party = [
     "collection_service",
     "config",
     "cover_letter_service",
+    "cv_text_service",
     "logger_provider",
     "models",
     "monitoring",

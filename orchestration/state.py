@@ -20,6 +20,7 @@ class PairState(TypedDict):
 
     cycle_id: str
     username: str
+    cv_text: str
     job: dict[str, Any]
     screening: dict[str, Any]
     assessment: dict[str, Any] | None
@@ -52,6 +53,7 @@ def new_pair_state(
     *,
     cycle_id: str = "",
     username: str = "",
+    cv_text: str = "",
     job: dict[str, Any] | None = None,
     screening: dict[str, Any] | None = None,
     assessment: dict[str, Any] | None = None,
@@ -63,6 +65,7 @@ def new_pair_state(
     return {
         "cycle_id": cycle_id,
         "username": username,
+        "cv_text": cv_text,
         "job": job if job is not None else {},
         "screening": screening if screening is not None else {},
         "assessment": assessment,

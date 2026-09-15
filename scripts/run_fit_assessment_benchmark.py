@@ -102,14 +102,14 @@ def resolve_dataset_dir(dataset_root: Path, dataset_version: str | None) -> Path
     return dataset_root / versions[0]
 
 
-def load_dataset(dataset_dir: Path) -> tuple[dict, list[dict], UserProfile, Path]:
-    """Load manifest, entries, candidate profile, and CV path from the dataset directory."""
+def load_dataset(dataset_dir: Path) -> tuple[dict, list[dict], UserProfile, str]:
+    """Load manifest, entries, candidate profile, and CV text."""
     manifest_path = dataset_dir / "manifest.json"
     entries_path = dataset_dir / "entries.jsonl"
     profile_path = dataset_dir / "profile.json"
-    cv_path = dataset_dir / "cv.pdf"
+    cv_text_path = dataset_dir / "cv.txt"
 
-    for path in (manifest_path, entries_path, profile_path, cv_path):
+    for path in (manifest_path, entries_path, profile_path, cv_text_path):
         if not path.exists():
             raise SystemExit(f"Missing required dataset file: {path}")
 
@@ -128,7 +128,10 @@ def load_dataset(dataset_dir: Path) -> tuple[dict, list[dict], UserProfile, Path
                 entries.append(json.loads(line))
 
     profile = UserProfile.model_validate_json(profile_path.read_text(encoding="utf-8"))
-    return manifest, entries, profile, cv_path
+    cv_text = cv_text_path.read_text(encoding="utf-8").strip()
+    if not cv_text:
+        raise SystemExit(f"CV text artifact is empty: {cv_text_path}")
+    return manifest, entries, profile, cv_text
 
 
 def _parse_model(model_name: str) -> Model:
@@ -144,7 +147,7 @@ async def _assess_entry(
     agent: FitAssessmentAgent,
     semaphore: asyncio.Semaphore,
     profile: UserProfile,
-    cv_path: Path,
+    cv_text: str,
     entry: dict,
 ) -> EntryResult:
     """Evaluate one dataset entry using the FitAssessmentAgent."""
@@ -161,7 +164,7 @@ async def _assess_entry(
         try:
             job = JobPosting.model_validate(entry["job"])
             assessment, input_tokens, output_tokens = await agent.assess_with_usage(
-                profile, cv_path, job
+                profile, cv_text, job
             )
             result.predicted_cv_score = assessment.cv_ats_match_score
             result.predicted_profile_score = assessment.profile_ats_match_score
@@ -182,7 +185,7 @@ async def _assess_entry(
 async def run_benchmark(args: argparse.Namespace) -> Path:
     """Execute the offline fit-assessment evaluation run, generate markdown report and JSONL logs."""
     dataset_dir = resolve_dataset_dir(Path(args.dataset_root), args.dataset_version)
-    manifest, entries, profile, cv_path = load_dataset(dataset_dir)
+    manifest, entries, profile, cv_text = load_dataset(dataset_dir)
 
     if args.limit is not None:
         entries = entries[: args.limit]
@@ -209,7 +212,7 @@ async def run_benchmark(args: argparse.Namespace) -> Path:
 
     async with asyncio.TaskGroup() as tg:
         tasks = [
-            tg.create_task(_assess_entry(agent, semaphore, profile, cv_path, entry))
+            tg.create_task(_assess_entry(agent, semaphore, profile, cv_text, entry))
             for entry in entries
         ]
     run.results = [task.result() for task in tasks]

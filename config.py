@@ -108,7 +108,8 @@ class Config(BaseSettings):
             )
         return self
 
-    SCREENING_MODEL: str = "gpt-5.6-luna"
+    SCREENING_MODEL: str = "glm-5.3-flash"
+    CV_EXTRACTION_MODEL: str = "gpt-5.6-luna"
     FIT_ASSESSMENT_MODEL: str = "gpt-5-mini"
     COVER_LETTER_MODEL: str = "gpt-5-mini"
     COVER_LETTER_MIN_CV_SCORE: float = 80

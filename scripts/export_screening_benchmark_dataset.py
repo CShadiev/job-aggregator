@@ -19,10 +19,13 @@ from pathlib import Path
 
 from pymongo import AsyncMongoClient
 
+from agents.cv_text_extraction import CVTextExtractionAgent
 from agents.fit_assessment import _JOB_FIELDS
+from agents.model_factory import Model, ModelFactory
 from benchmarks.fit_assessment.categories import FitCategory, category_order, score_to_category
 from benchmarks.screening.labels import category_to_worth
 from config import ConfigProvider
+from cv_text_service import ensure_cv_text
 from logger_provider import LoggerProvider
 from models.collection_service import JobPosting
 from models.fit_assessment import FitAssessment
@@ -156,8 +159,9 @@ def _write_dataset(
     targets: dict[FitCategory, int],
     actual: dict[FitCategory, int],
     cv_bytes: bytes,
+    cv_text: str,
 ) -> None:
-    """Write entries.jsonl, cv.pdf, and manifest.json to the dataset version directory."""
+    """Write entries, source PDF, generated CV text, and manifest."""
     if out_dir.exists():
         log.warning("Dataset directory {} already exists; overwriting", out_dir)
         shutil.rmtree(out_dir)
@@ -182,6 +186,7 @@ def _write_dataset(
 
     cv_path = out_dir / "cv.pdf"
     cv_path.write_bytes(cv_bytes)
+    (out_dir / "cv.txt").write_text(cv_text.rstrip() + "\n", encoding="utf-8")
 
     config = ConfigProvider.get_config()
     manifest = {
@@ -197,6 +202,7 @@ def _write_dataset(
             "positive_definition": "cv_category in {moderate, good} (score >= 50)",
         },
         "cv_path": "cv.pdf",
+        "cv_text_path": "cv.txt",
         "source": {
             "mongodb_database": config.MONGODB_DATABASE,
             "note": (
@@ -239,6 +245,17 @@ async def export_dataset(args: argparse.Namespace) -> Path:
             ) from exc
         if not cv_bytes:
             raise SystemExit(f"Empty CV fetched from S3 for username={username!r}")
+        cv_text = (
+            await ensure_cv_text(
+                username=username,
+                repository=repo,
+                object_storage=object_storage,
+                agent=CVTextExtractionAgent(
+                    ModelFactory.get_model(Model(config.CV_EXTRACTION_MODEL))
+                ),
+                cv_bytes=cv_bytes,
+            )
+        ).cv_text
 
         candidates = await _load_candidates(repo, username)
         if not candidates:
@@ -253,6 +270,7 @@ async def export_dataset(args: argparse.Namespace) -> Path:
             targets=targets,
             actual=actual,
             cv_bytes=cv_bytes,
+            cv_text=cv_text,
         )
 
         log.info(

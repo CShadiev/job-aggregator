@@ -78,7 +78,7 @@ class DeduplicationAgent:
             await record_agent_usage(
                 agent_name="deduplication",
                 model_name=self.model.model_name,
-                usage=result.usage(),
+                usage=result.usage,
                 duration_seconds=perf_counter() - start,
             )
             return self._reconcile(temp_map, result.output)

@@ -11,7 +11,9 @@ from models.cover_letter_task import CoverLetterTaskStatus
 from models.fit_assessment import FitAssessment
 from models.generics import PaginatedDataRequest
 from models.jobs_api import JobFeedQuery
+from models.users import CVTextArtifact
 from repository.mongo_jobs_repository import MongoJobsRepository
+from tests.datasets.cover_letter_sample import make_sample_user_profile
 from tests.datasets.job_feed_items import generate_job_feed_items
 from tests.helpers.job_posting import make_job_posting
 
@@ -176,3 +178,36 @@ class TestStoreAssessmentTimestampTypes:
         finally:
             await repo._assessments.delete_many({"username": username, "job_uid": job.uid})
             await repo._applications.delete_many({"username": username, "job_uid": job.uid})
+
+
+class TestCvTextArtifact:
+    """Tests for derived CV text stored beside, not on, UserProfile."""
+
+    async def test_store_and_read_round_trip_leaves_user_profile_clean(self, repo):
+        """Verify the artifact persists and UserProfile still dumps without it."""
+        profile = make_sample_user_profile()
+        username = profile.username
+        await repo._user_profiles.delete_many({"username": username})
+        await repo._user_profiles.insert_one(profile.model_dump())
+        artifact = CVTextArtifact(cv_text="# Layout-faithful CV", source_sha256="b" * 64)
+        try:
+            await repo.store_cv_text_artifact(username, artifact)
+            loaded = await repo.get_cv_text_artifact(username)
+            assert loaded == artifact
+            prompt_profile = await repo.get_user_profile(username)
+            assert prompt_profile is not None
+            dumped = prompt_profile.model_dump_json()
+            assert "# Layout-faithful CV" not in dumped
+            assert "cv_source_sha256" not in dumped
+        finally:
+            await repo._user_profiles.delete_many({"username": username})
+
+    async def test_store_without_profile_raises(self, repo):
+        """Verify the first write path cannot create a profile document."""
+        username = "missing_cv_user"
+        await repo._user_profiles.delete_many({"username": username})
+        with pytest.raises(ValueError, match="User profile not found"):
+            await repo.store_cv_text_artifact(
+                username,
+                CVTextArtifact(cv_text="# CV", source_sha256="c" * 64),
+            )

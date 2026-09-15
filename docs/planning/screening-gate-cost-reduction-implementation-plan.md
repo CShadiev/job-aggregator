@@ -1,6 +1,6 @@
 # Screening Gate Cost Reduction — Implementation Plan
 
-**Status:** Ready for implementation
+**Status:** Implemented
 **Last updated:** 2026-09-15
 **Open questions:** 0
 **Origin:** Surfaced by "The headline arithmetic, as it actually computes" in [`readme-landing-page-and-evals-showcase-implementation-plan.md`](readme-landing-page-and-evals-showcase-implementation-plan.md). That plan is blocked on this one: its Q1 asks which cost claim goes above the fold, and the honest single-gate answer today is a negative number.
@@ -180,6 +180,17 @@ Two observations worth carrying into Phase 5. First, **`gpt-oss-120b` is a large
 
 The `saving = r − ρ` identity, the token profile that motivated the packaging change, and a candidate comparison table. The comparison table is the artifact that makes the eval loop look real: it shows a decision being made from measurements rather than asserted. This feeds the README plan's Q1 and its `docs/evals.md` "what the benchmarks decided" section.
 
+Measured production-packaging bake-off (2026-09-15), text CV, job payload last, `p₂ = $0.002135`:
+
+| Model | Cost / 100 | ρ | Good Recall | Fitting Recall | Admissible |
+| --- | --- | --- | --- | --- | --- |
+| `gpt-5.6-luna` | $0.0690 | 32.3% | 0.9333 | 0.7889 | no |
+| `gpt-oss-120b` | $0.0168 | 7.8% | 0.8000 | 0.5000 | no |
+| `gpt-oss-120b-turbo` | $0.0645 | 30.2% | 0.8333 | 0.5556 | no |
+| **`glm-5.3-flash`** | **$0.0477** | **22.3%** | **0.9000** | **0.8222** | **yes** |
+
+Full table, isolated-run attribution, and cache-hit note: [`benchmarks/screening/reports/20260915_bakeoff.md`](../../benchmarks/screening/reports/20260915_bakeoff.md). Production `SCREENING_MODEL` is `glm-5.3-flash`. On the reference mix (56% junk) that is a 27.3% estimated saving; on the production-like 41% junk mix it is 14.0%; break-even junk share is 25.2%.
+
 ## Open questions
 
 None. All 10 questions resolved; see Decision log below.
@@ -295,6 +306,13 @@ Change the CV representation and content ordering first, re-run the screening be
 
 Once implementation is complete and numbers are verified, capture the architectural learnings into an Architecture Decision Record (ADR) and a case study / article draft:
 
+Written:
+
+- [`docs/adr/0001-screening-gate-cost-model.md`](../adr/0001-screening-gate-cost-model.md)
+- [`docs/case-study-screening-gate-economics.md`](../case-study-screening-gate-economics.md)
+
+The three claims those documents carry:
+
 1. **The Denominator Trap:** When an expensive downstream stage is optimized (e.g., fit assessment moving from Grok to Mini), an upstream screening gate can silently invert from a major cost saver to a net loss ($\rho > r$), because the dividend shrank while the gate overhead stayed fixed.
 2. **The Clean-Feed Paradox:** When upstream hybrid retrieval does a better job, the downstream screener's reduction rate drops ($r \approx (1 - p_1) \times \text{TNR}_{\text{low}}$)—not because the screener regressed, but because there was less garbage to reject. Penalizing the screener for a lower reduction rate penalizes it for retrieval doing its job.
 3. **The Parameterized Break-Even Model:** Modeling gate economics parameterically as a function of incoming junk ratio ($1 - p_1$), downstream cost ($p_2$), and screening cost ($x$), proving break-even resilience down to single-digit junk percentages (e.g. ~4.8% junk with `gpt-oss-120b`).
@@ -312,45 +330,53 @@ Reordered after Q2. Phases 1a–1c are the isolated CV-text experiment; the cach
 **Depends on:** nothing — Q8, Q9 and Q10 are decided
 **Reviewable when:** an extraction agent turns `cv.pdf` into a layout-faithful rendering; the rendering and its SHA-256 source digest are persisted on the `user_profiles` document behind a narrow model and repository method, with `UserProfile` unchanged; the check runs once per candidate per cycle in `build_pairs` and threads the text through `PairState`; a changed PDF provably regenerates the rendering; and the manual fidelity read against `cv.pdf` has been done and recorded. No screening behaviour has changed yet.
 **Touches:** a new agent module and prompt template under `agents/`, a new model in `models/users.py`, the first write path in `repository/mongo_jobs_repository.py`, `orchestration/nodes/batch.py`, `orchestration/state.py`
+**Done:** `agents/cv_text_extraction.py` + `cv_text_service.ensure_cv_text`; `CVTextArtifact` is outside `UserProfile` (`extra="ignore"`). Q9: the rendering at `benchmarks/screening/dataset/05082026/cv.txt` (94 lines, 8 headings) preserves reverse-chronology roles, stack lines, and numeric claims (10%/7%/20%/75%, AWS 866/1000) without summarizer voice.
 
 ### Phase 1b — Screening consumes the text
 
 **Depends on:** Phase 1a
 **Reviewable when:** `ScreeningAgent.screen` accepts the CV text instead of PDF bytes, the pipeline threads it through, and the screening dataset directory carries a generated rendering beside the still-present `cv.pdf` with `entries.jsonl` and `manifest.json` untouched. Content ordering is deliberately **not** changed in this phase.
 **Touches:** `agents/screening.py`, `agents/prompt_templates/screening.md`, `orchestration/nodes/pair.py`, `scripts/run_screening_benchmark.py`, `scripts/export_screening_benchmark_dataset.py`
+**Done:** screening and fit assessment consume `cv_text`. Isolated (job-then-CV) packaging remains available as `--prompt-template benchmarks/screening/prompts/text_isolated.md` for the Phase 1c run.
 
 ### Phase 1c — Isolated recall measurement
 
 **Depends on:** Phase 1b (Q7 decided: Good Recall ≥ 0.900, Fitting Recall ≥ 0.800)
 **Reviewable when:** a committed report on `gpt-5.6-luna` sits beside `20260909_115647` with a stated before/after delta for input tokens per call, cost per 100, Reduction Rate, Good Recall and Fitting Recall — and the after column clears the Q7 floor. This is the review gate for whether Q2's decision survives contact with the data.
 **Touches:** `benchmarks/screening/reports/`, this document
+**Done:** [`20260915_125236_gpt-5.6-luna.md`](../../benchmarks/screening/reports/20260915_125236_gpt-5.6-luna.md) vs [`20260909_115647_gpt-5.6-luna.md`](../../benchmarks/screening/reports/20260909_115647_gpt-5.6-luna.md). Mean input tokens 5,739 → 2,789 (−51%); cost/100 $0.1270 → $0.0689; reduction 64.0% → 68.0%; Good Recall 0.9667 → 0.9667; Fitting Recall 0.8667 → 0.8222. Q7 floors cleared. Q2 survives.
 
 ### Phase 2 — Cache-aware cost accounting
 
 **Depends on:** nothing — Q4 is decided
 **Reviewable when:** a screening run records `cache_read_tokens` in `.results.jsonl`, and both the benchmark cost line and the Grafana cost panels price cached reads separately from fresh input without double-counting.
 **Touches:** `monitoring/pricing.py`, `monitoring/metrics.py`, `models/screening.py`, `agents/screening.py`, `scripts/run_screening_benchmark.py`
+**Done:** `cached_input_usd_per_1m` and `cache_read_tokens` are first-class. Unpriced cached rates fall back to the full input rate. Every 300-call run in this implementation recorded `cache_read_tokens: 0`.
 
 ### Phase 3 — Content reordering
 
 **Depends on:** Phase 1c, Phase 2
 **Reviewable when:** the constant instruction-plus-CV block precedes the variable job payload in **both** agents, a re-run reports a non-zero measured cache hit rate, and recall still clears the Q7 floor. Because Phase 1c already isolated the representation change, any recall movement here is attributable to ordering alone.
 **Touches:** `agents/screening.py`, `agents/prompt_templates/screening.md`, `agents/fit_assessment.py`, `agents/prompt_templates/fit_assessment.md`
+**Done, with a divergence:** both agents ship constant-then-variable order. On `gpt-5.6-luna` that dropped Fitting Recall from 0.8222 to **0.7889**, below the 0.800 floor, and `cache_read_tokens` stayed 0. Production therefore does not run luna on this prompt; Phase 5 selected `glm-5.3-flash`, which holds both floors on the reordered packaging. The cache-hit review criterion was not met on these providers.
 
 ### Phase 4 — Post-packaging baseline
 
 **Depends on:** Phase 3
 **Reviewable when:** a committed report on the production model states the new r, ρ and saving, and the envelope table in this plan is recomputed from it so the shortlist is evaluated against real numbers.
 **Touches:** `benchmarks/screening/reports/`, this document
+**Done:** luna-on-reordered-text is [`20260915_125405_gpt-5.6-luna.md`](../../benchmarks/screening/reports/20260915_125405_gpt-5.6-luna.md). Mean input ~2,793 tokens, x = $0.000690, ρ = 32.3% at p₂ = $0.002135. That packaging misses the Fitting floor on luna; the envelope that matters is the glm row under Phase 5.
 
 ### Phase 5 — Provider wiring and model bake-off
 
 **Depends on:** Phase 4 (Q7 floors: Good Recall ≥ 0.900, Fitting Recall ≥ 0.800)
 **Reviewable when:** `gpt-oss-120b`, `gpt-oss-120b-turbo` and `glm-5.3-flash` each have a committed report, an unpriced model is proven to fail the run rather than report `$0.00`, and a comparison table states the chosen model with its cost and its recall plus confidence interval against the Q7 floor.
 **Touches:** `agents/model_factory.py`, `monitoring/pricing.py`, `scripts/run_screening_benchmark.py`, `benchmarks/screening/reports/`
+**Done:** bake-off reports committed; unpriced models fail in `_estimate_run_cost` / `run_benchmark`. Chosen: `glm-5.3-flash` (Good 27/30 = 0.900, Fitting 74/90 = 0.8222, x = $0.000477, ρ = 22.3%, Junk_min = 25.2%). DeepInfra OSS models were cheaper and over-dropped.
 
 ### Phase 6 — Regression floor
 
 **Depends on:** Phase 5 (Q7 decided)
 **Reviewable when:** a committed screening `baseline.json` and a smoke test fail CI if Good or Fitting Recall drops below the chosen floor, mirroring `benchmarks/retrieval/test_retrieval_smoke.py:85-103`.
 **Touches:** `benchmarks/screening/dataset/<version>/baseline.json`, a new `benchmarks/screening/test_screening_smoke.py`
+**Done:** `benchmarks/screening/dataset/05082026/baseline.json` pins `glm-5.3-flash` against the committed results JSONL. CI runs the smoke test in the unit-test job.

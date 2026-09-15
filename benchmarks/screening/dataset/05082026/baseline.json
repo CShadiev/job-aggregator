@@ -1,0 +1,10 @@
+{
+  "dataset_version": "05082026",
+  "model": "glm-5.3-flash",
+  "results_path": "benchmarks/screening/reports/20260915_130230_glm-5.3-flash.results.jsonl",
+  "good_recall": 0.9,
+  "fitting_recall": 0.8222,
+  "good_recall_floor": 0.9,
+  "fitting_recall_floor": 0.8,
+  "note": "Floors are the Q7 dual acceptance thresholds. Point estimates are from the Phase 5 production-packaging run that selected glm-5.3-flash."
+}

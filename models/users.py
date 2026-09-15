@@ -3,6 +3,13 @@
 from pydantic import BaseModel, ConfigDict, Field
 
 
+class CVTextArtifact(BaseModel):
+    """Layout-faithful CV rendering persisted beside, but outside, ``UserProfile``."""
+
+    cv_text: str = Field(min_length=1)
+    source_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+
+
 class User(BaseModel):
     """User model for the authenticated user."""
 
@@ -151,13 +158,12 @@ class Language(BaseModel):
 
 
 class UserProfile(BaseModel):
-    """Full user profile document as stored in MongoDB.
-
-    Field names mirror the persisted document schema (camelCase) so that
-    ``model_validate`` works against MongoDB exports without aliases.
+    """Prompt-facing profile payload. Derived CV fields live on the same Mongo
+    document but are deliberately absent here so ``model_dump_json`` cannot
+    inject them into fit-assessment or cover-letter prompts.
     """
 
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(populate_by_name=True, extra="ignore")
 
     profile: Profile
     summary: Summary

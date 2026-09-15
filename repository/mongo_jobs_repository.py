@@ -27,7 +27,7 @@ from models.jobs_api import (
 )
 from models.pipeline import PipelineStage
 from models.screening import ScreeningRecord, ScreeningResult
-from models.users import UserProfile
+from models.users import CVTextArtifact, UserProfile
 from models.validators import ts_validator
 from search.models import DenormalizedAssessment
 
@@ -353,6 +353,37 @@ class MongoJobsRepository:
         if doc is None:
             return None
         return UserProfile.model_validate(doc)
+
+    async def get_cv_text_artifact(self, username: str) -> CVTextArtifact | None:
+        """Fetch only the derived CV fields, keeping them out of ``UserProfile``."""
+        doc = await self._user_profiles.find_one(
+            {"username": username},
+            projection={"cv_text": 1, "cv_source_sha256": 1, "_id": 0},
+        )
+        if not doc or not doc.get("cv_text") or not doc.get("cv_source_sha256"):
+            return None
+        return CVTextArtifact(
+            cv_text=doc["cv_text"],
+            source_sha256=doc["cv_source_sha256"],
+        )
+
+    async def store_cv_text_artifact(
+        self,
+        username: str,
+        artifact: CVTextArtifact,
+    ) -> None:
+        """Persist derived CV text on an existing user-profile document."""
+        result = await self._user_profiles.update_one(
+            {"username": username},
+            {
+                "$set": {
+                    "cv_text": artifact.cv_text,
+                    "cv_source_sha256": artifact.source_sha256,
+                }
+            },
+        )
+        if result.matched_count == 0:
+            raise ValueError(f"User profile not found: {username}")
 
     async def store_processed_jobs(self, postings: Sequence[JobPosting]) -> None:
         """Insert processed job postings into the jobs collection.

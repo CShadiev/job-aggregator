@@ -74,8 +74,7 @@ def make_pair_nodes(deps: PipelineDeps) -> dict[str, Any]:
             return {"screening": existing.model_dump(mode="json")}
 
         try:
-            cv = object_storage.get_user_cv(username)
-            result = await screening_agent.screen(cv=cv, job=job)
+            result = await screening_agent.screen(cv_text=state["cv_text"], job=job)
             await repository.store_screening(
                 username=username,
                 job_uid=job.uid,
@@ -106,10 +105,9 @@ def make_pair_nodes(deps: PipelineDeps) -> dict[str, Any]:
             profile = await repository.get_user_profile(username)
             if profile is None:
                 raise ValueError(f"User profile not found: {username}")
-            cv = object_storage.get_user_cv(username)
             assessment = await fit_assessment_agent.assess(
                 user_profile=profile,
-                cv=cv,
+                cv_text=state["cv_text"],
                 job=job,
             )
             await repository.store_assessment(assessment, username, job.uid, job=job)

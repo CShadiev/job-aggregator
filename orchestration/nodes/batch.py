@@ -6,6 +6,7 @@ from uuid import uuid4
 
 from langgraph.types import Overwrite, Send
 
+from cv_text_service import ensure_cv_text
 from logger_provider import LoggerProvider
 from models.collection_service import JobPosting
 from models.failed_tasks import FailedTask
@@ -26,6 +27,8 @@ log = LoggerProvider.get_logger()
 def make_batch_nodes(deps: PipelineDeps) -> dict[str, Any]:
     """Construct node functions for the main batch pipeline spine."""
     repository = deps.repository
+    object_storage = deps.object_storage
+    cv_text_extraction_agent = deps.cv_text_extraction_agent
     collection_service = deps.collection_service
     thread_id = deps.thread_id
     search_service = deps.search_service
@@ -195,6 +198,17 @@ def make_batch_nodes(deps: PipelineDeps) -> dict[str, Any]:
         try:
             profiles = await repository.get_user_profiles()
             usernames = [p.username for p in profiles]
+            cv_text_by_username = {
+                profile.username: (
+                    await ensure_cv_text(
+                        username=profile.username,
+                        repository=repository,
+                        object_storage=object_storage,
+                        agent=cv_text_extraction_agent,
+                    )
+                ).cv_text
+                for profile in profiles
+            }
             retrieval_k = _retrieval_size(len(unique_jobs))
             if pair_mode == "cartesian":
                 pairs = build_pair_list(usernames, unique_jobs)
@@ -204,6 +218,8 @@ def make_batch_nodes(deps: PipelineDeps) -> dict[str, Any]:
                     profiles=profiles,
                     k=retrieval_k,
                 )
+            for pair in pairs:
+                pair["cv_text"] = cv_text_by_username[pair["username"]]
             n_pairs = len(pairs)
             n_jobs = len(unique_jobs)
             n_users = len(usernames)
@@ -287,6 +303,7 @@ def make_batch_nodes(deps: PipelineDeps) -> dict[str, Any]:
                 new_pair_state(
                     cycle_id=cycle_id,
                     username=pair["username"],
+                    cv_text=pair["cv_text"],
                     job=pair["job"],
                 ),
             )

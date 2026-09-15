@@ -34,7 +34,13 @@ if TYPE_CHECKING:
 
 log = LoggerProvider.get_logger()
 
-AgentName = Literal["screening", "fit_assessment", "cover_letter", "deduplication"]
+AgentName = Literal[
+    "screening",
+    "fit_assessment",
+    "cover_letter",
+    "deduplication",
+    "cv_extraction",
+]
 SearchType = Literal["hybrid", "bm25", "knn", "feed"]
 Status = Literal["success", "error"]
 TaskStatus = Literal["success", "failure"]
@@ -173,14 +179,20 @@ async def record_agent_usage(
     Args:
         agent_name: Logical agent label (``screening``, ``fit_assessment``, ...).
         model_name: Model identifier as reported by the PydanticAI model.
-        usage: ``RunUsage`` returned by ``AgentRunResult.usage()``.
+        usage: ``RunUsage`` returned by ``AgentRunResult.usage``.
         duration_seconds: Wall-clock duration of the ``agent.run`` call.
     """
     try:
         input_tokens = int(usage.input_tokens or 0)
         output_tokens = int(usage.output_tokens or 0)
+        cache_read_tokens = int(getattr(usage, "cache_read_tokens", 0) or 0)
         rate = await get_pricing_cache().get_rate(model_name)
-        cost = get_pricing_cache().estimate_cost_usd(rate, input_tokens, output_tokens)
+        cost = get_pricing_cache().estimate_cost_usd(
+            rate,
+            input_tokens,
+            output_tokens,
+            cache_read_tokens,
+        )
 
         llm_tokens_total.labels(agent=agent_name, model=model_name, type="prompt").inc(input_tokens)
         llm_tokens_total.labels(agent=agent_name, model=model_name, type="completion").inc(

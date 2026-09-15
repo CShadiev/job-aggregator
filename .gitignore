@@ -4,7 +4,10 @@ venv/
 *.env
 logs/
 benchmarks/fit_assessment/dataset/01082026/
-benchmarks/screening/dataset/05082026/
+# Private CV PDF, generated rendering, and job corpus. baseline.json is the
+# committed regression floor and must remain visible to git.
+benchmarks/screening/dataset/05082026/*
+!benchmarks/screening/dataset/05082026/baseline.json
 benchmarks/retrieval/reports/
 export_keys.sh
 

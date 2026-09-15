@@ -3,7 +3,7 @@
 from enum import StrEnum
 
 from pydantic_ai.models import Model as PydanticModel
-from pydantic_ai.models.openai import OpenAIResponsesModel
+from pydantic_ai.models.openai import OpenAIChatModel, OpenAIResponsesModel
 from pydantic_ai.providers.openai import OpenAIProvider
 
 from config import ConfigProvider
@@ -14,6 +14,10 @@ GROK_PROVIDER = OpenAIProvider(api_key=config.GROK_API_KEY, base_url="https://ap
 OPENAI_PROVIDER = OpenAIProvider(
     api_key=config.OPENAI_API_KEY, base_url="https://api.openai.com/v1"
 )
+DEEPINFRA_PROVIDER = OpenAIProvider(
+    api_key=config.DEEPINFRA_API_KEY,
+    base_url="https://api.deepinfra.com/v1/openai",
+)
 
 
 class Model(StrEnum):
@@ -23,6 +27,9 @@ class Model(StrEnum):
     GROK_4_5 = "grok-4.5"
     LUNA_5_6 = "gpt-5.6-luna"
     GPT_5_MINI = "gpt-5-mini"
+    GPT_OSS_120B = "gpt-oss-120b"
+    GPT_OSS_120B_TURBO = "gpt-oss-120b-turbo"
+    GLM_5_3_FLASH = "glm-5.3-flash"
 
 
 class ModelFactory:
@@ -34,6 +41,18 @@ class ModelFactory:
         Model.LUNA_5_6: OpenAIResponsesModel(model_name=Model.LUNA_5_6, provider=OPENAI_PROVIDER),
         Model.GPT_5_MINI: OpenAIResponsesModel(
             model_name=Model.GPT_5_MINI, provider=OPENAI_PROVIDER
+        ),
+        Model.GPT_OSS_120B: OpenAIChatModel(
+            model_name="openai/gpt-oss-120b",
+            provider=DEEPINFRA_PROVIDER,
+        ),
+        Model.GPT_OSS_120B_TURBO: OpenAIChatModel(
+            model_name="openai/gpt-oss-120b-Turbo",
+            provider=DEEPINFRA_PROVIDER,
+        ),
+        Model.GLM_5_3_FLASH: OpenAIChatModel(
+            model_name="zai-org/GLM-5.3-Flash",
+            provider=DEEPINFRA_PROVIDER,
         ),
     }
 

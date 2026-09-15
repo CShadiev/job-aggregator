@@ -57,7 +57,7 @@ class CoverLetterGenerationAgent:
         await record_agent_usage(
             agent_name="cover_letter",
             model_name=self.model.model_name,
-            usage=result.usage(),
+            usage=result.usage,
             duration_seconds=perf_counter() - start,
         )
         return result.output

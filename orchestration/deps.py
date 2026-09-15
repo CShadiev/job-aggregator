@@ -6,6 +6,7 @@ from aiohttp import ClientSession
 from pymongo import AsyncMongoClient
 
 from agents.cover_letter_generation import CoverLetterGenerationAgent
+from agents.cv_text_extraction import CVTextExtractionAgent
 from agents.deduplication import DeduplicationAgent
 from agents.fit_assessment import FitAssessmentAgent
 from agents.model_factory import Model, ModelFactory
@@ -29,6 +30,7 @@ class PipelineDeps:
     collection_service: CollectionService
     repository: MongoJobsRepository
     object_storage: ObjectStorage
+    cv_text_extraction_agent: CVTextExtractionAgent
     screening_agent: ScreeningAgent
     fit_assessment_agent: FitAssessmentAgent
     cover_letter_agent: CoverLetterGenerationAgent
@@ -103,6 +105,7 @@ async def build_deps(
     embedding_client = EmbeddingClient(client_session, config=cfg)
     repository = MongoJobsRepository(async_mongo_client, search_service=search_service)
     deduplication_model = Model(cfg.DEDUPLICATION_MODEL)
+    cv_extraction_model = Model(cfg.CV_EXTRACTION_MODEL)
     screening_model = Model(cfg.SCREENING_MODEL)
     fit_assessment_model = Model(cfg.FIT_ASSESSMENT_MODEL)
     cover_letter_model = Model(cfg.COVER_LETTER_MODEL)
@@ -116,6 +119,7 @@ async def build_deps(
         collection_service=collection_service,
         repository=repository,
         object_storage=ObjectStorage(),
+        cv_text_extraction_agent=CVTextExtractionAgent(ModelFactory.get_model(cv_extraction_model)),
         screening_agent=ScreeningAgent(ModelFactory.get_model(screening_model)),
         fit_assessment_agent=FitAssessmentAgent(ModelFactory.get_model(fit_assessment_model)),
         cover_letter_agent=CoverLetterGenerationAgent(ModelFactory.get_model(cover_letter_model)),

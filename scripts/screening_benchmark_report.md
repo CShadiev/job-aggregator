@@ -2,6 +2,7 @@
 
 - Timestamp: {timestamp}
 - Model: {model}
+- Prompt template: {prompt_template}
 - Dataset version: {dataset_version}
 - Dataset path: {dataset_path}
 - Candidate username: {username}
@@ -18,6 +19,18 @@
 {headline_table}
 
 {cost_note}
+
+## Parameterized Gate Economics
+
+- Screening cost per call (`x`): {screening_cost_per_call}
+- Fit-assessment cost per call (`p2`): {assessment_cost_per_call}
+- Cost ratio (`rho = x / p2`): {cost_ratio}
+- Low-tier true-negative rate: {low_tnr}
+- Minimum incoming junk share to break even: {break_even_junk}
+
+`saving ≈ (1 - fitting_share) × TNR_low - rho`
+
+{sensitivity_table}
 
 ## Confidence-Threshold Sweep (t in [0.0, 0.5, 0.7, 0.8, 0.9, 0.95])
 
@@ -72,6 +85,7 @@ Existing model confidence often clusters high, so early cutoffs may be flat — 
 
 - completed requests: {requests}
 - input_tokens: {input_tokens}
+- cache_read_tokens: {cache_read_tokens}
 - output_tokens: {output_tokens}
 - total_tokens: {total_tokens}
 - total screening USD: {total_usd}

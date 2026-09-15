@@ -290,7 +290,7 @@ uv run run-fit-assessment-benchmark
 
 Optional tuning variables: `DEDUPLICATION_BATCH_SIZE`, `DEDUPLICATION_MODEL`, `SCREENING_MODEL`, `FIT_ASSESSMENT_MODEL`, `COVER_LETTER_MODEL`, `COVER_LETTER_MIN_CV_SCORE`, `PIPELINE_PAIR_CONCURRENCY`, `PIPELINE_SCHEDULE_SECONDS`, `ARBEITNOW_MAX_PAGES`, `DEBUG_MODE`, `LOG_DIR`, `TEMP_DIR`, `METRICS_ENABLED`, `WORKER_METRICS_HOST`, `WORKER_METRICS_PORT`, `PRICING_CACHE_TTL_SECONDS`, and per-collection name overrides (`MONGODB_JOBS_COLLECTION`, `MONGODB_SCREENINGS_COLLECTION`, etc.). `LOG_DIR` and `TEMP_DIR` are resolved to absolute paths (relative values are interpreted against the application root) and may point outside the app directory in production.
 
-Default models: screening and deduplication use `gpt-5.6-luna`; fit assessment and cover letters use `gpt-5-mini` on the LangGraph path.
+Default models: screening uses `glm-5.3-flash` on DeepInfra; deduplication uses `gpt-5.6-luna`; fit assessment and cover letters use `gpt-5-mini` on the LangGraph path.
 
 ---
 

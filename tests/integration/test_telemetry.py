@@ -205,6 +205,29 @@ class TestPricingCache:
 
         assert cache.estimate_cost_usd(rate, 500_000, 250_000) == pytest.approx(1.0 + 2.0)
 
+    def test_cached_input_is_not_double_counted(self):
+        """Verify cached reads replace, rather than add to, full-price input."""
+        cache = PricingCache(ttl_seconds=300)
+        rate = ModelRate(
+            input_usd_per_1m=2.0,
+            output_usd_per_1m=8.0,
+            cached_input_usd_per_1m=0.2,
+        )
+
+        assert cache.estimate_cost_usd(
+            rate,
+            input_tokens=1_000_000,
+            output_tokens=0,
+            cache_read_tokens=750_000,
+        ) == pytest.approx(0.65)
+
+    def test_missing_cached_rate_falls_back_to_full_input_rate(self):
+        """Verify an unspecified cache discount never understates spend."""
+        cache = PricingCache(ttl_seconds=300)
+        rate = ModelRate(input_usd_per_1m=2.0, output_usd_per_1m=8.0)
+
+        assert cache.estimate_cost_usd(rate, 1_000_000, 0, 750_000) == pytest.approx(2.0)
+
 
 class TestSearchInstrumentation:
     """Tests for search and feed latency recording helpers."""
@@ -370,6 +393,9 @@ class TestJobDescriptionsStageAccounting:
 
     async def test_build_pairs_node_records_retrieval_metrics(self):
         """Verify build_pairs batch node increments retrieval metrics per source."""
+        import hashlib
+
+        from models.users import CVTextArtifact
         from orchestration.nodes.batch import make_batch_nodes
         from orchestration.state import new_pipeline_state
 
@@ -378,6 +404,12 @@ class TestJobDescriptionsStageAccounting:
         profile_mock = MagicMock()
         profile_mock.username = "user1"
         deps.repository.get_user_profiles.return_value = [profile_mock]
+        cv_bytes = b"%PDF-test"
+        deps.object_storage.get_user_cv.return_value = cv_bytes
+        deps.repository.get_cv_text_artifact.return_value = CVTextArtifact(
+            cv_text="# CV",
+            source_sha256=hashlib.sha256(cv_bytes).hexdigest(),
+        )
         deps.pair_mode = "cartesian"
         deps.retrieval_ratio = 0.5
         deps.retrieval_min_k = 1
@@ -437,6 +469,7 @@ class TestJobDescriptionsStageAccounting:
         state = new_pair_state(
             cycle_id="c3",
             username="candidate1",
+            cv_text="# CV",
             job=posting.model_dump(mode="json"),
         )
 

@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 from time import perf_counter
 
-from pydantic_ai import Agent, BinaryContent, models
+from pydantic_ai import Agent, models
 
 from models.collection_service import JobPosting
 from models.fit_assessment import FitAssessment
@@ -43,21 +43,28 @@ class FitAssessmentAgent:
             output_type=FitAssessment,
         )
         self._prompt_template = _PROMPT_TEMPLATE_PATH.read_text(encoding="utf-8")
+        prefix, cv_marker, remainder = self._prompt_template.partition("{cv_text}")
+        between, job_marker, suffix = remainder.partition("{job_posting}")
+        if not cv_marker or not job_marker:
+            raise ValueError("Fit prompt must contain {cv_text} before {job_posting}")
+        self._prompt_prefix = prefix
+        self._prompt_between = between
+        self._prompt_suffix = suffix
 
     async def assess(
         self,
         user_profile: UserProfile,
-        cv: Path | bytes,
+        cv_text: str,
         job: JobPosting,
     ) -> FitAssessment:
-        """Assess fit for *job* using *user_profile* and CV (*cv* as path or PDF bytes)."""
-        assessment, _, _ = await self.assess_with_usage(user_profile, cv, job)
+        """Assess fit for *job* using *user_profile* and a CV text rendering."""
+        assessment, _, _ = await self.assess_with_usage(user_profile, cv_text, job)
         return assessment
 
     async def assess_with_usage(
         self,
         user_profile: UserProfile,
-        cv: Path | bytes,
+        cv_text: str,
         job: JobPosting,
     ) -> tuple[FitAssessment, int, int]:
         """Assess fit and return ``(assessment, input_tokens, output_tokens)``.
@@ -65,15 +72,16 @@ class FitAssessmentAgent:
         Token counts stay off :class:`FitAssessment` so they are not persisted
         to Mongo or OpenSearch.
         """
-        prompt = self._build_assessment_prompt(user_profile, job)
-        user_content: list[str | BinaryContent] = [
-            prompt,
-            self._cv_content(cv),
+        prompt_prefix, job_suffix = self._build_assessment_prompt(user_profile, job)
+        user_content = [
+            prompt_prefix,
+            cv_text,
+            job_suffix,
         ]
 
         start = perf_counter()
         result = await self.agent.run(user_content)
-        usage = result.usage()
+        usage = result.usage
         await record_agent_usage(
             agent_name="fit_assessment",
             model_name=self.model.model_name,
@@ -86,21 +94,16 @@ class FitAssessmentAgent:
             int(usage.output_tokens or 0),
         )
 
-    def _build_assessment_prompt(self, user_profile: UserProfile, job: JobPosting) -> str:
-        """Construct the prompt string by combining candidate profile JSON and job posting payload."""
+    def _build_assessment_prompt(
+        self, user_profile: UserProfile, job: JobPosting
+    ) -> tuple[str, str]:
+        """Build a stable candidate prefix and variable job suffix."""
         profile_json = user_profile.model_dump_json(indent=2)
         job_payload = json.dumps(
             job.model_dump(mode="json", include=set(_JOB_FIELDS)),
             indent=2,
         )
-        return self._prompt_template.format(
-            user_profile=profile_json,
-            job_posting=job_payload,
+        return (
+            self._prompt_prefix.replace("{user_profile}", profile_json),
+            f"{self._prompt_between}{job_payload}{self._prompt_suffix}",
         )
-
-    @staticmethod
-    def _cv_content(cv: Path | bytes) -> BinaryContent:
-        """Wrap CV file path or byte buffer into a PydanticAI BinaryContent object."""
-        if isinstance(cv, Path):
-            return BinaryContent.from_path(cv)
-        return BinaryContent(data=cv, media_type="application/pdf")

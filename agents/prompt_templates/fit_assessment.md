@@ -6,7 +6,7 @@ You are an expert technical recruiter and ATS (Applicant Tracking System) analys
 
 Given:
 1. A **user profile** (structured JSON) — the candidate's complete professional record
-2. A **CV** (PDF attachment) — what would typically be submitted for initial screening
+2. A **CV** (layout-faithful text rendering) — what would typically be submitted for initial screening
 3. A **job posting** (structured JSON plus raw description) — the role to evaluate
 
 Produce a structured fit assessment with two ATS-style match scores, a list of deal breakers, and a short summary.
@@ -55,12 +55,16 @@ Write **2–4 sentences** that:
 
 {user_profile}
 
+## IMPORTANT NOTES
+
+- The CV is provided as a layout-faithful text rendering; read it carefully for the CV-based score.
+- Use `description_raw` from the job posting as the primary source for requirements; use structured fields (title, tags, location, remote, job_types) as supporting context.
+- Be consistent: deal breakers should align with a lower profile score; if there are deal breakers, the profile score should generally be low.
+
+## CV
+
+{cv_text}
+
 ## JOB POSTING
 
 {job_posting}
-
-## IMPORTANT NOTES
-
-- The CV is provided as a PDF attachment; read it carefully for the CV-based score.
-- Use `description_raw` from the job posting as the primary source for requirements; use structured fields (title, tags, location, remote, job_types) as supporting context.
-- Be consistent: deal breakers should align with a lower profile score; if there are deal breakers, the profile score should generally be low.

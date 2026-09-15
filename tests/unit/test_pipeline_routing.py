@@ -147,6 +147,7 @@ class TestStateFactories:
         assert state == {
             "cycle_id": "",
             "username": "alice",
+            "cv_text": "",
             "job": {"uid": "j1"},
             "screening": {},
             "assessment": None,

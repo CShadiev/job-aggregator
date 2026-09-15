@@ -29,13 +29,19 @@ The agent remains binary (keep/drop + confidence). Production routing
 
 ```text
 benchmarks/screening/
-  dataset/<DDMMYYYY>/   # git-tracked version (entries, manifest, CV — no profile)
+  dataset/<DDMMYYYY>/   # entries, manifest, cv.pdf, generated cv.txt — no profile
   reports/              # gitignored — generated per run
   metrics.py            # gating metrics (good/fitting recall, reduction, cost per 100)
 ```
 
 New exports should be **committed** as a new (or same-day overwritten) version
-directory under `dataset/`.
+directory under `dataset/`. The PDF and `cv.txt` for `05082026` stay gitignored;
+`baseline.json` is the committed regression floor.
+
+Isolated CV-text measurement (Phase 1c) uses
+`benchmarks/screening/prompts/text_isolated.md` via `--prompt-template` so recall
+movement can be attributed to the representation change before production
+reordering.
 
 ## Metrics
 
@@ -54,8 +60,9 @@ and `confidence ≥ t`.
   `(N - n_passed) / N`.
 - **LLM Calls Saved:** Fit-assessment calls avoided on this dataset.
 - **Cost per 100:** Screening's own USD spend from summed prompt/completion
-  tokens × static `DEFAULT_RATES`, normalized to 100 completed entries. Constant
-  across confidence cutoffs. Unknown models report $0.
+  tokens (pricing cached reads separately) × static `DEFAULT_RATES`, normalized
+  to 100 completed entries. Constant across confidence cutoffs. Unknown models
+  fail the run instead of publishing a misleading $0 cost.
 
 Precision / F1 / exact accuracy, the confusion matrix, and per-band accuracy
 remain in a diagnostics section. `None` predictions never pass (hurt recall,
@@ -64,7 +71,8 @@ increase reduction).
 ## Export dataset
 
 Requires Mongo + S3 credentials (same env as the app). Default version is today's
-**UTC** date as `DDMMYYYY`. Aborts if any band cannot meet its quota.
+**UTC** date as `DDMMYYYY`. Export also generates or reuses the PDF-hash-keyed
+`cv.txt` rendering. Aborts if any band cannot meet its quota.
 
 ```bash
 uv run python scripts/export_screening_benchmark_dataset.py
@@ -79,18 +87,26 @@ Then commit the new/updated `dataset/<DDMMYYYY>/` tree.
 ## Run benchmark
 
 No Mongo at run time — only model API keys. Pass `--dataset-version` when more
-than one version exists. Default model is `gpt-5.6-luna`.
+than one version exists. Harness default is `gpt-5.6-luna`; production screening
+is `glm-5.3-flash` (see [`reports/20260915_bakeoff.md`](reports/20260915_bakeoff.md)).
 
 ```bash
 uv run run-screening-benchmark --dataset-version 05082026
+# isolated CV-text substitution (job payload still precedes the CV):
+#   --prompt-template benchmarks/screening/prompts/text_isolated.md
 # smoke:
 #   --limit 2
 # optional:
 #   --model gpt-5.6-luna
+#   --model gpt-oss-120b
 #   --concurrency 10
+#   --assessment-cost-per-call 0.002135
 ```
 
 Writes `reports/<YYYYMMDD_HHMMSS>_<model>.md` and `.results.jsonl`. Headline
 metrics are cost per 100, reduction, LLM calls saved, naive / good / fitting
 recall. Exit code is 0 on successful completion even if metrics are poor;
 non-zero only for operational failures (or >20% per-entry agent errors).
+
+CI runs `benchmarks/screening/test_screening_smoke.py` against the committed
+`dataset/<version>/baseline.json` floors (Good Recall ≥ 0.900, Fitting Recall ≥ 0.800).
