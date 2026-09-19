@@ -12,6 +12,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from pymongo import AsyncMongoClient
 
 from agents.cover_letter_generation import CoverLetterGenerationAgent
+from agents.cv_text_extraction import CVTextExtractionAgent
+from agents.deduplication import DeduplicationAgent
+from agents.fit_assessment import FitAssessmentAgent
 from agents.model_factory import Model, ModelFactory
 from api.middleware.correlation import CorrelationIdMiddleware
 from api.middleware.metrics import PrometheusMiddleware
@@ -55,9 +58,19 @@ async def lifespan(_: FastAPI):
         log.warning("OpenSearch index bootstrap failed: {exc}", exc=str(exc))
     jobs_repository = MongoJobsRepository(mongo_client, search_service=search_service)
     await jobs_repository.ensure_cover_letter_task_indexes()
+    await jobs_repository.ensure_manual_job_task_indexes()
     object_storage = ObjectStorage()
     cover_letter_agent = CoverLetterGenerationAgent(
         ModelFactory.get_model(Model(config.COVER_LETTER_MODEL))
+    )
+    deduplication_agent = DeduplicationAgent(
+        ModelFactory.get_model(Model(config.DEDUPLICATION_MODEL))
+    )
+    fit_assessment_agent = FitAssessmentAgent(
+        ModelFactory.get_model(Model(config.FIT_ASSESSMENT_MODEL))
+    )
+    cv_text_extraction_agent = CVTextExtractionAgent(
+        ModelFactory.get_model(Model(config.CV_EXTRACTION_MODEL))
     )
     Path(config.TEMP_DIR).mkdir(parents=True, exist_ok=True)
     log.info("Dependencies initialized, application ready")
@@ -67,6 +80,9 @@ async def lifespan(_: FastAPI):
         "object_storage": object_storage,
         "search_service": search_service,
         "cover_letter_agent": cover_letter_agent,
+        "deduplication_agent": deduplication_agent,
+        "fit_assessment_agent": fit_assessment_agent,
+        "cv_text_extraction_agent": cv_text_extraction_agent,
     }
     log.info("FastAPI application shutting down")
     await search_service.close()

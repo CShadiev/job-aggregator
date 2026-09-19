@@ -25,6 +25,7 @@ from models.jobs_api import (
     SortOrder,
     UpdateJobStatusRequest,
 )
+from models.manual_job_task import ManualJobTask, ManualJobTaskStatus
 from models.pipeline import PipelineStage
 from models.screening import ScreeningRecord, ScreeningResult
 from models.users import CVTextArtifact, UserProfile
@@ -88,6 +89,7 @@ class MongoJobsRepository:
         self._screenings = self._db[config.MONGODB_SCREENINGS_COLLECTION]
         self._failed_tasks = self._db[config.MONGODB_FAILED_TASKS_COLLECTION]
         self._cover_letter_tasks = self._db[config.MONGODB_COVER_LETTER_TASKS_COLLECTION]
+        self._manual_job_tasks = self._db[config.MONGODB_MANUAL_JOB_TASKS_COLLECTION]
 
     async def ping(self) -> bool:
         """Verify MongoDB connectivity by executing an admin ping command."""
@@ -613,6 +615,107 @@ class MongoJobsRepository:
     async def ensure_cover_letter_task_indexes(self) -> None:
         """Create the index the manual cover letter generation claim relies on."""
         await self._cover_letter_tasks.create_index(
+            [("username", 1), ("job_uid", 1)],
+            unique=True,
+            name="username_job_uid_unique",
+        )
+
+    async def get_manual_job_task(self, username: str, job_uid: str) -> ManualJobTask | None:
+        """Fetch the manual job submission task for a candidate and job.
+
+        Args:
+            username: Candidate username.
+            job_uid: Client-generated job unique identifier.
+
+        Returns:
+            ManualJobTask if a submit was ever requested, otherwise None.
+        """
+        doc = await self._manual_job_tasks.find_one({"username": username, "job_uid": job_uid})
+        if doc is None:
+            return None
+        return ManualJobTask.model_validate(doc)
+
+    async def claim_pending_manual_job_task(
+        self,
+        username: str,
+        job_uid: str,
+        *,
+        ttl_seconds: int,
+    ) -> ManualJobTask | None:
+        """Atomically take ownership of manual job evaluation for a candidate and job.
+
+        A task is claimable when it does not exist, when it failed, or when it is
+        pending but past ``expires_at`` (the owning process died mid-run).
+
+        Args:
+            username: Candidate username.
+            job_uid: Client-generated job unique identifier.
+            ttl_seconds: Lifetime of the claim before another caller may take it over.
+
+        Returns:
+            The claimed pending task, or None if a live pending or complete task won the race.
+        """
+        now = datetime.now(UTC)
+        try:
+            doc = await self._manual_job_tasks.find_one_and_update(
+                {
+                    "username": username,
+                    "job_uid": job_uid,
+                    "$or": [
+                        {"status": ManualJobTaskStatus.FAILED.value},
+                        {
+                            "status": ManualJobTaskStatus.PENDING.value,
+                            "expires_at": {"$lt": now},
+                        },
+                    ],
+                },
+                {
+                    "$set": {
+                        "status": ManualJobTaskStatus.PENDING.value,
+                        "updated_at": now,
+                        "expires_at": now + timedelta(seconds=ttl_seconds),
+                        "error": None,
+                    },
+                    "$setOnInsert": {"created_at": now},
+                },
+                upsert=True,
+                return_document=ReturnDocument.AFTER,
+            )
+        except DuplicateKeyError:
+            # A live pending or complete task exists, so the filter matched nothing and the
+            # upsert collided with the unique (username, job_uid) index.
+            return None
+        return ManualJobTask.model_validate(doc)
+
+    async def complete_manual_job_task(self, username: str, job_uid: str) -> None:
+        """Mark the manual job submission task as complete and clear any previous error."""
+        await self._manual_job_tasks.update_one(
+            {"username": username, "job_uid": job_uid},
+            {
+                "$set": {
+                    "status": ManualJobTaskStatus.COMPLETE.value,
+                    "updated_at": datetime.now(UTC),
+                    "error": None,
+                }
+            },
+        )
+
+    async def fail_manual_job_task(self, username: str, job_uid: str, error: str) -> None:
+        """Mark the manual job submission task as failed, recording *error* for operators."""
+        await self._manual_job_tasks.update_one(
+            {"username": username, "job_uid": job_uid},
+            {
+                "$set": {
+                    "status": ManualJobTaskStatus.FAILED.value,
+                    "updated_at": datetime.now(UTC),
+                    "error": error,
+                }
+            },
+        )
+
+    async def ensure_manual_job_task_indexes(self) -> None:
+        """Create the index the manual job submission claim relies on."""
+        await self._manual_job_tasks.create_index(
             [("username", 1), ("job_uid", 1)],
             unique=True,
             name="username_job_uid_unique",

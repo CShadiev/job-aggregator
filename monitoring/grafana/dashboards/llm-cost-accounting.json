@@ -5,8 +5,8 @@
     "name": "job-agg-llm-cost",
     "namespace": "stacks-1518624",
     "uid": "07d3f127-560f-4dcb-9d6f-4917c0ca7a24",
-    "resourceVersion": "2098366336456126464",
-    "generation": 4,
+    "resourceVersion": "2100133226951942144",
+    "generation": 8,
     "creationTimestamp": "2026-09-08T19:16:40Z",
     "labels": {
       "grafana.app/deprecatedInternalID": "3229938139357184"
@@ -15,7 +15,7 @@
       "grafana.app/createdBy": "user:cfcguh9olqb5sd",
       "grafana.app/saved-from-ui": "Grafana Cloud",
       "grafana.app/updatedBy": "user:cfcguh9olqb5sd",
-      "grafana.app/updatedTimestamp": "2026-09-11T11:01:35Z"
+      "grafana.app/updatedTimestamp": "2026-09-16T08:02:34Z"
     }
   },
   "spec": {
@@ -380,8 +380,8 @@
         "kind": "Panel",
         "spec": {
           "id": 5,
-          "title": "Daily burn rate by agent (USD)",
-          "description": "Estimated USD per 24h.",
+          "title": "Daily burn by agent (USD)",
+          "description": "",
           "links": [],
           "data": {
             "kind": "QueryGroup",
@@ -398,8 +398,11 @@
                         "name": "grafanacloud-cshadiev-prom"
                       },
                       "spec": {
-                        "editorMode": "code",
-                        "expr": "sum by (agent) (rate(llm_cost_estimated_usd_total{agent=~\"$agent\", model=~\"$model\"}[24h])) * 60 * 60 * 24",
+                        "editorMode": "builder",
+                        "exemplar": false,
+                        "expr": "sum by(agent) (increase(llm_cost_estimated_usd_total{agent=~\"$agent\", model=~\"$model\"}[$__interval]))",
+                        "instant": false,
+                        "interval": "24h",
                         "legendFormat": "{{agent}}",
                         "range": true
                       }
@@ -410,29 +413,37 @@
                 }
               ],
               "transformations": [],
-              "queryOptions": {}
+              "queryOptions": {
+                "interval": "60s"
+              }
             }
           },
           "vizConfig": {
             "kind": "VizConfig",
-            "group": "timeseries",
+            "group": "barchart",
             "version": "13.3.0-34259522365",
             "spec": {
               "options": {
+                "barRadius": 0,
+                "barWidth": 0.5,
+                "fullHighlight": false,
+                "groupWidth": 0.7,
                 "legend": {
-                  "calcs": [
-                    "mean",
-                    "max"
-                  ],
-                  "displayMode": "table",
-                  "placement": "right",
+                  "calcs": [],
+                  "displayMode": "list",
+                  "placement": "bottom",
                   "showLegend": true
                 },
+                "orientation": "auto",
+                "showValue": "never",
+                "stacking": "normal",
                 "tooltip": {
                   "hideZeros": false,
                   "mode": "multi",
-                  "sort": "desc"
-                }
+                  "sort": "none"
+                },
+                "xTickLabelRotation": 0,
+                "xTickLabelSpacing": 0
               },
               "fieldConfig": {
                 "defaults": {
@@ -451,7 +462,7 @@
                     ]
                   },
                   "color": {
-                    "mode": "palette-classic"
+                    "mode": "continuous-cividis"
                   },
                   "custom": {
                     "axisBorderShow": false,
@@ -459,29 +470,16 @@
                     "axisColorMode": "text",
                     "axisLabel": "",
                     "axisPlacement": "auto",
-                    "barAlignment": 0,
-                    "barWidthFactor": 0.6,
-                    "drawStyle": "bars",
-                    "fillOpacity": 70,
+                    "fillOpacity": 80,
                     "gradientMode": "none",
                     "hideFrom": {
                       "legend": false,
                       "tooltip": false,
                       "viz": false
                     },
-                    "insertNulls": false,
-                    "lineInterpolation": "linear",
-                    "lineWidth": 0,
-                    "pointSize": 5,
+                    "lineWidth": 1,
                     "scaleDistribution": {
                       "type": "linear"
-                    },
-                    "showPoints": "auto",
-                    "showValues": false,
-                    "spanNulls": false,
-                    "stacking": {
-                      "group": "A",
-                      "mode": "normal"
                     },
                     "thresholdsStyle": {
                       "mode": "off"
@@ -911,7 +909,7 @@
     ],
     "timeSettings": {
       "timezone": "browser",
-      "from": "now-24h",
+      "from": "now-2d",
       "to": "now",
       "autoRefresh": "30s",
       "autoRefreshIntervals": [
@@ -993,6 +991,23 @@
           "multi": true,
           "includeAll": true,
           "allowCustomValue": true
+        }
+      },
+      {
+        "kind": "AdhocVariable",
+        "group": "prometheus",
+        "datasource": {
+          "name": "grafanacloud-cshadiev-prom"
+        },
+        "spec": {
+          "name": "Filters",
+          "baseFilters": [],
+          "filters": [],
+          "defaultKeys": [],
+          "hide": "dontHide",
+          "skipUrlSync": false,
+          "allowCustomValue": true,
+          "enableGroupBy": false
         }
       }
     ],

@@ -6,6 +6,9 @@ from fastapi import Depends, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from agents.cover_letter_generation import CoverLetterGenerationAgent
+from agents.cv_text_extraction import CVTextExtractionAgent
+from agents.deduplication import DeduplicationAgent
+from agents.fit_assessment import FitAssessmentAgent
 from auth_service import Auth0ClientWrapper
 from models.users import User
 from repository.mongo_jobs_repository import MongoJobsRepository
@@ -49,9 +52,27 @@ async def get_cover_letter_agent(request: Request) -> CoverLetterGenerationAgent
     return request.state.cover_letter_agent
 
 
+async def get_deduplication_agent(request: Request) -> DeduplicationAgent:
+    """Retrieve the DeduplicationAgent instance from the FastAPI application state."""
+    return request.state.deduplication_agent
+
+
+async def get_fit_assessment_agent(request: Request) -> FitAssessmentAgent:
+    """Retrieve the FitAssessmentAgent instance from the FastAPI application state."""
+    return request.state.fit_assessment_agent
+
+
+async def get_cv_text_extraction_agent(request: Request) -> CVTextExtractionAgent:
+    """Retrieve the CVTextExtractionAgent instance from the FastAPI application state."""
+    return request.state.cv_text_extraction_agent
+
+
 AppAuth0Client = Annotated[Auth0ClientWrapper, Depends(get_auth0_client)]
 AppCurrentUser = Annotated[User, Depends(get_current_user)]
 AppJobsRepository = Annotated[MongoJobsRepository, Depends(get_jobs_repository)]
 AppObjectStorage = Annotated[ObjectStorage, Depends(get_object_storage)]
 AppSearchService = Annotated[SearchService, Depends(get_search_service)]
 AppCoverLetterAgent = Annotated[CoverLetterGenerationAgent, Depends(get_cover_letter_agent)]
+AppDeduplicationAgent = Annotated[DeduplicationAgent, Depends(get_deduplication_agent)]
+AppFitAssessmentAgent = Annotated[FitAssessmentAgent, Depends(get_fit_assessment_agent)]
+AppCvTextExtractionAgent = Annotated[CVTextExtractionAgent, Depends(get_cv_text_extraction_agent)]

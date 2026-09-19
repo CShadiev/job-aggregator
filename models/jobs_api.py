@@ -1,12 +1,18 @@
 """Pydantic models and enums for the jobs HTTP API."""
 
+from datetime import datetime
 from enum import StrEnum
+from typing import Annotated
+from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import AfterValidator, BaseModel, Field, field_validator
 
 from models.collection_service import JobPosting
 from models.fit_assessment import FitAssessment
 from models.job_application import ApplicationStage, CoverLetterPdfKey, JobApplicationStatus
+from models.validators import ts_validator
+
+ts = Annotated[datetime, AfterValidator(ts_validator)]
 
 
 class JobFeedSortField(StrEnum):
@@ -75,4 +81,34 @@ class CoverLetterGenerationStatus(StrEnum):
 class CoverLetterGenerationStatusResponse(BaseModel):
     """Response of the start-or-poll cover letter generation endpoint."""
 
+    status: CoverLetterGenerationStatus
+
+
+class ManualJobSubmitRequest(BaseModel):
+    """Client-supplied structured job description for evaluate-this-JD."""
+
+    job_uid: UUID
+    title: str
+    company: str
+    description_raw: str
+    url: str
+    location: str = ""
+    remote: bool = False
+    tags: list[str] = Field(default_factory=list)
+    job_types: list[str] = Field(default_factory=list)
+    posted_at: ts | None = None
+
+    @field_validator("job_uid")
+    @classmethod
+    def job_uid_must_be_uuid4(cls, value: UUID) -> UUID:
+        """Reject non-v4 UUIDs so a client cannot overwrite a scraped ``{source}:{id}`` uid."""
+        if value.version != 4:
+            raise ValueError("job_uid must be a UUID4")
+        return value
+
+
+class ManualJobSubmitResponse(BaseModel):
+    """Response of the start-or-poll manual job submission endpoint."""
+
+    job_uid: str
     status: CoverLetterGenerationStatus

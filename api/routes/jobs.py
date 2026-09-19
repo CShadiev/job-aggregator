@@ -3,17 +3,22 @@
 from datetime import UTC, datetime
 from pathlib import Path
 
+from botocore.exceptions import ClientError
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Response
 
 from api.deps import (
     AppCoverLetterAgent,
     AppCurrentUser,
+    AppCvTextExtractionAgent,
+    AppDeduplicationAgent,
+    AppFitAssessmentAgent,
     AppJobsRepository,
     AppObjectStorage,
     AppSearchService,
 )
 from config import ConfigProvider
 from cover_letter_service import run_cover_letter_generation_task
+from job_submit_service import run_manual_job_submit_task
 from logger_provider import LoggerProvider
 from models.cover_letter_task import CoverLetterTask, CoverLetterTaskStatus
 from models.fit_assessment import CoverLetterContent
@@ -23,8 +28,11 @@ from models.jobs_api import (
     CoverLetterGenerationStatusResponse,
     JobFeedItem,
     JobFeedQuery,
+    ManualJobSubmitRequest,
+    ManualJobSubmitResponse,
     UpdateJobStatusRequest,
 )
+from models.manual_job_task import ManualJobTask, ManualJobTaskStatus
 from tools.pdf_generator import generate_cover_letter
 
 router = APIRouter(prefix="/jobs", tags=["jobs"])
@@ -57,6 +65,73 @@ async def get_jobs(
             username=user.username,
         )
         return await jobs_repository.get_job_feed_items(request, user.username)
+
+
+@router.post("/submit", response_model=ManualJobSubmitResponse)
+async def submit_job(
+    request: ManualJobSubmitRequest,
+    background_tasks: BackgroundTasks,
+    user: AppCurrentUser,
+    jobs_repository: AppJobsRepository,
+    object_storage: AppObjectStorage,
+    deduplication_agent: AppDeduplicationAgent,
+    fit_assessment_agent: AppFitAssessmentAgent,
+    cv_text_extraction_agent: AppCvTextExtractionAgent,
+    cover_letter_agent: AppCoverLetterAgent,
+) -> ManualJobSubmitResponse:
+    """
+    Start evaluation of a client-supplied job, or report the status of a request already running.
+
+    The client generates a uuid4 ``job_uid`` and polls this endpoint with the same body
+    until it reports ``complete``.
+    """
+    username = user.username
+    job_uid = str(request.job_uid)
+    _log = log.bind(event="manual_job_submit_request", username=username, job_uid=job_uid)
+
+    existing = await jobs_repository.get_manual_job_task(username, job_uid)
+    reportable = _reportable_manual_job_status(existing)
+    if reportable is not None:
+        return ManualJobSubmitResponse(job_uid=job_uid, status=reportable)
+
+    assessment = await jobs_repository.get_assessment(username, job_uid)
+    if assessment is not None and await jobs_repository.get_application_cover_letter_key(
+        username, job_uid
+    ):
+        return ManualJobSubmitResponse(job_uid=job_uid, status=CoverLetterGenerationStatus.COMPLETE)
+
+    if await jobs_repository.get_user_profile(username) is None:
+        raise HTTPException(status_code=404, detail="User profile not found")
+    try:
+        object_storage.get_user_cv(username)
+    except ClientError as exc:
+        raise HTTPException(status_code=404, detail="User CV not found") from exc
+
+    claimed = await jobs_repository.claim_pending_manual_job_task(
+        username, job_uid, ttl_seconds=config.MANUAL_JOB_TASK_TTL_SECONDS
+    )
+    if claimed is None:
+        current = _reportable_manual_job_status(
+            await jobs_repository.get_manual_job_task(username, job_uid)
+        )
+        return ManualJobSubmitResponse(
+            job_uid=job_uid,
+            status=current or CoverLetterGenerationStatus.PENDING,
+        )
+
+    background_tasks.add_task(
+        run_manual_job_submit_task,
+        username=username,
+        request=request,
+        repository=jobs_repository,
+        object_storage=object_storage,
+        deduplication_agent=deduplication_agent,
+        fit_assessment_agent=fit_assessment_agent,
+        cv_text_extraction_agent=cv_text_extraction_agent,
+        cover_letter_agent=cover_letter_agent,
+    )
+    _log.info("Manual job evaluation scheduled")
+    return ManualJobSubmitResponse(job_uid=job_uid, status=CoverLetterGenerationStatus.PENDING)
 
 
 @router.patch("/{job_uid}/status")
@@ -117,6 +192,19 @@ def _reportable_status(task: CoverLetterTask | None) -> CoverLetterGenerationSta
     if task.status == CoverLetterTaskStatus.COMPLETE:
         return CoverLetterGenerationStatus.COMPLETE
     if task.status == CoverLetterTaskStatus.PENDING and task.expires_at > datetime.now(UTC):
+        return CoverLetterGenerationStatus.PENDING
+    return None
+
+
+def _reportable_manual_job_status(
+    task: ManualJobTask | None,
+) -> CoverLetterGenerationStatus | None:
+    """Map a stored submit task to the status to report, or None when it may be claimed again."""
+    if task is None:
+        return None
+    if task.status == ManualJobTaskStatus.COMPLETE:
+        return CoverLetterGenerationStatus.COMPLETE
+    if task.status == ManualJobTaskStatus.PENDING and task.expires_at > datetime.now(UTC):
         return CoverLetterGenerationStatus.PENDING
     return None
 

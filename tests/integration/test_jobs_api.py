@@ -28,3 +28,11 @@ def test_openapi_jobs_search_request_uses_job_feed_query():
     # PaginatedDataRequest[JobFeedQuery] inlines or refs the query model.
     dumped = str(ref) + str(schema["components"]["schemas"])
     assert "JobFeedQuery" in dumped or "q" in dumped
+
+
+def test_openapi_jobs_submit_is_a_post_endpoint():
+    """Verify OpenAPI exposes POST /jobs/submit with a job_uid field."""
+    schema = app.openapi()
+    assert "post" in schema["paths"]["/jobs/submit"]
+    dumped = str(schema["components"]["schemas"].get("ManualJobSubmitRequest", {}))
+    assert "job_uid" in dumped

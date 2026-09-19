@@ -11,6 +11,7 @@ from models.cover_letter_task import CoverLetterTaskStatus
 from models.fit_assessment import FitAssessment
 from models.generics import PaginatedDataRequest
 from models.jobs_api import JobFeedQuery
+from models.manual_job_task import ManualJobTaskStatus
 from models.users import CVTextArtifact
 from repository.mongo_jobs_repository import MongoJobsRepository
 from tests.datasets.cover_letter_sample import make_sample_user_profile
@@ -150,6 +151,79 @@ class TestCoverLetterTaskClaim:
 
         reclaimed = await repo.claim_pending_cover_letter_task(
             _USERNAME, "claim:expired", ttl_seconds=90
+        )
+        assert reclaimed is not None
+        assert reclaimed.expires_at > datetime.now(UTC)
+
+
+class TestManualJobTaskClaim:
+    """Tests for the manual job submission task claim against a live MongoDB test instance."""
+
+    @pytest.fixture(autouse=True)
+    async def clean_tasks(self, repo: MongoJobsRepository) -> AsyncGenerator[None]:
+        """Ensure the unique index exists and no task rows leak between tests."""
+        await repo.ensure_manual_job_task_indexes()
+        await repo._manual_job_tasks.delete_many({"username": _USERNAME})
+        yield
+        await repo._manual_job_tasks.delete_many({"username": _USERNAME})
+
+    async def test_claim_creates_a_pending_task(self, repo: MongoJobsRepository):
+        """A first claim inserts a pending task expiring after the requested TTL."""
+        before = datetime.now(UTC)
+        claimed = await repo.claim_pending_manual_job_task(_USERNAME, "submit:new", ttl_seconds=180)
+
+        assert claimed is not None
+        assert claimed.status == ManualJobTaskStatus.PENDING
+        assert claimed.error is None
+        assert before < claimed.expires_at <= before + timedelta(seconds=181)
+
+    async def test_second_claim_loses_to_a_live_pending_task(self, repo: MongoJobsRepository):
+        """Only one caller may own evaluation while a claim is live."""
+        first = await repo.claim_pending_manual_job_task(_USERNAME, "submit:race", ttl_seconds=180)
+        second = await repo.claim_pending_manual_job_task(_USERNAME, "submit:race", ttl_seconds=180)
+
+        assert first is not None
+        assert second is None
+
+    async def test_complete_task_is_never_claimable(self, repo: MongoJobsRepository):
+        """A complete task blocks further claims for the same uid."""
+        await repo.claim_pending_manual_job_task(_USERNAME, "submit:done", ttl_seconds=180)
+        await repo.complete_manual_job_task(_USERNAME, "submit:done")
+
+        assert (
+            await repo.claim_pending_manual_job_task(_USERNAME, "submit:done", ttl_seconds=180)
+            is None
+        )
+        task = await repo.get_manual_job_task(_USERNAME, "submit:done")
+        assert task is not None
+        assert task.status == ManualJobTaskStatus.COMPLETE
+
+    async def test_failed_task_is_claimable_again(self, repo: MongoJobsRepository):
+        """A failure retries on the next request and the recorded error is cleared."""
+        await repo.claim_pending_manual_job_task(_USERNAME, "submit:failed", ttl_seconds=180)
+        await repo.fail_manual_job_task(_USERNAME, "submit:failed", error="llm unavailable")
+
+        failed = await repo.get_manual_job_task(_USERNAME, "submit:failed")
+        assert failed is not None
+        assert failed.status == ManualJobTaskStatus.FAILED
+        assert failed.error == "llm unavailable"
+
+        reclaimed = await repo.claim_pending_manual_job_task(
+            _USERNAME, "submit:failed", ttl_seconds=180
+        )
+        assert reclaimed is not None
+        assert reclaimed.status == ManualJobTaskStatus.PENDING
+        assert reclaimed.error is None
+
+    async def test_expired_pending_task_is_claimable_again(self, repo: MongoJobsRepository):
+        """A pending claim whose owner died is taken over once it expires."""
+        expired = await repo.claim_pending_manual_job_task(
+            _USERNAME, "submit:expired", ttl_seconds=-1
+        )
+        assert expired is not None
+
+        reclaimed = await repo.claim_pending_manual_job_task(
+            _USERNAME, "submit:expired", ttl_seconds=180
         )
         assert reclaimed is not None
         assert reclaimed.expires_at > datetime.now(UTC)
