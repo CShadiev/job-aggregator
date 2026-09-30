@@ -1,10 +1,11 @@
 """HTTP endpoints for job feed search, application status updates, and cover letter retrieval."""
 
+from collections.abc import Awaitable, Callable
 from datetime import UTC, datetime
 from pathlib import Path
 
 from botocore.exceptions import ClientError
-from fastapi import APIRouter, BackgroundTasks, HTTPException, Response
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Response, status
 
 from api.deps import (
     AppCoverLetterAgent,
@@ -18,6 +19,12 @@ from api.deps import (
 )
 from config import ConfigProvider
 from cover_letter_service import run_cover_letter_generation_task
+from demo import (
+    DAILY_COVER_LETTER_LIMIT_DETAIL,
+    DAILY_MANUAL_JOB_LIMIT_DETAIL,
+    configured_demo_username,
+    utc_calendar_day_bounds,
+)
 from job_submit_service import run_manual_job_submit_task
 from logger_provider import LoggerProvider
 from models.cover_letter_task import CoverLetterTask, CoverLetterTaskStatus
@@ -39,6 +46,22 @@ router = APIRouter(prefix="/jobs", tags=["jobs"])
 log = LoggerProvider.get_logger()
 config = ConfigProvider.get_config()
 _TEMP_DIR = Path(config.TEMP_DIR)
+
+
+async def _enforce_demo_daily_limit(
+    *,
+    username: str,
+    count: Callable[..., Awaitable[int]],
+    limit: int,
+    detail: str,
+) -> None:
+    """Refuse a new demo-user task when today's UTC count is already at *limit*."""
+    if configured_demo_username() != username:
+        return
+    start, end = utc_calendar_day_bounds()
+    used = await count(username, start=start, end=end)
+    if used >= limit:
+        raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail=detail)
 
 
 @router.post("/search", response_model=PaginatedDataResponse[JobFeedItem])
@@ -106,6 +129,14 @@ async def submit_job(
         object_storage.get_user_cv(username)
     except ClientError as exc:
         raise HTTPException(status_code=404, detail="User CV not found") from exc
+
+    if existing is None:
+        await _enforce_demo_daily_limit(
+            username=username,
+            count=jobs_repository.count_manual_job_tasks_created_between,
+            limit=config.DEMO_DAILY_MANUAL_JOB_LIMIT,
+            detail=DAILY_MANUAL_JOB_LIMIT_DETAIL,
+        )
 
     claimed = await jobs_repository.claim_pending_manual_job_task(
         username, job_uid, ttl_seconds=config.MANUAL_JOB_TASK_TTL_SECONDS
@@ -244,6 +275,14 @@ async def generate_job_cover_letter(
         raise HTTPException(status_code=404, detail="Job not found")
     if await jobs_repository.get_user_profile(username) is None:
         raise HTTPException(status_code=404, detail="User profile not found")
+
+    if existing is None:
+        await _enforce_demo_daily_limit(
+            username=username,
+            count=jobs_repository.count_cover_letter_tasks_created_between,
+            limit=config.DEMO_DAILY_COVER_LETTER_LIMIT,
+            detail=DAILY_COVER_LETTER_LIMIT_DETAIL,
+        )
 
     claimed = await jobs_repository.claim_pending_cover_letter_task(
         username, job_uid, ttl_seconds=config.COVER_LETTER_TASK_TTL_SECONDS

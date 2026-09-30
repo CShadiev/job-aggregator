@@ -14,6 +14,7 @@ from api.deps import (
     get_object_storage,
 )
 from cover_letter_service import run_cover_letter_generation_task
+from demo import DAILY_COVER_LETTER_LIMIT_DETAIL
 from main import app
 from models.cover_letter_task import CoverLetterTask, CoverLetterTaskStatus
 from models.fit_assessment import CoverLetterContent, CoverLetterSection
@@ -230,6 +231,76 @@ class TestGenerateCoverLetterTaskState:
 
         assert response.json() == {"status": "pending"}
         scheduled.assert_not_awaited()
+
+
+class TestDemoDailyCoverLetterCap:
+    """Shared demo account is capped on new letter generations, not on polls or retries."""
+
+    def test_eleventh_new_job_is_too_many_requests(self, client, scheduled, monkeypatch):
+        """A new uid is refused once ten letter tasks already exist for the UTC day."""
+        monkeypatch.setattr("api.routes.jobs.configured_demo_username", lambda: "demo")
+        app.dependency_overrides[get_current_user] = lambda: User(username="demo", sub="demo")
+        repository = _repository(task=None)
+        repository.count_cover_letter_tasks_created_between.return_value = 10
+        app.dependency_overrides[get_jobs_repository] = lambda: repository
+
+        response = client.post(_URL)
+
+        assert response.status_code == 429
+        assert response.json()["detail"] == DAILY_COVER_LETTER_LIMIT_DETAIL
+        repository.claim_pending_cover_letter_task.assert_not_awaited()
+        scheduled.assert_not_awaited()
+
+    def test_poll_does_not_consult_the_cap(self, client, scheduled, monkeypatch):
+        """Polling a live pending task must not consume a quota slot."""
+        monkeypatch.setattr("api.routes.jobs.configured_demo_username", lambda: "demo")
+        app.dependency_overrides[get_current_user] = lambda: User(username="demo", sub="demo")
+        repository = _repository(task=_task(CoverLetterTaskStatus.PENDING, expires_in_seconds=60))
+        app.dependency_overrides[get_jobs_repository] = lambda: repository
+
+        response = client.post(_URL)
+
+        assert response.json() == {"status": "pending"}
+        repository.count_cover_letter_tasks_created_between.assert_not_awaited()
+        scheduled.assert_not_awaited()
+
+    def test_existing_letter_does_not_consult_the_cap(self, client, scheduled, monkeypatch):
+        """A letter already on the application reports complete with no quota check."""
+        monkeypatch.setattr("api.routes.jobs.configured_demo_username", lambda: "demo")
+        app.dependency_overrides[get_current_user] = lambda: User(username="demo", sub="demo")
+        repository = _repository(cover_letter_key=_OBJECT_KEY)
+        app.dependency_overrides[get_jobs_repository] = lambda: repository
+
+        response = client.post(_URL)
+
+        assert response.json() == {"status": "complete"}
+        repository.count_cover_letter_tasks_created_between.assert_not_awaited()
+        scheduled.assert_not_awaited()
+
+    def test_failed_retry_does_not_consult_the_cap(self, client, scheduled, monkeypatch):
+        """Retrying a failed generation is the same task document."""
+        monkeypatch.setattr("api.routes.jobs.configured_demo_username", lambda: "demo")
+        app.dependency_overrides[get_current_user] = lambda: User(username="demo", sub="demo")
+        repository = _repository(task=_task(CoverLetterTaskStatus.FAILED, expires_in_seconds=-1))
+        app.dependency_overrides[get_jobs_repository] = lambda: repository
+
+        response = client.post(_URL)
+
+        assert response.json() == {"status": "pending"}
+        repository.count_cover_letter_tasks_created_between.assert_not_awaited()
+        scheduled.assert_awaited_once()
+
+    def test_other_user_is_not_capped(self, client, scheduled, monkeypatch):
+        """Non-demo users are never counted against the demo letter cap."""
+        monkeypatch.setattr("api.routes.jobs.configured_demo_username", lambda: "demo")
+        repository = _repository(task=None)
+        app.dependency_overrides[get_jobs_repository] = lambda: repository
+
+        response = client.post(_URL)
+
+        assert response.status_code == 200
+        repository.count_cover_letter_tasks_created_between.assert_not_awaited()
+        scheduled.assert_awaited_once()
 
 
 class TestOpenApiContract:

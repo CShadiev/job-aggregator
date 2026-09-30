@@ -135,6 +135,21 @@ class Config(BaseSettings):
     AUTH0_CLIENT_SECRET: str
     AUTH0_AUDIENCE: str
 
+    DEMO_USERNAME: str | None = None
+    DEMO_PASSWORD: str | None = None
+    DEMO_DAILY_MANUAL_JOB_LIMIT: int = Field(default=10, ge=0)
+    DEMO_DAILY_COVER_LETTER_LIMIT: int = Field(default=10, ge=0)
+
+    @field_validator("DEMO_USERNAME", "DEMO_PASSWORD", mode="before")
+    @classmethod
+    def blank_demo_credentials_to_none(cls, value: object) -> object:
+        """Treat missing or whitespace-only demo credentials as unset."""
+        if value is None:
+            return None
+        if isinstance(value, str) and value.strip() == "":
+            return None
+        return value
+
     FASTAPI_HOST: str = "0.0.0.0"
     FASTAPI_PORT: int = 8000
     FASTAPI_RELOAD: bool = False

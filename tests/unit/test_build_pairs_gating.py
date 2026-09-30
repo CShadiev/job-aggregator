@@ -92,6 +92,7 @@ def _deps(
     deps.retrieval_ratio = retrieval_ratio
     deps.retrieval_min_k = retrieval_min_k
     deps.retrieval_max_k = retrieval_max_k
+    deps.demo_username = None
     return deps
 
 
@@ -210,3 +211,32 @@ async def test_embed_jobs_hard_fails_and_records_task():
         await nodes["embed_jobs"](new_pipeline_state(cycle_id="c1", unique_jobs=[job]))
     task = deps.repository.store_failed_task.await_args.args[0]
     assert task.node == "embed_jobs"
+
+
+@pytest.mark.asyncio
+async def test_build_pairs_skips_configured_demo_user():
+    """The scheduled worker must not retrieve or extract CV text for the demo account."""
+    deps = _deps(pair_mode="topk", retrieval_ratio=0.5)
+    deps.demo_username = "demo"
+    deps.repository.get_user_profiles.return_value = [_profile("ada"), _profile("demo")]
+    deps.search_service.search_jobs.return_value = SearchHits(hits=[SearchHit(uid="j1", score=1.0)])
+    nodes = make_batch_nodes(deps)
+    jobs = [{"uid": "j1", "title": "A"}, {"uid": "j2", "title": "B"}]
+    result = await nodes["build_pairs"](new_pipeline_state(cycle_id="c1", unique_jobs=jobs))
+
+    assert {pair["username"] for pair in result["pairs"]} == {"ada"}
+    deps.object_storage.get_user_cv.assert_called_once_with("ada")
+    assert deps.search_service.search_jobs.await_count == 1
+    assert deps.embedding_client.embed_profile.await_args.args[0].username == "ada"
+
+
+@pytest.mark.asyncio
+async def test_build_pairs_includes_demo_when_username_unset():
+    """With demo hosting off, every profile is paired as before."""
+    deps = _deps(pair_mode="cartesian")
+    deps.demo_username = None
+    deps.repository.get_user_profiles.return_value = [_profile("ada"), _profile("demo")]
+    nodes = make_batch_nodes(deps)
+    jobs = [{"uid": "j1", "title": "A"}]
+    result = await nodes["build_pairs"](new_pipeline_state(cycle_id="c1", unique_jobs=jobs))
+    assert {pair["username"] for pair in result["pairs"]} == {"ada", "demo"}

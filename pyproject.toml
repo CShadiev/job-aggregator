@@ -37,6 +37,8 @@ run-pipeline = "orchestration.runner:main"
 run-retrieval-benchmark = "scripts.run_retrieval_benchmark:main"
 generate-retrieval-benchmark-dataset = "scripts.generate_retrieval_benchmark_dataset:main"
 export-retrieval-benchmark-dataset = "scripts.export_retrieval_benchmark_dataset:main"
+seed-demo-profile = "scripts.seed_demo_profile:main"
+seed-demo-pipeline = "scripts.seed_demo_pipeline:main"
 
 [dependency-groups]
 dev = [
@@ -99,6 +101,7 @@ known-first-party = [
     "config",
     "cover_letter_service",
     "cv_text_service",
+    "demo",
     "logger_provider",
     "models",
     "monitoring",

@@ -1,0 +1,391 @@
+{
+  "username": "demo",
+  "profile": {
+    "name": "Mira Halberg",
+    "title": "Senior Backend Engineer",
+    "location": "Berlin, Germany",
+    "contact": {
+      "email": "mira.halberg@example.com",
+      "linkedin": "https://linkedin.com/in/mira-halberg",
+      "website": "https://mira-halberg.example.com",
+      "telegram": null
+    }
+  },
+  "summary": {
+    "headline": "Backend engineer building production Python services and LLM-backed product features",
+    "description": "Senior backend engineer with nine years of experience designing APIs, data pipelines, and search-backed products. Recent work has been taking retrieval and agent workflows from prototype into monitored production systems: FastAPI services, hybrid search, structured LLM outputs, and cost controls so model spend stays predictable. Comfortable owning a slice of a product end to end, from schema design through deployment and on-call."
+  },
+  "keyDifferentiators": [
+    {
+      "title": "Production LLM features, not demos",
+      "description": "Shipped retrieval-augmented assistants and tool-using agents with evaluation harnesses, token accounting, and fallbacks when a provider is down."
+    },
+    {
+      "title": "Search and data modelling",
+      "description": "Designed hybrid OpenSearch/BM25 plus kNN retrieval and the MongoDB document model behind a high-volume job-matching feed."
+    },
+    {
+      "title": "Small-team ownership",
+      "description": "Used to being the person who can take a backend from design through CI, container packaging, and a production incident without a dedicated platform team."
+    }
+  ],
+  "certifications": [
+    {
+      "name": "AWS Certified Developer - Associate",
+      "issuer": "Amazon Web Services",
+      "date": "2024-06",
+      "score": "892/1000",
+      "details": null,
+      "link": null
+    },
+    {
+      "name": "Professional Scrum Master I",
+      "issuer": "Scrum.org",
+      "date": "2022-11",
+      "score": null,
+      "details": null,
+      "link": null
+    }
+  ],
+  "technicalSkills": {
+    "backend": [
+      {
+        "name": "Python",
+        "proficiency": 5,
+        "evidence": [
+          "Nine years of production asyncio services",
+          "FastAPI and Pydantic as the default HTTP stack"
+        ]
+      },
+      {
+        "name": "FastAPI",
+        "proficiency": 5,
+        "evidence": [
+          "Public authenticated APIs with background tasks and OpenAPI contracts"
+        ]
+      },
+      {
+        "name": "Pydantic",
+        "proficiency": 5,
+        "evidence": [
+          "Structured LLM outputs and request validation for a multi-agent pipeline"
+        ]
+      },
+      {
+        "name": "LangGraph",
+        "proficiency": 4,
+        "evidence": [
+          "Checkpointed batch plus fan-out pair graphs for candidate-job evaluation"
+        ]
+      }
+    ],
+    "frontend": [
+      {
+        "name": "TypeScript",
+        "proficiency": 3,
+        "evidence": [
+          "Internal React dashboards against the job-feed API"
+        ]
+      },
+      {
+        "name": "React",
+        "proficiency": 3,
+        "evidence": [
+          "Filterable job list and cover-letter modal for operators"
+        ]
+      }
+    ],
+    "infrastructure": [
+      {
+        "name": "Docker",
+        "proficiency": 4,
+        "evidence": [
+          "Multi-stage images for API and worker, non-root runtime"
+        ]
+      },
+      {
+        "name": "AWS",
+        "proficiency": 4,
+        "evidence": [
+          "ECS, S3, and IAM for object storage and batch workers"
+        ]
+      },
+      {
+        "name": "Kubernetes",
+        "proficiency": 3,
+        "evidence": [
+          "Deployed workers with resource limits and liveness probes at a previous employer"
+        ]
+      },
+      {
+        "name": "Terraform",
+        "proficiency": 3,
+        "evidence": [
+          "S3 bucket and IAM roles for application object storage"
+        ]
+      }
+    ],
+    "databases": [
+      {
+        "name": "PostgreSQL",
+        "proficiency": 4,
+        "evidence": [
+          "Schema design, indexing, and query tuning for billing events"
+        ]
+      },
+      {
+        "name": "MongoDB",
+        "proficiency": 4,
+        "evidence": [
+          "Document model for jobs, assessments, and LangGraph checkpoints"
+        ]
+      },
+      {
+        "name": "Redis",
+        "proficiency": 3,
+        "evidence": [
+          "Rate-limit counters and short-lived job locks"
+        ]
+      },
+      {
+        "name": "OpenSearch",
+        "proficiency": 4,
+        "evidence": [
+          "Hybrid BM25 and kNN job retrieval with per-user assessment indexes"
+        ]
+      }
+    ],
+    "aiMl": [
+      {
+        "name": "Retrieval-augmented generation",
+        "proficiency": 4,
+        "evidence": [
+          "Profile-to-job hybrid search feeding a screening gate before expensive assessment"
+        ]
+      },
+      {
+        "name": "PydanticAI",
+        "proficiency": 4,
+        "evidence": [
+          "Typed agents for screening, fit assessment, and cover-letter generation"
+        ]
+      },
+      {
+        "name": "Embeddings",
+        "proficiency": 4,
+        "evidence": [
+          "OpenAI text-embedding-3-small for jobs and candidate profiles"
+        ]
+      }
+    ]
+  },
+  "coreCompetencies": [
+    "API design",
+    "Distributed systems",
+    "Hybrid search",
+    "LLM cost gating",
+    "Observability",
+    "CI/CD",
+    "On-call ownership"
+  ],
+  "experience": [
+    {
+      "title": "Senior Backend Engineer",
+      "company": "Northwind Systems GmbH",
+      "startDate": "2022-03",
+      "endDate": "Present",
+      "responsibilities": [
+        "Owned the Python services that collect, deduplicate, and score job postings for an internal talent product used daily by recruiters.",
+        "Introduced a two-stage LLM gate (cheap screen, then full fit assessment) and hybrid OpenSearch retrieval so assessment spend scaled with match quality rather than corpus size.",
+        "Built authenticated FastAPI endpoints for the job feed, manual job submit, and cover-letter generation, including start-and-poll background tasks.",
+        "Instrumented agents with Prometheus token and estimated-cost metrics and traced pipeline cycles with OpenTelemetry."
+      ],
+      "companyDescription": "Berlin product studio building recruiting and talent-matching tools for European SMEs.",
+      "impact": "Cut full-assessment LLM volume on each collection cycle by retrieving a ratio of the batch instead of scoring every pair, while keeping high-fit roles in the recruiter feed.",
+      "stack": [
+        "Python",
+        "FastAPI",
+        "MongoDB",
+        "OpenSearch",
+        "LangGraph",
+        "PydanticAI",
+        "AWS",
+        "Docker"
+      ]
+    },
+    {
+      "title": "Backend Engineer",
+      "company": "Kestrel Labs",
+      "startDate": "2019-04",
+      "endDate": "2022-02",
+      "responsibilities": [
+        "Built event-driven document ingestion for logistics invoices: S3 landing, normalisation workers, and a PostgreSQL reporting schema.",
+        "Designed REST APIs consumed by a React operations console, with JWT auth and per-tenant isolation.",
+        "Operated the service in production, including on-call rotations and post-incident write-ups."
+      ],
+      "companyDescription": "Amsterdam B2B platform for freight documentation and billing.",
+      "impact": "Reduced median invoice-to-ledger time from overnight batch to under fifteen minutes for the core customer set.",
+      "stack": [
+        "Python",
+        "Django",
+        "PostgreSQL",
+        "RabbitMQ",
+        "AWS",
+        "Docker"
+      ]
+    },
+    {
+      "title": "Software Engineer",
+      "company": "Pebble Digital",
+      "startDate": "2016-09",
+      "endDate": "2019-03",
+      "responsibilities": [
+        "Implemented REST integrations with payment providers and internal billing for a multi-sided marketplace.",
+        "Added CI pipelines, containerised local development, and structured logging across three services."
+      ],
+      "companyDescription": "Warsaw marketplace connecting independent contractors with local SMEs.",
+      "impact": "Stabilised payout reconciliation that had been a weekly manual spreadsheet.",
+      "stack": [
+        "Python",
+        "Flask",
+        "PostgreSQL",
+        "Redis"
+      ]
+    }
+  ],
+  "education": [
+    {
+      "degree": "MSc Computer Science",
+      "institution": "TU Berlin",
+      "location": "Berlin, Germany",
+      "year": 2016,
+      "classification": "1.3",
+      "modules": [
+        "Distributed systems",
+        "Information retrieval",
+        "Machine learning"
+      ],
+      "focus": [
+        "Distributed systems",
+        "Information retrieval"
+      ]
+    },
+    {
+      "degree": "BSc Informatics",
+      "institution": "University of Warsaw",
+      "location": "Warsaw, Poland",
+      "year": 2014,
+      "classification": null,
+      "modules": null,
+      "focus": [
+        "Software engineering"
+      ]
+    }
+  ],
+  "careerGoals": {
+    "targetRoles": [
+      "Senior Backend Engineer",
+      "Staff Backend Engineer",
+      "AI Platform Engineer",
+      "Applied AI Engineer"
+    ],
+    "avoidRoles": [
+      "Pure frontend",
+      "People-manager-only roles with no technical ownership",
+      "On-site US roles requiring relocation"
+    ],
+    "locationPreferences": {
+      "primary": "Berlin",
+      "remote": "Remote-first or hybrid Berlin; open to fully remote in the EU and UK",
+      "relocation": "Not seeking relocation outside the EU"
+    },
+    "industryPreferences": {
+      "strongInterest": [
+        "Developer tools",
+        "HR tech and recruiting products",
+        "Applied AI platforms",
+        "B2B SaaS"
+      ],
+      "lessInterested": [
+        "Adtech",
+        "High-frequency trading",
+        "Gambling"
+      ]
+    },
+    "values": [
+      "Ownership",
+      "Measured quality over demo theatre",
+      "Small senior teams",
+      "Clear production accountability"
+    ],
+    "seekingInRole": [
+      "Production LLM or search work with real users",
+      "Backend depth (APIs, data, reliability)",
+      "Room to shape evals and cost controls, not only prompts"
+    ]
+  },
+  "workAuthorization": [
+    {
+      "status": "EU citizen",
+      "location": "Germany",
+      "sponsorshipRequired": false,
+      "sponsorshipNotes": "German residence; free movement in the EU/EEA.",
+      "partTimeImmediate": true,
+      "partTimeLimit": 20
+    },
+    {
+      "status": "Eligible to work without visa sponsorship",
+      "location": "European Union",
+      "sponsorshipRequired": false,
+      "sponsorshipNotes": null,
+      "partTimeImmediate": true,
+      "partTimeLimit": null
+    },
+    {
+      "status": "Open to remote contractor or employed-of-record arrangements",
+      "location": "United Kingdom",
+      "sponsorshipRequired": false,
+      "sponsorshipNotes": "Not seeking UK Skilled Worker sponsorship or relocation to the UK.",
+      "partTimeImmediate": true,
+      "partTimeLimit": null
+    }
+  ],
+  "roleFitSignals": {
+    "strongFit": [
+      "Python backend",
+      "FastAPI services",
+      "Applied LLM / RAG in production",
+      "Hybrid search (OpenSearch, Elasticsearch)",
+      "MongoDB or PostgreSQL data models",
+      "EU-remote or Berlin hybrid"
+    ],
+    "moderateFit": [
+      "TypeScript/React product polish",
+      "Platform/SRE-leaning backend",
+      "UK remote without sponsorship"
+    ],
+    "weakFit": [
+      "Java/Spring as the primary stack",
+      "Mobile-native",
+      "US on-site requiring H-1B or relocation",
+      "SAP / enterprise ERP"
+    ]
+  },
+  "languages": [
+    {
+      "language": "English",
+      "level": "C2",
+      "context": "Working language for the last nine years"
+    },
+    {
+      "language": "German",
+      "level": "B2",
+      "context": "Daily life in Berlin; professional meetings in German with notice"
+    },
+    {
+      "language": "Polish",
+      "level": "C1",
+      "context": "Family language; comfortable in a Warsaw office"
+    }
+  ]
+}

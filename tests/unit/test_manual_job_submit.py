@@ -22,6 +22,7 @@ from api.deps import (
     get_jobs_repository,
     get_object_storage,
 )
+from demo import DAILY_MANUAL_JOB_LIMIT_DETAIL
 from job_submit_service import (
     MANUAL_JOB_SOURCE,
     posting_from_submit_request,
@@ -498,3 +499,75 @@ class TestBackgroundSubmitTask:
         )
         repository.complete_manual_job_task.assert_not_awaited()
         repository.upsert_jobs.assert_not_awaited()
+
+
+class TestDemoDailySubmitCap:
+    """Shared demo account is capped on new manual submits, not on polls or retries."""
+
+    def test_eleventh_new_job_is_too_many_requests(self, client, scheduled, monkeypatch):
+        """A new uid is refused once ten tasks already exist for the UTC day."""
+        monkeypatch.setattr("api.routes.jobs.configured_demo_username", lambda: "demo")
+        app.dependency_overrides[get_current_user] = lambda: User(username="demo", sub="demo")
+        repository = _repository(task=None)
+        repository.count_manual_job_tasks_created_between.return_value = 10
+        app.dependency_overrides[get_jobs_repository] = lambda: repository
+
+        response = client.post(_URL, json=_payload())
+
+        assert response.status_code == 429
+        assert response.json()["detail"] == DAILY_MANUAL_JOB_LIMIT_DETAIL
+        repository.claim_pending_manual_job_task.assert_not_awaited()
+        scheduled.assert_not_awaited()
+
+    def test_ninth_new_job_is_still_scheduled(self, client, scheduled, monkeypatch):
+        """Nine existing tasks still leave a slot for a tenth new uid."""
+        monkeypatch.setattr("api.routes.jobs.configured_demo_username", lambda: "demo")
+        app.dependency_overrides[get_current_user] = lambda: User(username="demo", sub="demo")
+        repository = _repository(task=None)
+        repository.count_manual_job_tasks_created_between.return_value = 9
+        app.dependency_overrides[get_jobs_repository] = lambda: repository
+
+        response = client.post(_URL, json=_payload())
+
+        assert response.status_code == 200
+        repository.claim_pending_manual_job_task.assert_awaited_once()
+        scheduled.assert_awaited_once()
+        repository.count_cover_letter_tasks_created_between.assert_not_awaited()
+
+    def test_poll_does_not_consult_the_cap(self, client, scheduled, monkeypatch):
+        """Start-and-poll must keep working after the day's slots are full."""
+        monkeypatch.setattr("api.routes.jobs.configured_demo_username", lambda: "demo")
+        app.dependency_overrides[get_current_user] = lambda: User(username="demo", sub="demo")
+        repository = _repository(task=_task(ManualJobTaskStatus.PENDING, expires_in_seconds=60))
+        app.dependency_overrides[get_jobs_repository] = lambda: repository
+
+        response = client.post(_URL, json=_payload())
+
+        assert response.json() == {"job_uid": _JOB_UID, "status": "pending"}
+        repository.count_manual_job_tasks_created_between.assert_not_awaited()
+        scheduled.assert_not_awaited()
+
+    def test_failed_retry_does_not_consult_the_cap(self, client, scheduled, monkeypatch):
+        """A failed uid is the same submission; created_at does not move."""
+        monkeypatch.setattr("api.routes.jobs.configured_demo_username", lambda: "demo")
+        app.dependency_overrides[get_current_user] = lambda: User(username="demo", sub="demo")
+        repository = _repository(task=_task(ManualJobTaskStatus.FAILED, expires_in_seconds=-1))
+        app.dependency_overrides[get_jobs_repository] = lambda: repository
+
+        response = client.post(_URL, json=_payload())
+
+        assert response.json() == {"job_uid": _JOB_UID, "status": "pending"}
+        repository.count_manual_job_tasks_created_between.assert_not_awaited()
+        scheduled.assert_awaited_once()
+
+    def test_other_user_is_not_capped(self, client, scheduled, monkeypatch):
+        """The author's account is unchanged even when demo hosting is on."""
+        monkeypatch.setattr("api.routes.jobs.configured_demo_username", lambda: "demo")
+        repository = _repository(task=None)
+        app.dependency_overrides[get_jobs_repository] = lambda: repository
+
+        response = client.post(_URL, json=_payload())
+
+        assert response.status_code == 200
+        repository.count_manual_job_tasks_created_between.assert_not_awaited()
+        scheduled.assert_awaited_once()

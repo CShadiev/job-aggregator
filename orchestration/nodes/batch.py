@@ -1,6 +1,5 @@
 """Batch spine nodes: collect → normalize → dedupe → persist → build pairs → finalize."""
 
-from math import ceil
 from typing import Any
 from uuid import uuid4
 
@@ -12,14 +11,15 @@ from models.collection_service import JobPosting
 from models.failed_tasks import FailedTask
 from monitoring.metrics import instrument_nodes, record_job_stage
 from orchestration.deps import PipelineDeps
+from orchestration.retrieval import retrieval_size, retrieve_topk_pairs
 from orchestration.state import (
     PipelineState,
     build_pair_list,
     cleared_batch_state,
     new_pair_state,
 )
-from search.models import IndexedJob, SearchFilters
-from search.text import flatten_profile, job_embedding_text
+from search.models import IndexedJob
+from search.text import job_embedding_text
 
 log = LoggerProvider.get_logger()
 
@@ -197,6 +197,17 @@ def make_batch_nodes(deps: PipelineDeps) -> dict[str, Any]:
         unique_jobs = state["unique_jobs"]
         try:
             profiles = await repository.get_user_profiles()
+            raw_demo = deps.demo_username
+            demo_username = raw_demo if isinstance(raw_demo, str) and raw_demo else None
+            if demo_username:
+                skipped = [p.username for p in profiles if p.username == demo_username]
+                profiles = [p for p in profiles if p.username != demo_username]
+                if skipped:
+                    log.info(
+                        "Excluding demo user from scheduled pair build",
+                        event="pipeline_build_pairs_skip_demo",
+                        username=demo_username,
+                    )
             usernames = [p.username for p in profiles]
             cv_text_by_username = {
                 profile.username: (
@@ -209,14 +220,21 @@ def make_batch_nodes(deps: PipelineDeps) -> dict[str, Any]:
                 ).cv_text
                 for profile in profiles
             }
-            retrieval_k = _retrieval_size(len(unique_jobs))
+            k = retrieval_size(
+                len(unique_jobs),
+                ratio=retrieval_ratio,
+                min_k=retrieval_min_k,
+                max_k=retrieval_max_k,
+            )
             if pair_mode == "cartesian":
                 pairs = build_pair_list(usernames, unique_jobs)
             else:
-                pairs = await _retrieve_topk_pairs(
+                pairs = await retrieve_topk_pairs(
                     unique_jobs=unique_jobs,
                     profiles=profiles,
-                    k=retrieval_k,
+                    k=k,
+                    embedding_client=embedding_client,
+                    search_service=search_service,
                 )
             for pair in pairs:
                 pair["cv_text"] = cv_text_by_username[pair["username"]]
@@ -231,7 +249,7 @@ def make_batch_nodes(deps: PipelineDeps) -> dict[str, Any]:
                 n_pairs=n_pairs,
                 n_jobs=n_jobs,
                 n_users=n_users,
-                k=retrieval_k,
+                k=k,
                 ratio=retrieval_ratio,
                 mode=pair_mode,
                 llm_calls_saved=llm_calls_saved,
@@ -259,38 +277,6 @@ def make_batch_nodes(deps: PipelineDeps) -> dict[str, Any]:
             )
             raise
         return {"pairs": pairs}
-
-    def _retrieval_size(n_jobs: int) -> int:
-        """Scale the top-K cutoff to a share of the current batch, clamped to the configured bounds."""
-        return min(max(ceil(n_jobs * retrieval_ratio), retrieval_min_k), retrieval_max_k)
-
-    async def _retrieve_topk_pairs(
-        *,
-        unique_jobs: list[dict[str, Any]],
-        profiles: list,
-        k: int,
-    ) -> list[dict[str, Any]]:
-        if not unique_jobs or not profiles:
-            return []
-        jobs_by_uid = {job["uid"]: job for job in unique_jobs}
-        uids = list(jobs_by_uid)
-        pairs: list[dict[str, Any]] = []
-        for profile in profiles:
-            query_text = flatten_profile(profile)
-            query_vector = await embedding_client.embed_profile(profile)
-            hits = await search_service.search_jobs(
-                query_text=query_text,
-                query_vector=query_vector,
-                filters=SearchFilters(uids=uids),
-                mode="hybrid",
-                size=k,
-            )
-            for hit in hits.hits:
-                job = jobs_by_uid.get(hit.uid)
-                if job is None:
-                    continue
-                pairs.append({"username": profile.username, "job_uid": job["uid"], "job": job})
-        return pairs
 
     def fanout(state: PipelineState) -> list[Send] | str:
         pairs = state["pairs"]

@@ -387,6 +387,18 @@ class MongoJobsRepository:
         if result.matched_count == 0:
             raise ValueError(f"User profile not found: {username}")
 
+    async def upsert_user_profile(self, profile: UserProfile) -> None:
+        """Insert or update prompt-facing profile fields without unsetting derived CV text.
+
+        Uses ``$set`` of ``UserProfile.model_dump()`` so ``cv_text`` and
+        ``cv_source_sha256`` on an existing document are left in place.
+        """
+        await self._user_profiles.update_one(
+            {"username": profile.username},
+            {"$set": profile.model_dump()},
+            upsert=True,
+        )
+
     async def store_processed_jobs(self, postings: Sequence[JobPosting]) -> None:
         """Insert processed job postings into the jobs collection.
 
@@ -410,6 +422,28 @@ class MongoJobsRepository:
         if doc is None:
             return None
         return JobPosting.model_validate(doc)
+
+    async def get_recent_jobs(
+        self,
+        *,
+        limit: int,
+        exclude_source: str = "manual",
+    ) -> list[JobPosting]:
+        """Return the newest stored jobs by ``collected_at``, excluding *exclude_source*.
+
+        Args:
+            limit: Maximum number of postings to return.
+            exclude_source: Job origin to omit (manual submits are not in the
+                OpenSearch jobs index).
+        """
+        if limit < 1:
+            return []
+        cursor = (
+            self._jobs.find({"source": {"$ne": exclude_source}})
+            .sort("collected_at", -1)
+            .limit(limit)
+        )
+        return [JobPosting.model_validate(doc) async for doc in cursor]
 
     async def iter_jobs(self) -> AsyncIterator[JobPosting]:
         """Asynchronously iterate over all job postings in the jobs collection."""
@@ -719,6 +753,36 @@ class MongoJobsRepository:
             [("username", 1), ("job_uid", 1)],
             unique=True,
             name="username_job_uid_unique",
+        )
+
+    async def count_manual_job_tasks_created_between(
+        self,
+        username: str,
+        *,
+        start: datetime,
+        end: datetime,
+    ) -> int:
+        """Count manual job tasks for *username* whose ``created_at`` is in ``[start, end)``."""
+        return await self._manual_job_tasks.count_documents(
+            {
+                "username": username,
+                "created_at": {"$gte": start, "$lt": end},
+            }
+        )
+
+    async def count_cover_letter_tasks_created_between(
+        self,
+        username: str,
+        *,
+        start: datetime,
+        end: datetime,
+    ) -> int:
+        """Count cover-letter tasks for *username* whose ``created_at`` is in ``[start, end)``."""
+        return await self._cover_letter_tasks.count_documents(
+            {
+                "username": username,
+                "created_at": {"$gte": start, "$lt": end},
+            }
         )
 
     async def ensure_pipeline_indexes(self) -> None:

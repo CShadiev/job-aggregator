@@ -45,6 +45,7 @@ class PipelineDeps:
     retrieval_ratio: float
     retrieval_min_k: int
     retrieval_max_k: int
+    demo_username: str | None = None
 
 
 def build_collectors(client_session: ClientSession, config: Config) -> list:
@@ -134,4 +135,5 @@ async def build_deps(
         retrieval_ratio=cfg.PIPELINE_RETRIEVAL_RATIO,
         retrieval_min_k=cfg.PIPELINE_RETRIEVAL_MIN_K,
         retrieval_max_k=cfg.PIPELINE_RETRIEVAL_MAX_K,
+        demo_username=cfg.DEMO_USERNAME,
     )

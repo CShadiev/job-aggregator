@@ -285,3 +285,89 @@ class TestCvTextArtifact:
                 username,
                 CVTextArtifact(cv_text="# CV", source_sha256="c" * 64),
             )
+
+
+class TestUpsertUserProfile:
+    """Profile seed writes $set of prompt fields and leaves derived CV text in place."""
+
+    async def test_second_upsert_keeps_cv_text_artifact(self, repo: MongoJobsRepository):
+        """Re-seeding a profile must not delete assessments' neighbour field, the CV rendering."""
+        profile = make_sample_user_profile()
+        username = profile.username
+        await repo._user_profiles.delete_many({"username": username})
+        artifact = CVTextArtifact(cv_text="# Keep me", source_sha256="d" * 64)
+        try:
+            await repo.upsert_user_profile(profile)
+            await repo.store_cv_text_artifact(username, artifact)
+            updated = profile.model_copy(
+                update={"summary": profile.summary.model_copy(update={"headline": "Updated"})}
+            )
+            await repo.upsert_user_profile(updated)
+            loaded = await repo.get_cv_text_artifact(username)
+            assert loaded == artifact
+            prompt = await repo.get_user_profile(username)
+            assert prompt is not None
+            assert prompt.summary.headline == "Updated"
+        finally:
+            await repo._user_profiles.delete_many({"username": username})
+
+
+class TestRecentJobsAndDailyTaskCounts:
+    """Queries used by demo pipeline seed and demo daily caps."""
+
+    async def test_get_recent_jobs_excludes_manual_and_orders_by_collected_at(
+        self, repo: MongoJobsRepository
+    ):
+        """Newest collected non-manual jobs come first; manual submits are omitted."""
+        uids = ["recent-test:new", "recent-test:old", "recent-test:manual"]
+        await repo._jobs.delete_many({"uid": {"$in": uids}})
+        try:
+            await repo.store_processed_jobs(
+                [
+                    make_job_posting(
+                        uid="recent-test:old",
+                        source="linkedin",
+                        collected_at=datetime(2099, 1, 1, tzinfo=UTC),
+                    ),
+                    make_job_posting(
+                        uid="recent-test:new",
+                        source="arbeitnow",
+                        collected_at=datetime(2099, 1, 2, tzinfo=UTC),
+                    ),
+                    make_job_posting(
+                        uid="recent-test:manual",
+                        source="manual",
+                        collected_at=datetime(2099, 1, 3, tzinfo=UTC),
+                    ),
+                ]
+            )
+            recent = await repo.get_recent_jobs(limit=2, exclude_source="manual")
+            assert [job.uid for job in recent] == ["recent-test:new", "recent-test:old"]
+        finally:
+            await repo._jobs.delete_many({"uid": {"$in": uids}})
+
+    async def test_count_manual_job_tasks_created_between_is_day_window(
+        self, repo: MongoJobsRepository
+    ):
+        """Only tasks whose created_at falls in the half-open window are counted."""
+        username = "demo_count_user"
+        await repo.ensure_manual_job_task_indexes()
+        await repo._manual_job_tasks.delete_many({"username": username})
+        try:
+            await repo.claim_pending_manual_job_task(username, "job-a", ttl_seconds=180)
+            today = datetime.now(UTC)
+            start = datetime(today.year, today.month, today.day, tzinfo=UTC)
+            end = start + timedelta(days=1)
+            assert (
+                await repo.count_manual_job_tasks_created_between(username, start=start, end=end)
+                == 1
+            )
+            yesterday_start = start - timedelta(days=1)
+            assert (
+                await repo.count_manual_job_tasks_created_between(
+                    username, start=yesterday_start, end=start
+                )
+                == 0
+            )
+        finally:
+            await repo._manual_job_tasks.delete_many({"username": username})
