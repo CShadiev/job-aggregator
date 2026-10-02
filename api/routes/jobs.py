@@ -22,7 +22,9 @@ from cover_letter_service import run_cover_letter_generation_task
 from demo import (
     DAILY_COVER_LETTER_LIMIT_DETAIL,
     DAILY_MANUAL_JOB_LIMIT_DETAIL,
+    DEMO_MANUAL_JOB_URL_REJECTED,
     configured_demo_username,
+    is_allowed_demo_job_url,
     utc_calendar_day_bounds,
 )
 from job_submit_service import run_manual_job_submit_task
@@ -62,6 +64,17 @@ async def _enforce_demo_daily_limit(
     used = await count(username, start=start, end=end)
     if used >= limit:
         raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail=detail)
+
+
+def _enforce_demo_manual_job_url(username: str, url: str) -> None:
+    """Refuse a demo submit whose posting URL is not an allowlisted job board."""
+    if configured_demo_username() != username:
+        return
+    if not is_allowed_demo_job_url(url):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=DEMO_MANUAL_JOB_URL_REJECTED,
+        )
 
 
 @router.post("/search", response_model=PaginatedDataResponse[JobFeedItem])
@@ -122,6 +135,8 @@ async def submit_job(
         username, job_uid
     ):
         return ManualJobSubmitResponse(job_uid=job_uid, status=CoverLetterGenerationStatus.COMPLETE)
+
+    _enforce_demo_manual_job_url(username, request.url)
 
     if await jobs_repository.get_user_profile(username) is None:
         raise HTTPException(status_code=404, detail="User profile not found")

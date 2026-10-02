@@ -22,7 +22,7 @@ from api.deps import (
     get_jobs_repository,
     get_object_storage,
 )
-from demo import DAILY_MANUAL_JOB_LIMIT_DETAIL
+from demo import DAILY_MANUAL_JOB_LIMIT_DETAIL, DEMO_MANUAL_JOB_URL_REJECTED
 from job_submit_service import (
     MANUAL_JOB_SOURCE,
     posting_from_submit_request,
@@ -44,6 +44,7 @@ _USERNAME = "cshadiev"
 _JOB_UID = str(uuid4())
 _OTHER_JOB_UID = str(uuid4())
 _URL = "/jobs/submit"
+_DEMO_JOB_URL = "https://www.linkedin.com/jobs/view/123"
 _OBJECT_KEY = f"job-aggregator/{_USERNAME}/cover_letters/{_JOB_UID}.json"
 _CV_DIGEST = "a" * 64
 
@@ -512,7 +513,7 @@ class TestDemoDailySubmitCap:
         repository.count_manual_job_tasks_created_between.return_value = 10
         app.dependency_overrides[get_jobs_repository] = lambda: repository
 
-        response = client.post(_URL, json=_payload())
+        response = client.post(_URL, json=_payload(url=_DEMO_JOB_URL))
 
         assert response.status_code == 429
         assert response.json()["detail"] == DAILY_MANUAL_JOB_LIMIT_DETAIL
@@ -527,7 +528,7 @@ class TestDemoDailySubmitCap:
         repository.count_manual_job_tasks_created_between.return_value = 9
         app.dependency_overrides[get_jobs_repository] = lambda: repository
 
-        response = client.post(_URL, json=_payload())
+        response = client.post(_URL, json=_payload(url=_DEMO_JOB_URL))
 
         assert response.status_code == 200
         repository.claim_pending_manual_job_task.assert_awaited_once()
@@ -541,7 +542,7 @@ class TestDemoDailySubmitCap:
         repository = _repository(task=_task(ManualJobTaskStatus.PENDING, expires_in_seconds=60))
         app.dependency_overrides[get_jobs_repository] = lambda: repository
 
-        response = client.post(_URL, json=_payload())
+        response = client.post(_URL, json=_payload(url=_DEMO_JOB_URL))
 
         assert response.json() == {"job_uid": _JOB_UID, "status": "pending"}
         repository.count_manual_job_tasks_created_between.assert_not_awaited()
@@ -554,7 +555,7 @@ class TestDemoDailySubmitCap:
         repository = _repository(task=_task(ManualJobTaskStatus.FAILED, expires_in_seconds=-1))
         app.dependency_overrides[get_jobs_repository] = lambda: repository
 
-        response = client.post(_URL, json=_payload())
+        response = client.post(_URL, json=_payload(url=_DEMO_JOB_URL))
 
         assert response.json() == {"job_uid": _JOB_UID, "status": "pending"}
         repository.count_manual_job_tasks_created_between.assert_not_awaited()
@@ -571,3 +572,77 @@ class TestDemoDailySubmitCap:
         assert response.status_code == 200
         repository.count_manual_job_tasks_created_between.assert_not_awaited()
         scheduled.assert_awaited_once()
+
+
+class TestDemoManualJobUrlAllowlist:
+    """Demo submits may only store https URLs on LinkedIn, Arbeitnow, or Indeed."""
+
+    def test_disallowed_url_is_rejected_before_claim(self, client, scheduled, monkeypatch):
+        """An arbitrary origin is refused so visitors are not sent to a planted link."""
+        monkeypatch.setattr("api.routes.jobs.configured_demo_username", lambda: "demo")
+        app.dependency_overrides[get_current_user] = lambda: User(username="demo", sub="demo")
+        repository = _repository(task=None)
+        app.dependency_overrides[get_jobs_repository] = lambda: repository
+
+        response = client.post(_URL, json=_payload(url="https://evil.example/phishing"))
+
+        assert response.status_code == 400
+        assert response.json()["detail"] == DEMO_MANUAL_JOB_URL_REJECTED
+        repository.claim_pending_manual_job_task.assert_not_awaited()
+        scheduled.assert_not_awaited()
+
+    def test_lookalike_host_is_rejected(self, client, scheduled, monkeypatch):
+        """``linkedin.com.evil.com`` is not treated as LinkedIn."""
+        monkeypatch.setattr("api.routes.jobs.configured_demo_username", lambda: "demo")
+        app.dependency_overrides[get_current_user] = lambda: User(username="demo", sub="demo")
+        repository = _repository(task=None)
+        app.dependency_overrides[get_jobs_repository] = lambda: repository
+
+        response = client.post(_URL, json=_payload(url="https://linkedin.com.evil.com/jobs/view/1"))
+
+        assert response.status_code == 400
+        repository.claim_pending_manual_job_task.assert_not_awaited()
+
+    @pytest.mark.parametrize(
+        "url",
+        [
+            "https://www.linkedin.com/jobs/view/123",
+            "https://www.arbeitnow.com/jobs/python-berlin",
+            "https://de.indeed.com/viewjob?jk=abc",
+        ],
+    )
+    def test_allowlisted_board_is_scheduled(self, client, scheduled, monkeypatch, url: str):
+        """The three collector-facing boards are accepted."""
+        monkeypatch.setattr("api.routes.jobs.configured_demo_username", lambda: "demo")
+        app.dependency_overrides[get_current_user] = lambda: User(username="demo", sub="demo")
+        repository = _repository(task=None)
+        repository.count_manual_job_tasks_created_between.return_value = 0
+        app.dependency_overrides[get_jobs_repository] = lambda: repository
+
+        response = client.post(_URL, json=_payload(url=url))
+
+        assert response.status_code == 200
+        scheduled.assert_awaited_once()
+
+    def test_other_user_may_still_submit_any_https_url(self, client, scheduled, monkeypatch):
+        """The allowlist is demo-only; the author's account is unchanged."""
+        monkeypatch.setattr("api.routes.jobs.configured_demo_username", lambda: "demo")
+        repository = _repository(task=None)
+        app.dependency_overrides[get_jobs_repository] = lambda: repository
+
+        response = client.post(_URL, json=_payload(url="https://example.com/jobs/1"))
+
+        assert response.status_code == 200
+        scheduled.assert_awaited_once()
+
+    def test_poll_is_not_blocked_by_the_url_check(self, client, scheduled, monkeypatch):
+        """A live pending task is reported even if the polled body repeats a stored URL."""
+        monkeypatch.setattr("api.routes.jobs.configured_demo_username", lambda: "demo")
+        app.dependency_overrides[get_current_user] = lambda: User(username="demo", sub="demo")
+        repository = _repository(task=_task(ManualJobTaskStatus.PENDING, expires_in_seconds=60))
+        app.dependency_overrides[get_jobs_repository] = lambda: repository
+
+        response = client.post(_URL, json=_payload(url="https://example.com/already-running"))
+
+        assert response.json() == {"job_uid": _JOB_UID, "status": "pending"}
+        scheduled.assert_not_awaited()
