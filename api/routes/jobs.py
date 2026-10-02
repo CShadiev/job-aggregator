@@ -203,7 +203,7 @@ async def get_cover_letter(
     json_file = _TEMP_DIR / "cover_letter.json"
     try:
         json_path = object_storage.get_coverletter_json(user.username, job_uid, str(json_file))
-        return CoverLetterContent.model_validate_json(Path(json_path).read_text())
+        return CoverLetterContent.model_validate_json(Path(json_path).read_text(encoding="utf-8"))
     finally:
         json_file.unlink(missing_ok=True)
 
@@ -219,7 +219,9 @@ async def get_cover_letter_pdf(
     pdf_file = _TEMP_DIR / "cover_letter.pdf"
     try:
         json_path = object_storage.get_coverletter_json(user.username, job_uid, str(json_file))
-        cover_letter_content = CoverLetterContent.model_validate_json(Path(json_path).read_text())
+        cover_letter_content = CoverLetterContent.model_validate_json(
+            Path(json_path).read_text(encoding="utf-8")
+        )
         generate_cover_letter(cover_letter_content, str(pdf_file))
         return Response(content=pdf_file.read_bytes(), media_type="application/pdf")
     finally:
@@ -333,7 +335,7 @@ async def update_cover_letter(
     """
     file_path = _TEMP_DIR / f"{job_uid}_cover_letter.json"
     try:
-        file_path.write_text(cover_letter_content.model_dump_json())
+        file_path.write_text(cover_letter_content.model_dump_json(), encoding="utf-8")
         object_storage.upload_coverletter_json(user.username, job_uid, str(file_path))
     finally:
         file_path.unlink(missing_ok=True)

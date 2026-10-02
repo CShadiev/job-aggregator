@@ -36,7 +36,7 @@ async def generate_and_persist_cover_letter(
         _log.info("Generating cover letter")
         content = await agent.generate(profile, job, assessment)
         file_path.parent.mkdir(parents=True, exist_ok=True)
-        file_path.write_text(content.model_dump_json(indent=2))
+        file_path.write_text(content.model_dump_json(indent=2), encoding="utf-8")
         object_key = object_storage.upload_coverletter_json(
             username=username,
             job_id=job.uid,
