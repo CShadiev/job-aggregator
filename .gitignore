@@ -35,3 +35,5 @@ frontend/
 **/backend.hcl
 
 .cursor/
+temp/
+tmp/
