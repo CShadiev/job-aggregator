@@ -70,6 +70,7 @@ async def test_run_demo_pipeline_loads_recent_non_manual_jobs_and_invokes_pairs(
     )
     deps.repository.get_user_profiles.assert_not_awaited()
     deps.collection_service.collect.assert_not_awaited()
+    assert retrieve.await_args is not None
     assert retrieve.await_args.kwargs["profiles"] == [profile]
     assert retrieve.await_args.kwargs["k"] == 1
     pair_graph.ainvoke.assert_awaited_once()
