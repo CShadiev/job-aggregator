@@ -7,15 +7,15 @@
 
 Status values: `Draft` (kickoff done, questions open) · `In deliberation` (some decisions recorded, questions remain) · `Ready for implementation` (no open questions, consistency pass done) · `Implemented` (shipped).
 
----
+***
 
 ## Problem
 
 The roadmap's assessment is that this project fails passes 1 and 2 of a reviewer's evaluation, not pass 3. Concretely, in this repository today:
 
-- `README.md` is reference documentation. A hero WebM is already attached as the first line, above the title, via a GitHub user-attachment; it still needs to move into the landing flow (Q5, amended 2026-10-05). There is no badge and no number anywhere above the fold. The only in-repo image is `docs/assets/llm-cost-accounting.png`.
-- The three eval harnesses are the strongest differentiator and are invisible from the README. `benchmarks/screening/README.md` and `benchmarks/fit_assessment/README.md` are linked once each, deep inside the agent sections (`README.md:130`, `README.md:143`); `benchmarks/retrieval/` is not linked at all.
-- The observability stack gets a dense metrics table (`README.md:194-208`) and no picture in the README, even though the LLM Cost & Token Accounting dashboard is the single most on-trend artifact in the repo. The still to embed is `docs/assets/llm-cost-accounting.png`.
+* `README.md` is reference documentation. A hero WebM is already attached as the first line, above the title, via a GitHub user-attachment; it still needs to move into the landing flow (Q5, amended 2026-10-05). There is no badge and no number anywhere above the fold. The only in-repo image is `docs/assets/llm-cost-accounting.png`.
+* The three eval harnesses are the strongest differentiator and are invisible from the README. `benchmarks/screening/README.md` and `benchmarks/fit_assessment/README.md` are linked once each, deep inside the agent sections (`README.md:130`, `README.md:143`); `benchmarks/retrieval/` is not linked at all.
+* The observability stack gets a dense metrics table (`README.md:194-208`) and no picture in the README, even though the LLM Cost & Token Accounting dashboard is the single most on-trend artifact in the repo. The still to embed is `docs/assets/llm-cost-accounting.png`.
 
 Pass 2 is a different shape than the roadmap assumed. A fully working instance has been running for weeks and updates from `main` almost as soon as commits land, so the reviewer-facing answer is a live demo rather than a local quick start (Q5, Q8). What is still missing is the README treating that instance as the product: the hero is attached but not yet placed in the landing flow, and there are no headline numbers next to it. The clip opens on **Sign in as demo** (Q10, amended 2026-10-05). A URL is secondary and must not offer the author's account or a password.
 
@@ -25,23 +25,23 @@ A second problem surfaced during investigation and is the reason this plan is la
 
 ### In scope
 
-- Restructure `README.md` into a landing page: hero asset, product pitch, headline numbers, badges. A live-instance URL may appear as a secondary link with no login promise (Q8, Q10). Reference material moves to `docs/architecture.md`.
-- Add an `Evaluation` section to `README.md` carrying real metric tables from the screening, fit-assessment and retrieval harnesses, each linking to a committed report.
-- Add `docs/evals.md`: the eval loop (export → run → change → re-run) as a **maintainer** loop, the concrete decisions the benchmarks drove, and a plain statement that datasets are private and results are public (Q3).
-- Embed the dashboard still already captured from Grafana Cloud, `docs/assets/llm-cost-accounting.png` (Q6, amended 2026-10-05). Do not re-record it as a loop.
-- Embed the hero WebM already on `README.md` (GitHub drag-and-drop user-attachment). Phase 4 repositions that element; do not re-upload or convert it to a GIF (Q5, Q7, amended 2026-10-05). A terminal recording of `uv run run-pipeline` stays optional and was not made.
-- Fix the factual defects that publishing these numbers would otherwise amplify: stale retrieval headline (Q2), benchmark READMEs vs. gitignore, fit-assessment/cover-letter `config.py` defaults still on `gpt-5-mini` while the live env runs luna (Q4), missing `.env.example` as operator documentation in `docs/architecture.md`.
-- Flip artifact policy: untrack eval datasets (including the currently committed retrieval corpora), commit all harness reports (Q3). Measure the composed retrieval+screening number and commit it (Q1). Rewrite the retrieval CI floor to assert that committed ranked-uid list against `baseline.json` instead of re-indexing the corpus (Q9).
+* Restructure `README.md` into a landing page: hero asset, product pitch, headline numbers, badges. A live-instance URL may appear as a secondary link with no login promise (Q8, Q10). Reference material moves to `docs/architecture.md`.
+* Add an `Evaluation` section to `README.md` carrying real metric tables from the screening, fit-assessment and retrieval harnesses, each linking to a committed report.
+* Add `docs/evals.md`: the eval loop (export → run → change → re-run) as a **maintainer** loop, the concrete decisions the benchmarks drove, and a plain statement that datasets are private and results are public (Q3).
+* Embed the dashboard still already captured from Grafana Cloud, `docs/assets/llm-cost-accounting.png` (Q6, amended 2026-10-05). Do not re-record it as a loop.
+* Embed the hero WebM already on `README.md` (GitHub drag-and-drop user-attachment). Phase 4 repositions that element; do not re-upload or convert it to a GIF (Q5, Q7, amended 2026-10-05). A terminal recording of `uv run run-pipeline` stays optional and was not made.
+* Fix the factual defects that publishing these numbers would otherwise amplify: stale retrieval headline (Q2), benchmark READMEs vs. gitignore, fit-assessment/cover-letter `config.py` defaults still on `gpt-5-mini` while the live env runs luna (Q4), missing `.env.example` as operator documentation in `docs/architecture.md`.
+* Flip artifact policy: untrack eval datasets (including the currently committed retrieval corpora), commit all harness reports (Q3). Measure the composed retrieval+screening number and commit it (Q1). Rewrite the retrieval CI floor to assert that committed ranked-uid list against `baseline.json` instead of re-indexing the corpus (Q9).
 
 ### Out of scope
 
-- Zero-credential local demo mode (roadmap 2), frontend feature work (roadmap 5), architecture case study as a standalone essay (roadmap 6 — `docs/architecture.md` is only the README split), CV tailoring (roadmap 8).
-- Building a new hosted demo. Demo access has since shipped in [`demo-access-implementation-plan.md`](demo-access-implementation-plan.md). The hero WebM already shows **Sign in as demo**; this plan does not change that flow (Q10, amended 2026-10-05).
-- A reviewer-facing quick start. Too many external dependencies; nobody will run this locally (Q8).
-- Improving retrieval, screening or fit-assessment *quality*. This plan publishes the numbers as they are; it does not tune the pipeline.
-- Changing which metrics are emitted or what the dashboards query. Restoring local Grafana provisioning is **not** in this plan (Q6); the broken `docker compose` mounts stay as they are.
-- Any change to `react-app/` — it is a separate repository (`git@github.com:cshadiev/job-aggregator-client`) and gitignored here. The hero is recorded from the running instance, not built in this repo.
-- Rewriting git history to purge already-committed retrieval corpora or `candidate.json` PII. Untracking going forward does not unpublish history.
+* Zero-credential local demo mode (roadmap 2), frontend feature work (roadmap 5), architecture case study as a standalone essay (roadmap 6 — `docs/architecture.md` is only the README split), CV tailoring (roadmap 8).
+* Building a new hosted demo. Demo access has since shipped in [`demo-access-implementation-plan.md`](demo-access-implementation-plan.md). The hero WebM already shows **Sign in as demo**; this plan does not change that flow (Q10, amended 2026-10-05).
+* A reviewer-facing quick start. Too many external dependencies; nobody will run this locally (Q8).
+* Improving retrieval, screening or fit-assessment *quality*. This plan publishes the numbers as they are; it does not tune the pipeline.
+* Changing which metrics are emitted or what the dashboards query. Restoring local Grafana provisioning is **not** in this plan (Q6); the broken `docker compose` mounts stay as they are.
+* Any change to `react-app/` — it is a separate repository (`git@github.com:cshadiev/job-aggregator-client`) and gitignored here. The hero is recorded from the running instance, not built in this repo.
+* Rewriting git history to purge already-committed retrieval corpora or `candidate.json` PII. Untracking going forward does not unpublish history.
 
 ## Codebase grounding
 
@@ -106,12 +106,12 @@ Optional second visual: a terminal recording of `uv run run-pipeline` (Q5). It w
 
 Structure:
 
-- One paragraph on why a gate benchmark is not a classifier benchmark: every harness reports *Reduction Rate* and *recall against gold bands*, because the question is "how much downstream spend did this remove, and what did it cost in good candidates", not "what is the F1".
-- One table per harness — screening, fit assessment, retrieval — at the production operating point, each linking to the committed report. Retrieval headlines K=150 (Q2). Models stated as `gpt-5.6-luna` because that is what the live env runs today (Q4); screening's glm bake-off belongs in `docs/evals.md` until the switch lands.
-- The measured composed retrieval+screening sentence from Phase 1b (Q1).
-- One line on the regression floor: CI asserts the committed ranked-uid list against `baseline.json` (Q9). "We measured it once" and "it cannot silently regress" remain different claims; the second one now runs on a public artifact instead of a private corpus.
-- A link to `docs/evals.md`.
-- No "run it yourself" for the LLM harnesses. Datasets are private (Q3).
+* One paragraph on why a gate benchmark is not a classifier benchmark: every harness reports *Reduction Rate* and *recall against gold bands*, because the question is "how much downstream spend did this remove, and what did it cost in good candidates", not "what is the F1".
+* One table per harness — screening, fit assessment, retrieval — at the production operating point, each linking to the committed report. Retrieval headlines K=150 (Q2). Models stated as `gpt-5.6-luna` because that is what the live env runs today (Q4); screening's glm bake-off belongs in `docs/evals.md` until the switch lands.
+* The measured composed retrieval+screening sentence from Phase 1b (Q1).
+* One line on the regression floor: CI asserts the committed ranked-uid list against `baseline.json` (Q9). "We measured it once" and "it cannot silently regress" remain different claims; the second one now runs on a public artifact instead of a private corpus.
+* A link to `docs/evals.md`.
+* No "run it yourself" for the LLM harnesses. Datasets are private (Q3).
 
 Each table must state its operating point explicitly (`t=0.0` for screening, `cv_ats_match_score >= 80` for fit assessment, `K=150` for retrieval) because all three harnesses also publish sweeps, and a number lifted out of a sweep without its threshold is meaningless.
 
@@ -127,9 +127,9 @@ Two-tier structure: a **benchmark** you run deliberately when changing a prompt 
 
 *What the benchmarks decided*, to confirm in prose rather than assert:
 
-- Live env still runs `gpt-5.6-luna` for screening, fit assessment and cover letters. The screening-gate bake-off selected `glm-5.3-flash` (luna-on-reordered packaging missed Fitting Recall 0.800); that switch is decided and not yet deployed. Fit-assessment/cover-letter defaults in `config.py` still say `gpt-5-mini` with no pending switch — those get aligned to luna.
-- Production screening ignores the confidence score. The sweep supports this directly: confidence clusters at mean 0.946 and cutoffs below 0.9 move nothing (`20260909_115647` sweep rows for t=0.5–0.8).
-- The pair gate moved from a fixed top-K to a ratio of the batch (`cb364f2`); the retrieval report is re-headlined to K=150 to match.
+* Live env still runs `gpt-5.6-luna` for screening, fit assessment and cover letters. The screening-gate bake-off selected `glm-5.3-flash` (luna-on-reordered packaging missed Fitting Recall 0.800); that switch is decided and not yet deployed. Fit-assessment/cover-letter defaults in `config.py` still say `gpt-5-mini` with no pending switch — those get aligned to luna.
+* Production screening ignores the confidence score. The sweep supports this directly: confidence clusters at mean 0.946 and cutoffs below 0.9 move nothing (`20260909_115647` sweep rows for t=0.5–0.8).
+* The pair gate moved from a fixed top-K to a ratio of the batch (`cb364f2`); the retrieval report is re-headlined to K=150 to match.
 
 Honest caveats (dataset is one candidate, gold labels are historical production assessments rather than independent human labels) live here, not in the README.
 
@@ -141,12 +141,12 @@ The still `docs/assets/llm-cost-accounting.png`, captured from Grafana Cloud aga
 
 In scope because publishing the numbers without them is the risk, not the documentation gap:
 
-- `.env.example` with every variable from `README.md:276-289` plus the optional tuning list at `README.md:291`, values blanked — lives next to the operator setup in `docs/architecture.md`, not as a quick-start promise.
-- `FIT_ASSESSMENT_MODEL` and `COVER_LETTER_MODEL` defaults in `config.py` aligned to `gpt-5.6-luna`. Leave `SCREENING_MODEL` at `glm-5.3-flash`. Docs that list defaults state the screening exception: config default is glm, live env still luna until the switch (Q4).
-- `benchmarks/screening/README.md` and `benchmarks/fit_assessment/README.md` — datasets private, reports public; fix the screening README claim that `reports/` is gitignored (it is not). Broken link `docs/planning/screening-agent.md` → `docs/planning/archive/`.
-- `.gitignore`: ignore `benchmarks/retrieval/dataset/*` except `baseline.json` (and `.gitkeep` if needed); stop ignoring `benchmarks/retrieval/reports/`. `git rm --cached` the retrieval corpora and `candidate.json`. History is left alone.
-- `scripts/run_retrieval_benchmark.py` headline `@20` → production K (Q2); emit ranked uids for Phase 1b (Q1, Q9).
-- CI: `.github/workflows/ci.yml` OpenSearch job keeps `tests/integration/test_search_service.py` and drops the corpus-backed retrieval smoke. The ranked-uid assertion runs in the unit-test job (Q9).
+* `.env.example` with every variable from `README.md:276-289` plus the optional tuning list at `README.md:291`, values blanked — lives next to the operator setup in `docs/architecture.md`, not as a quick-start promise.
+* `FIT_ASSESSMENT_MODEL` and `COVER_LETTER_MODEL` defaults in `config.py` aligned to `gpt-5.6-luna`. Leave `SCREENING_MODEL` at `glm-5.3-flash`. Docs that list defaults state the screening exception: config default is glm, live env still luna until the switch (Q4).
+* `benchmarks/screening/README.md` and `benchmarks/fit_assessment/README.md` — datasets private, reports public; fix the screening README claim that `reports/` is gitignored (it is not). Broken link `docs/planning/screening-agent.md` → `docs/planning/archive/`.
+* `.gitignore`: ignore `benchmarks/retrieval/dataset/*` except `baseline.json` (and `.gitkeep` if needed); stop ignoring `benchmarks/retrieval/reports/`. `git rm --cached` the retrieval corpora and `candidate.json`. History is left alone.
+* `scripts/run_retrieval_benchmark.py` headline `@20` → production K (Q2); emit ranked uids for Phase 1b (Q1, Q9).
+* CI: `.github/workflows/ci.yml` OpenSearch job keeps `tests/integration/test_search_service.py` and drops the corpus-backed retrieval smoke. The ranked-uid assertion runs in the unit-test job (Q9).
 
 ## Open questions
 
