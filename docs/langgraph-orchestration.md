@@ -207,9 +207,9 @@ Model names come from config (`SCREENING_MODEL`, `FIT_ASSESSMENT_MODEL`, `COVER_
 | `PIPELINE_PAIR_CONCURRENCY` | `10` | `max_concurrency` for pair fan-out |
 | `PIPELINE_SCHEDULE_SECONDS` | `43200` | Delay between cycles |
 | `DEDUPLICATION_MODEL` | `gpt-5.6-luna` | Deduplication agent model |
-| `SCREENING_MODEL` | `glm-5.3-flash` | Screening agent model |
-| `FIT_ASSESSMENT_MODEL` | `gpt-5-mini` | Fit assessment agent model |
-| `COVER_LETTER_MODEL` | `gpt-5-mini` | Cover letter agent model |
+| `SCREENING_MODEL` | `glm-5.3-flash` | Screening agent model. This default is the bake-off winner; the live environment still sets `gpt-5.6-luna` until that switch is deployed. |
+| `FIT_ASSESSMENT_MODEL` | `gpt-5.6-luna` | Fit assessment agent model |
+| `COVER_LETTER_MODEL` | `gpt-5.6-luna` | Cover letter agent model |
 | `COVER_LETTER_MIN_CV_SCORE` | `80` | Gate from assess → cover letter |
 | `MONGODB_LANGGRAPH_CHECKPOINT_COLLECTION` | `langgraph_checkpoints` | Checkpointer blobs |
 | `MONGODB_LANGGRAPH_WRITES_COLLECTION` | `langgraph_checkpoint_writes` | Checkpointer writes |

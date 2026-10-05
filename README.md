@@ -1,44 +1,33 @@
+# Job Aggregator
+
+Collects IT job postings, ranks them against a candidate CV, and drafts a cover letter for the roles worth applying to.
+
+[![CI](https://github.com/cshadiev/job-aggregator/actions/workflows/ci.yml/badge.svg)](https://github.com/cshadiev/job-aggregator/actions/workflows/ci.yml)
+[![GHCR](https://github.com/cshadiev/job-aggregator/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/cshadiev/job-aggregator/actions/workflows/docker-publish.yml)
+[![Python 3.13](https://img.shields.io/badge/python-3.13-3776AB?logo=python&logoColor=white)](https://www.python.org/downloads/)
+
 [job-aggregator-demo.webm](https://github.com/user-attachments/assets/825489a4-5cbe-425c-aaca-99a39820ad3a)
-# German IT Job Aggregation Service
 
-Aggregates job postings from multiple sources, normalizes them into a common schema, and supports candidate-job matching, ranking, and cover-letter generation.
+Recorded from the running deployment. The clip opens on **Sign in as demo**, then the job feed and the cover-letter modal. The client is [`job-aggregator-client`](https://github.com/cshadiev/job-aggregator-client).
 
-## What this service does
+One feed of roles from LinkedIn (DE, Poland, UK) and Arbeitnow, with a fit score on each row.
+Hybrid retrieval and a screening model drop most pairs before the expensive fit assessment.
+A role that clears the CV score gets a structured cover letter, and every model call is costed per agent.
 
-- Collects jobs from multiple providers (LinkedIn DE/PL/UK via Apify, Arbeitnow API).
-- Normalizes and deduplicates records using AI-assisted key normalization.
-- Screens each surviving job against each candidate CV (cheap keep/drop) before the expensive fit assessment.
-- Scores kept jobs against candidate profiles using an AI fit assessment agent.
-- Generates structured cover letters for high-fit jobs and stores them in object storage.
-- Exposes a FastAPI REST API (Auth0) for the job feed, application status, and cover letters.
+## Headline numbers
 
-## Supported sources
+Measured on corpus `05082026` (300 postings, one candidate). Screening and fit assessment in these figures are `gpt-5.6-luna`, the model the live environment runs.
 
-| Source | Integration | Wired in pipeline |
+| Figure | Value | Source |
 |---|---|---|
-| LinkedIn (DE) | Apify | yes |
-| LinkedIn (Poland) | Apify | yes |
-| LinkedIn (United Kingdom) | Apify | yes |
-| Arbeitnow | Direct API | yes (Python-keyword filter) |
-| StepStone | Apify parser exists | no |
-| Indeed | Apify parser exists | no |
+| Pairs that never reach fit assessment | **79.7%** (61 of 300 assessed) | [composed gate](benchmarks/retrieval/reports/05082026_composed_gate.md) |
+| LLM cost versus assessing every pair | **64.8%** lower ($0.695159 → $0.244757) | [composed gate](benchmarks/retrieval/reports/05082026_composed_gate.md) |
+| Good recall of that gate | **0.7000** (21 of 30 top-tier jobs) | [composed gate](benchmarks/retrieval/reports/05082026_composed_gate.md) |
+| Fitting recall of that gate | **0.5889** (53 of 90 viable jobs) | [composed gate](benchmarks/retrieval/reports/05082026_composed_gate.md) |
 
-Apify collectors fetch the last successful actor run's dataset by default (`run_apify_task=False`) and do not trigger a new scrape.
+Hybrid retrieval at K=150, then screening at t=0.0. A miss by either gate counts.
 
-## Tech stack highlights
-
-| Concern | Technology |
-|---|---|
-| Pipeline orchestration | LangGraph + MongoDB checkpointer |
-| HTTP API | FastAPI |
-| Auth | Auth0 |
-| AI agents | PydanticAI (OpenAI + xAI/Grok) |
-| Object storage | S3-compatible (MinIO etc.) |
-| Packaging / run | uv, Docker, GHCR |
-
----
-
-## High-level architecture
+## Architecture
 
 ```mermaid
 flowchart TD
@@ -69,237 +58,52 @@ flowchart TD
     API --> S3CL
 ```
 
----
+The author's deployment is [cshadiev.dev](https://cshadiev.dev). The clip above is the preview. Credentials stay off this page.
 
-## Service components
+## Evaluation
 
-### Collection service
+These harnesses measure gates, not classifiers. Each report leads with a reduction rate and recall against gold bands: how much downstream spend the gate removed, and what that cost in good candidates. Precision and F1 stay in the report diagnostics.
 
-Ingests job postings from all wired sources and maps them to a shared schema. Manages source-specific collectors and returns a batch for the pipeline.
+The rows below are `gpt-5.6-luna`, matching the live environment. `SCREENING_MODEL` in `config.py` is `glm-5.3-flash`; that switch is decided and not deployed. The bake-off is in [`docs/evals.md`](docs/evals.md).
 
-#### Collectors
+### Screening
 
-Source-specific adapters that handle the details of each provider's API.
+Operating point: **t=0.0** (production ignores confidence). Corpus `05082026`, 300 postings.
 
-- `ApifyCollector` — retrieves Apify actor results (by default the last successful run's dataset, without triggering a new run). Used for LinkedIn DE / Poland / UK with `LinkedinApifyParser`.
-- `ArbeitnowCollector` — paginates the Arbeitnow REST API and keeps postings that mention Python in the description.
+| Cost per 100 | Reduction rate | Good recall | Fitting recall | Report |
+|---|---|---|---|---|
+| $0.0690 | 71.7% | 0.9333 | 0.7889 | [20260915_125405](benchmarks/screening/reports/20260915_125405_gpt-5.6-luna.md) |
 
-StepStone and Indeed Apify parsers remain in the repo but are not attached to the running collector list.
+This row is screening on the full corpus. It is not the composed gate above.
 
-### Processing pipeline (LangGraph)
+### Fit assessment
 
-The scheduled pipeline lives in `orchestration/` and is the primary processing path. One cycle collects, normalizes, deduplicates, persists unique jobs, then fans out over every `(username, job)` pair.
+Operating point: **`cv_ats_match_score` ≥ 80**, the cover-letter threshold. Dataset `01082026`, 100 entries.
 
-```bash
-uv run run-pipeline
-# equivalent: python -m orchestration
-```
+| Cost per 100 | Reduction rate | Good recall | Fitting recall | Report |
+|---|---|---|---|---|
+| $0.2317 | 91.0% | 0.2727 | 0.1364 | [20260909_173301](benchmarks/fit_assessment/reports/20260909_173301_gpt-5.6-luna.md) |
 
-Design details: [`docs/langgraph-orchestration.md`](docs/langgraph-orchestration.md).
+### Retrieval
 
-| Stage | Responsibility |
-|---|---|
-| `collect` | Ingest from wired sources |
-| `normalize` | AI-normalize title and company |
-| `dedupe` | Rule-based cross-source uniqueness |
-| `persist_jobs` | Upsert survivors into `jobs` |
-| `build_pairs` | Cartesian product of users × unique jobs |
-| `screen` | CV-only keep/drop |
-| `assess` | Full fit assessment (if screening says yes) |
-| `cover_letter` | Generate + store letter (if CV ATS score ≥ threshold) |
+Operating point: **hybrid, K=150** (`PIPELINE_RETRIEVAL_RATIO=0.5` on this 300-job corpus).
 
-Pair work is concurrent (`PIPELINE_PAIR_CONCURRENCY`, default 10). Progress is checkpointed in MongoDB (`langgraph_checkpoints`); pair nodes are idempotent and reuse existing screenings, assessments, and cover-letter keys.
+| Good recall | Fitting recall | Naive recall | Reduction rate | Report |
+|---|---|---|---|---|
+| 0.7667 | 0.7333 | 0.5000 | 50.0% | [20261005_113050](benchmarks/retrieval/reports/20261005_113050.md) |
 
-A legacy MongoDB stage-queue worker (`workers/job_processing.py`) still exists as a parallel path. It does not run screening and does not use LangGraph checkpoints.
+Composing that ranking with the luna screening predictions sends 61 pairs to fit assessment: **79.7%** fewer assessment calls and **64.8%** lower LLM cost than assessing all 300, at good recall **0.7000** and fitting recall **0.5889**. Replay: [`05082026_composed_gate.md`](benchmarks/retrieval/reports/05082026_composed_gate.md).
 
-### AI agent — key normalization
+CI checks the committed hybrid ranked-uid list for `05082026` against [`baseline.json`](benchmarks/retrieval/dataset/05082026/baseline.json). That floor uses the public ranking, not a re-index of the private corpus.
 
-A PydanticAI agent (`agents/deduplication.py`) that standardizes job titles and company names across sources. Operates on configurable batches (default 50) with concurrent `asyncio.gather` calls. Consistent keys are a prerequisite for reliable cross-source deduplication.
+Datasets are private. Reports are public. The maintainer loop, the decisions these runs forced, and the limits of the labels are in [`docs/evals.md`](docs/evals.md).
 
-### Deduplication
+### The same spend, in production
 
-Rule-based, no LLM involved:
+The tables above are offline, on a frozen dataset. The dashboard is the same cost, per agent and per model, on the running pipeline.
 
-1. Drop UIDs already present in the `jobs` collection.
-2. Intra-batch collapse on `(title_normalized, company_normalized)`, keeping the newest `posted_at`.
-3. Cross-run: drop if the same normalized key exists in `jobs` with a `posted_at` within 60 days.
-
-### Screening agent
-
-A PydanticAI agent (`agents/screening.py`) that, given only the candidate CV and the job posting, decides `worth_full_assessment` plus a confidence. Used as a cheap gate before fit assessment. Results are stored in `screenings` (unique on `(username, job_uid)`).
-
-Offline evaluation: [`benchmarks/screening/README.md`](benchmarks/screening/README.md).
-
-### Fit assessment pipeline
-
-A PydanticAI agent (`agents/fit_assessment.py`) that scores each screened-in job against a candidate profile. For each user × job pair it receives the user's profile JSON plus their PDF CV (fetched from S3) and returns:
-
-- `cv_ats_match_score`
-- `profile_ats_match_score`
-- `deal_breakers`
-- `summary`
-
-Results are written to a separate `assessments` collection so job records and fit scores remain independently queryable.
-
-Offline evaluation: [`benchmarks/fit_assessment/README.md`](benchmarks/fit_assessment/README.md).
-
-### Cover letter generation
-
-A PydanticAI agent (`agents/cover_letter_generation.py`) that produces structured `CoverLetterContent` (contact header + titled sections) from the profile, posting, and fit assessment. Triggered when `cv_ats_match_score >= COVER_LETTER_MIN_CV_SCORE` (default 80).
-
-JSON is stored at `job-aggregator/{username}/cover_letters/{job_uid}.json`. The API can return that JSON or render a PDF on the fly (`tools/pdf_generator.py`). The corresponding `job_applications` row records `cover_letter_key`.
-
-### FastAPI service
-
-Entry point: `main.py` (`uv run fastapi run` / `uv run fastapi dev`).
-
-| Area | Endpoints |
-|---|---|
-| Auth | `POST /users/login`, `POST /users/refresh` (Auth0) |
-| Job feed | `POST /jobs/search` — paginated, filterable, sorted feed of job + fit + application status |
-| Application status | `PATCH /jobs/{job_uid}/status` |
-| Cover letters | `GET /jobs/{job_uid}/cover-letter`, `GET /jobs/{job_uid}/cover-letter-pdf`, `PATCH /jobs/{job_uid}/cover-letter` |
-
-Job-feed queries support remote/source/tag/location filters, ATS score floors, deal-breaker exclusion, and application-stage flags (`applied`, `skipped`, `active_only`).
-
-The Docker image (`Dockerfile`) runs this API. Version tags `v*` are built and pushed to GHCR (`.github/workflows/docker-publish.yml`).
-
-### MongoDB collections
-
-| Collection | Purpose |
-|---|---|
-| `jobs` | Canonical job store (upserted after deduplication) |
-| `checkpoints` | Per-source collector `posted_at` high-water mark |
-| `user_profiles` | Candidate profiles used for fit assessment |
-| `screenings` | `{username, job_uid, worth_full_assessment, confidence}` |
-| `assessments` | `{username, job_uid, assessment}` fit results |
-| `job_applications` | Per-user application status and cover-letter keys |
-| `failed_tasks` | Pipeline node failures (collect / normalize / pair LLM steps) |
-| `pricing` | LLM rate cards (`model_name`, `input_usd_per_1m`, `output_usd_per_1m`) for cost accounting |
-| `langgraph_checkpoints` / `langgraph_checkpoint_writes` | LangGraph checkpointer |
-| `job_processing` / `failed_entries` | Legacy stage-queue worker only |
-
-### Object storage (S3-compatible)
-
-| Object | Key |
-|---|---|
-| User CV | `job-aggregator/{username}/cv.pdf` |
-| Cover letter JSON | `job-aggregator/{username}/cover_letters/{job_uid}.json` |
-
-The endpoint is configurable via `S3_ENDPOINT_URL` to support MinIO or any S3-compatible service.
-
-### Observability, cost accounting and dashboards
-
-The API and the pipeline runner are separate processes, so each publishes its own Prometheus exposition endpoint: the API on `:8000/metrics`, the worker on `:8001/metrics` (`WORKER_METRICS_PORT`). Grafana Alloy scrapes both and remote-writes to Prometheus, which Grafana reads.
-
-| Metric | Type | Labels |
-|---|---|---|
-| `llm_tokens_total` | counter | `agent`, `model`, `type` (`prompt` / `completion`) |
-| `llm_cost_estimated_usd_total` | counter | `agent`, `model` |
-| `llm_request_duration_seconds` | histogram | `agent`, `model` |
-| `search_query_duration_seconds` | histogram | `type` (`hybrid` / `bm25` / `knn`), `status` |
-| `search_feed_query_duration_seconds` | histogram | `status` |
-| `search_queries_total` / `search_hits_count` | counter / histogram | `type`, `status` |
-| `pipeline_cycle_duration_seconds` | histogram | `status` |
-| `pipeline_node_duration_seconds` | histogram | `node` |
-| `pipeline_tasks_total` | counter | `node`, `status` (`success` / `failure`) |
-| `job_descriptions_total` | counter | `stage` (`collection` / `retrieval` / `screening` / `assessment`), `source` |
-| `mongo_checkpoint_duration_seconds` | histogram | — |
-| `dependency_up` | gauge | `dependency` (published by `/readyz`) |
-| `http_requests_total` / `http_request_duration_seconds` | counter / histogram | `method`, `path` (route template), `status` |
-
-Spend is estimated per call from the `pricing` collection, cached in-process for `PRICING_CACHE_TTL_SECONDS` and backed by static defaults in `monitoring/pricing.py`, so cost telemetry survives an unreachable or unseeded MongoDB.
-
-Everything under `monitoring/` is configuration as code — the Alloy pipeline, the Prometheus scrape and SLO alert rules, and three provisioned Grafana dashboards (LLM Cost & Token Accounting, Product & Search Performance, Pipeline & System Health). SLOs: 95% of corpus searches under 150ms, 95% of assessed feed queries under 200ms, and a pipeline task failure rate under 0.5%.
-
-Set `METRICS_ENABLED=false` to drop both metrics endpoints; set `METRICS_REMOTE_WRITE_URL` to ship the same timeseries to Grafana Cloud Mimir instead of the local Prometheus.
+![LLM Cost and Token Accounting dashboard](docs/assets/llm-cost-accounting.png)
 
 ---
 
-## Job processing flow
-
-```mermaid
-flowchart TD
-    A([Scheduled cycle]) --> B[Collect from wired sources]
-    B --> C[AI: normalize titles and company names]
-    C --> D[Rule-based cross-source deduplication]
-    D --> E[(Upsert unique jobs)]
-    E --> F[Build username × job pairs]
-    F --> G["AI: screen CV vs job"]
-    G -->|not worth it| H[Emit pair result]
-    G -->|worth full assessment| I["AI: fit assessment"]
-    I -->|cv_ats_match_score < 80| H
-    I -->|cv_ats_match_score >= 80| J["AI: generate cover letter"]
-    J --> K[(Store JSON in S3 + job_applications)]
-    K --> H
-    H --> L[Finalize cycle / sleep]
-```
-
-Default schedule: every 12 hours (`PIPELINE_SCHEDULE_SECONDS`).
-
----
-
-## Development setup
-
-```bash
-# install dependencies
-uv sync
-
-# configure secrets (copy and fill in values)
-cp .env.example .env   # or create .env manually
-
-# backing services + observability stack (Prometheus :9090, Grafana :3000, Alloy :12345)
-docker compose up -d
-
-# containerised api + pipeline worker, the two scrape targets
-docker compose --profile app up -d
-
-# run the LangGraph pipeline
-uv run run-pipeline
-
-# run the HTTP API
-uv run fastapi dev
-
-# run tests (skips priced API/LLM tests by default)
-uv run pytest
-
-# include tests that call Apify or OpenAI
-uv run pytest --run-priced
-
-# offline agent benchmarks
-uv run run-screening-benchmark
-uv run run-fit-assessment-benchmark
-```
-
-### Required environment variables
-
-| Variable | Purpose |
-|---|---|
-| `OPENAI_API_KEY` | OpenAI models (`gpt-5.6-luna`, `gpt-5-mini`) |
-| `GROK_API_KEY` | xAI models (`grok-4.3`, `grok-4.5`) |
-| `DEEPINFRA_API_KEY` | DeepInfra (configured; not the default pipeline models) |
-| `APIFY_API_KEY` | Apify authentication |
-| `MONGODB_USER`, `MONGODB_PASSWORD` | MongoDB auth |
-| `MONGODB_HOST`, `MONGODB_PORT` | MongoDB host (defaults: `localhost`, `27017`) |
-| `S3_ENDPOINT_URL` | S3-compatible storage endpoint |
-| `S3_ACCESS_KEY`, `S3_SECRET_KEY` | S3 credentials |
-| `S3_REGION`, `S3_BUCKET_NAME` | S3 bucket config |
-| `AUTH0_DOMAIN`, `AUTH0_CLIENT_ID`, `AUTH0_CLIENT_SECRET`, `AUTH0_AUDIENCE` | API auth |
-| `APIFY_LINKEDIN_TASK_ID` | LinkedIn DE Apify task |
-| `APIFY_LINKEDIN_PL_TASK_ID` | LinkedIn Poland Apify task |
-| `APIFY_LINKEDIN_UK_TASK_ID` | LinkedIn UK Apify task |
-
-Optional tuning variables: `DEDUPLICATION_BATCH_SIZE`, `DEDUPLICATION_MODEL`, `SCREENING_MODEL`, `FIT_ASSESSMENT_MODEL`, `COVER_LETTER_MODEL`, `COVER_LETTER_MIN_CV_SCORE`, `PIPELINE_PAIR_CONCURRENCY`, `PIPELINE_SCHEDULE_SECONDS`, `ARBEITNOW_MAX_PAGES`, `DEBUG_MODE`, `LOG_DIR`, `TEMP_DIR`, `METRICS_ENABLED`, `WORKER_METRICS_HOST`, `WORKER_METRICS_PORT`, `PRICING_CACHE_TTL_SECONDS`, and per-collection name overrides (`MONGODB_JOBS_COLLECTION`, `MONGODB_SCREENINGS_COLLECTION`, etc.). `LOG_DIR` and `TEMP_DIR` are resolved to absolute paths (relative values are interpreted against the application root) and may point outside the app directory in production.
-
-Default models: screening uses `glm-5.3-flash` on DeepInfra; deduplication uses `gpt-5.6-luna`; fit assessment and cover letters use `gpt-5-mini` on the LangGraph path.
-
----
-
-## Roadmap
-
-- Description enrichment agent to extract structured properties from free-text.
-- Adjusted / tailored CV generation.
-- Rule-based hard requirement filter (language, technologies, seniority) before AI scoring.
-- React frontend for job discovery and application progress.
-- Notification service for new relevant jobs.
-- Hybrid vector + BM25 candidate-job ranking (design in `docs/candidate-job-ranking.md`).
+Collections, environment variables, metrics, and operator setup: [`docs/architecture.md`](docs/architecture.md).

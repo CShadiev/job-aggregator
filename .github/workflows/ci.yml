@@ -86,7 +86,10 @@ jobs:
         run: uv sync --locked --dev
 
       - name: Run unit tests
-        run: uv run pytest tests/unit
+        run: >
+          uv run pytest tests/unit
+          benchmarks/retrieval/test_retrieval_smoke.py::test_committed_hybrid_ranking_meets_baseline
+          benchmarks/retrieval/test_retrieval_smoke.py::test_composed_gate_report_matches_public_inputs
 
   test-integration:
     name: Integration Tests (MongoDB)
@@ -129,7 +132,7 @@ jobs:
           tests/integration/test_telemetry.py
 
   test-search:
-    name: Search & Retrieval Smoke (OpenSearch)
+    name: Search Integration (OpenSearch)
     runs-on: ubuntu-latest
     services:
       opensearch:
@@ -163,11 +166,8 @@ jobs:
       - name: Install dependencies
         run: uv sync --locked --dev
 
-      - name: Run OpenSearch integration and retrieval smoke tests
-        run: >
-          uv run pytest
-          tests/integration/test_search_service.py
-          benchmarks/retrieval/test_retrieval_smoke.py
+      - name: Run OpenSearch integration tests
+        run: uv run pytest tests/integration/test_search_service.py
 
   docker-build:
     name: Docker Build Validation

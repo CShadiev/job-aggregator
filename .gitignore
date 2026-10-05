@@ -8,7 +8,10 @@ benchmarks/fit_assessment/dataset/01082026/
 # committed regression floor and must remain visible to git.
 benchmarks/screening/dataset/05082026/*
 !benchmarks/screening/dataset/05082026/baseline.json
-benchmarks/retrieval/reports/
+# Private retrieval corpora (job text, embeddings, candidate profile).
+# baseline.json stays committed as the regression floor. Reports are public.
+benchmarks/retrieval/dataset/*/*
+!benchmarks/retrieval/dataset/*/baseline.json
 export_keys.sh
 
 # UI repository (managed separately)

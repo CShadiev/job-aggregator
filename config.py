@@ -109,10 +109,12 @@ class Config(BaseSettings):
             )
         return self
 
+    # Bake-off winner. The live environment still overrides this to gpt-5.6-luna
+    # until that switch is deployed.
     SCREENING_MODEL: str = "glm-5.3-flash"
     CV_EXTRACTION_MODEL: str = "gpt-5.6-luna"
-    FIT_ASSESSMENT_MODEL: str = "gpt-5-mini"
-    COVER_LETTER_MODEL: str = "gpt-5-mini"
+    FIT_ASSESSMENT_MODEL: str = "gpt-5.6-luna"
+    COVER_LETTER_MODEL: str = "gpt-5.6-luna"
     COVER_LETTER_MIN_CV_SCORE: float = 80
     # A pending manual generation task older than this is considered abandoned
     # (e.g. the API process restarted mid-run) and may be claimed again.

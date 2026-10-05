@@ -5,7 +5,12 @@ fit assessment (`worth_full_assessment`) from CV + job only. The report measures
 how effectively the screening gate reduces downstream fit-assessment calls while
 retaining fitting jobs.
 
-Planning doc: [`docs/planning/screening-agent.md`](../../docs/planning/screening-agent.md)
+Planning doc: [`docs/planning/archive/screening-agent.md`](../../docs/planning/archive/screening-agent.md)
+
+Datasets under `dataset/` stay private (the CV and the job corpus). Reports
+under `reports/` are public, including markdown and `.results.jsonl`.
+`baseline.json` stays committed as the regression floor. A stranger can
+recompute metrics from the published results; they cannot re-run the harness.
 
 ## Evaluation Objective & Ground Truth
 
@@ -29,14 +34,16 @@ The agent remains binary (keep/drop + confidence). Production routing
 
 ```text
 benchmarks/screening/
-  dataset/<DDMMYYYY>/   # entries, manifest, cv.pdf, generated cv.txt — no profile
-  reports/              # gitignored — generated per run
+  dataset/<DDMMYYYY>/   # private: entries, manifest, cv.pdf, cv.txt
+                        # baseline.json is the only committed file
+  reports/              # public: markdown and .results.jsonl
   metrics.py            # gating metrics (good/fitting recall, reduction, cost per 100)
 ```
 
-New exports should be **committed** as a new (or same-day overwritten) version
-directory under `dataset/`. The PDF and `cv.txt` for `05082026` stay gitignored;
-`baseline.json` is the committed regression floor.
+Do not commit a new export. `baseline.json` for `05082026` pins the
+`glm-5.3-flash` bake-off (`reports/20260915_130230_glm-5.3-flash.results.jsonl`).
+That pin is the decided next screening model, not a claim that glm is already
+what the live environment runs.
 
 Isolated CV-text measurement (Phase 1c) uses
 `benchmarks/screening/prompts/text_isolated.md` via `--prompt-template` so recall
@@ -82,13 +89,15 @@ uv run python scripts/export_screening_benchmark_dataset.py
 #   --n 300   # must be 300 in v1
 ```
 
-Then commit the new/updated `dataset/<DDMMYYYY>/` tree.
+Keep the export on the machine that already has the dataset. Commit the report,
+not the dataset.
 
 ## Run benchmark
 
 No Mongo at run time — only model API keys. Pass `--dataset-version` when more
-than one version exists. Harness default is `gpt-5.6-luna`; production screening
-is `glm-5.3-flash` (see [`reports/20260915_bakeoff.md`](reports/20260915_bakeoff.md)).
+than one version exists. Harness default is `gpt-5.6-luna`. `config.py` defaults
+`SCREENING_MODEL` to `glm-5.3-flash` (see [`reports/20260915_bakeoff.md`](reports/20260915_bakeoff.md));
+the live environment still overrides that to `gpt-5.6-luna` until the switch is deployed.
 
 ```bash
 uv run run-screening-benchmark --dataset-version 05082026
@@ -108,5 +117,5 @@ metrics are cost per 100, reduction, LLM calls saved, naive / good / fitting
 recall. Exit code is 0 on successful completion even if metrics are poor;
 non-zero only for operational failures (or >20% per-entry agent errors).
 
-CI runs `benchmarks/screening/test_screening_smoke.py` against the committed
-`dataset/<version>/baseline.json` floors (Good Recall ≥ 0.900, Fitting Recall ≥ 0.800).
+`dataset/05082026/baseline.json` records the glm floors (Good Recall ≥ 0.900,
+Fitting Recall ≥ 0.800). No CI job replays that file.

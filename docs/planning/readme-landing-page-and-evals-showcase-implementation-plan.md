@@ -1,7 +1,7 @@
 # README Landing Page & Evals Showcase — Implementation Plan
 
-**Status:** Ready for implementation
-**Last updated:** 2026-09-15
+**Status:** Implemented
+**Last updated:** 2026-10-05
 **Open questions:** 0
 **Origin:** Actions 1 and 3 of [`docs/flagship-demo-roadmap.md`](../flagship-demo-roadmap.md), plus a spotlight GIF of the LLM Cost & Token Accounting dashboard (a slice of action 7 pulled forward).
 
@@ -13,11 +13,11 @@ Status values: `Draft` (kickoff done, questions open) · `In deliberation` (some
 
 The roadmap's assessment is that this project fails passes 1 and 2 of a reviewer's evaluation, not pass 3. Concretely, in this repository today:
 
-- `README.md` is 306 lines of reference documentation. It opens with a one-line description and a bulleted feature list. There is no image, no badge, and no number anywhere above the fold. The repo contains **zero** image assets outside `react-app/` (which is gitignored).
+- `README.md` is reference documentation. A hero WebM is already attached as the first line, above the title, via a GitHub user-attachment; it still needs to move into the landing flow (Q5, amended 2026-10-05). There is no badge and no number anywhere above the fold. The only in-repo image is `docs/assets/llm-cost-accounting.png`.
 - The three eval harnesses are the strongest differentiator and are invisible from the README. `benchmarks/screening/README.md` and `benchmarks/fit_assessment/README.md` are linked once each, deep inside the agent sections (`README.md:130`, `README.md:143`); `benchmarks/retrieval/` is not linked at all.
-- The observability stack gets a dense metrics table (`README.md:194-208`) and no picture, even though the LLM Cost & Token Accounting dashboard is the single most on-trend artifact in the repo.
+- The observability stack gets a dense metrics table (`README.md:194-208`) and no picture in the README, even though the LLM Cost & Token Accounting dashboard is the single most on-trend artifact in the repo. The still to embed is `docs/assets/llm-cost-accounting.png`.
 
-Pass 2 is a different shape than the roadmap assumed. A fully working instance has been running for weeks and updates from `main` almost as soon as commits land, so the reviewer-facing answer is a live demo rather than a local quick start (Q5, Q8). What is still missing is the README treating that instance as the product: no hero of it, no headline numbers next to it. The hero GIF is the no-login preview; a URL is secondary with no promise a stranger can sign in (Q10).
+Pass 2 is a different shape than the roadmap assumed. A fully working instance has been running for weeks and updates from `main` almost as soon as commits land, so the reviewer-facing answer is a live demo rather than a local quick start (Q5, Q8). What is still missing is the README treating that instance as the product: the hero is attached but not yet placed in the landing flow, and there are no headline numbers next to it. The clip opens on **Sign in as demo** (Q10, amended 2026-10-05). A URL is secondary and must not offer the author's account or a password.
 
 A second problem surfaced during investigation and is the reason this plan is larger than "write some markdown": **several things the README would publish are currently stale or untrue.** Surfacing them without fixing them converts a documentation gap into a credibility risk in front of exactly the audience this work targets. These are enumerated under Codebase grounding and drive the correctness work in Phase 1 (Q2, Q3, Q4).
 
@@ -28,15 +28,15 @@ A second problem surfaced during investigation and is the reason this plan is la
 - Restructure `README.md` into a landing page: hero asset, product pitch, headline numbers, badges. A live-instance URL may appear as a secondary link with no login promise (Q8, Q10). Reference material moves to `docs/architecture.md`.
 - Add an `Evaluation` section to `README.md` carrying real metric tables from the screening, fit-assessment and retrieval harnesses, each linking to a committed report.
 - Add `docs/evals.md`: the eval loop (export → run → change → re-run) as a **maintainer** loop, the concrete decisions the benchmarks drove, and a plain statement that datasets are private and results are public (Q3).
-- Produce and embed a GIF of the **LLM Cost & Token Accounting** Grafana dashboard, recorded from Grafana Cloud (Q6).
-- Produce and embed a hero GIF of the live UI (job feed → cover-letter modal); optionally a second terminal GIF of `uv run run-pipeline` (Q5).
+- Embed the dashboard still already captured from Grafana Cloud, `docs/assets/llm-cost-accounting.png` (Q6, amended 2026-10-05). Do not re-record it as a loop.
+- Embed the hero WebM already on `README.md` (GitHub drag-and-drop user-attachment). Phase 4 repositions that element; do not re-upload or convert it to a GIF (Q5, Q7, amended 2026-10-05). A terminal recording of `uv run run-pipeline` stays optional and was not made.
 - Fix the factual defects that publishing these numbers would otherwise amplify: stale retrieval headline (Q2), benchmark READMEs vs. gitignore, fit-assessment/cover-letter `config.py` defaults still on `gpt-5-mini` while the live env runs luna (Q4), missing `.env.example` as operator documentation in `docs/architecture.md`.
 - Flip artifact policy: untrack eval datasets (including the currently committed retrieval corpora), commit all harness reports (Q3). Measure the composed retrieval+screening number and commit it (Q1). Rewrite the retrieval CI floor to assert that committed ranked-uid list against `baseline.json` instead of re-indexing the corpus (Q9).
 
 ### Out of scope
 
 - Zero-credential local demo mode (roadmap 2), frontend feature work (roadmap 5), architecture case study as a standalone essay (roadmap 6 — `docs/architecture.md` is only the README split), CV tailoring (roadmap 8).
-- Building a new hosted demo or a demo-account / "sign in as demo" flow (Q10). The instance already exists; the GIF is the reviewer preview.
+- Building a new hosted demo. Demo access has since shipped in [`demo-access-implementation-plan.md`](demo-access-implementation-plan.md). The hero WebM already shows **Sign in as demo**; this plan does not change that flow (Q10, amended 2026-10-05).
 - A reviewer-facing quick start. Too many external dependencies; nobody will run this locally (Q8).
 - Improving retrieval, screening or fit-assessment *quality*. This plan publishes the numbers as they are; it does not tune the pipeline.
 - Changing which metrics are emitted or what the dashboards query. Restoring local Grafana provisioning is **not** in this plan (Q6); the broken `docker compose` mounts stay as they are.
@@ -49,7 +49,7 @@ A second problem surfaced during investigation and is the reason this plan is la
 | --- | --- | --- |
 | README | `README.md` (306 lines) | Reference-style. Sections `Tech stack highlights`, `Service components`, `MongoDB collections`, `Required environment variables` are pass-3 material sitting above anything that sells. Q8 moves them to `docs/architecture.md`. |
 | CI badge source | `.github/workflows/ci.yml` (`CI Quality Gate`), `.github/workflows/docker-publish.yml` | Both real and green-path. CI and GHCR badges would be truthful. Note `ci.yml` has `paths-ignore: ["docs/**", "*.md"]`, so this plan's own commits will not run CI. |
-| Live instance | `config.py:139` `ALLOWED_ORIGINS = ["https://cshadiev.dev"]`; deploys from `main` | Recording source for Q5. README may link it secondarily; the hero GIF is the no-login preview (Q10). |
+| Live instance | `config.py:139` `ALLOWED_ORIGINS = ["https://cshadiev.dev"]`; deploys from `main` | Source of the hero WebM already on `README.md`. README may link the instance secondarily. The clip includes demo sign-in (Q10, amended 2026-10-05). |
 | Screening eval | `benchmarks/screening/reports/` (tracked, including the 2026-09-15 packaging/bake-off runs) | Strongest committed artifact. Latest luna run is `20260915_125405_gpt-5.6-luna.md`; bake-off winner is `glm-5.3-flash` (`20260915_130230`). Live env still runs luna — the glm switch has not been deployed yet (Q4). README numbers follow what's running; `config.py` keeps the glm default as the decided next screening model. |
 | Fit-assessment eval | `benchmarks/fit_assessment/reports/20260909_173301_gpt-5.6-luna.md` (tracked) | Run on `gpt-5.6-luna`. Live env sets `FIT_ASSESSMENT_MODEL` (and `COVER_LETTER_MODEL`) to luna, so the report **is** production-relevant. `config.py:113-114` still default to `gpt-5-mini` with no pending model switch — those two defaults are the lie to fix (Q4). |
 | Retrieval eval | `benchmarks/retrieval/reports/` currently **gitignored**; formatter hardcodes `@20` | Production uses `PIPELINE_RETRIEVAL_RATIO=0.5` → K=150 on this corpus. Re-headline and commit the report (Q2). Un-ignore `reports/` as part of publishing all results (Q3). |
@@ -60,13 +60,13 @@ A second problem surfaced during investigation and is the reason this plan is la
 | Screening predictions are already public | `benchmarks/screening/reports/*.results.jsonl` | Per-`job_uid` predictions for all 300 postings. Intersecting them with a committed ranked-uid list needs **zero new LLM calls** and does not require the dataset to be public. |
 | Retrieval regression floor | `benchmarks/retrieval/dataset/10092026/baseline.json` (and `05082026/baseline.json`) | Asserts hybrid recall at K=150. After Q3, `baseline.json` stays committed; the corpus does not. After Q9, CI checks the ranked-uid artifact against this file rather than re-searching. Pin whichever dataset version the committed ranked-uid list was generated from. |
 | `corpus.jsonl` dominates repo weight | 12 MB × 2 versions, already in git history | Untracking does not shrink `.git`. Relevant to Q3 and Q7 only as "the weight is already paid". |
-| LLM cost dashboard | `monitoring/grafana/dashboards/llm-cost-accounting.json` | 7 panels: 24h spend, 24h tokens, cost per pipeline cycle, tokens per assessed pair, daily burn by agent, prompt-vs-completion donut, per-agent/model efficiency table. Spotlight GIF recorded from Grafana Cloud (Q6), committed under `docs/assets/` (Q7). |
+| LLM cost dashboard | `monitoring/grafana/dashboards/llm-cost-accounting.json` | 7 panels: 24h spend, 24h tokens, cost per pipeline cycle, tokens per assessed pair, daily burn by agent, prompt-vs-completion donut, per-agent/model efficiency table. Spotlight is the still `docs/assets/llm-cost-accounting.png`, captured from Grafana Cloud (Q6, amended 2026-10-05). |
 | Local Grafana is broken | commit `e03d659` | v2-schema Cloud exports; deleted provisioning files; `docker-compose.yml` still mounts them. Q6 leaves this alone. Operator docs should not claim `docker compose up -d` brings up Grafana. |
 | Cost model | `monitoring/pricing.py` | `DEFAULT_RATES` include `gpt-5.6-luna` and `glm-5.3-flash`. Headline cost claims are reproducible from these plus token counts in the reports. |
 | Missing `.env.example` | `README.md:248` says `cp .env.example .env` | File does not exist. After Q8 this command leaves the landing page; it still belongs in `docs/architecture.md` as operator setup. |
 | Model defaults vs live env | `config.py:111-114` | `SCREENING_MODEL` default is `glm-5.3-flash` (bake-off winner; not deployed yet). `FIT_ASSESSMENT_MODEL` and `COVER_LETTER_MODEL` default to `gpt-5-mini` while the live env runs luna on all three. README:293 documents the defaults, not the env. Q4: do not revert screening to luna; do align the two mini defaults. |
 | Frontend | `react-app/` (gitignored, separate repo) | Job feed with fit scores, filters, status editor, cover-letter modal. Hero is recorded from the live instance (Q5), not from a local checkout of this repo. |
-| Repo weight | `.git` is 27 MB | Q7 commits GIFs under `docs/assets/`. History is append-only. |
+| Repo weight | `.git` is 27 MB | The dashboard still is the only binary this plan adds under `docs/assets/` (~160 KB). The hero WebM stays a GitHub user-attachment, so it does not grow `.git` (Q7, amended 2026-10-05). History is append-only. |
 
 ### The headline arithmetic, as it actually computes
 
@@ -92,7 +92,7 @@ The composition is legitimate on corpus grounds: retrieval `10092026` / `0508202
 Intended order of the landing section:
 
 1. Title, one-sentence positioning line, badge row (CI, GHCR, Python 3.13, licence if one is added).
-2. Hero asset — UI job feed → cover-letter modal, recorded from the live instance. Link the client repo in the same block. This is the no-login preview (Q10).
+2. Hero asset — the WebM already embedded at the top of `README.md`. Phase 4 moves that same element here, after the title, positioning line, and badge row. Keep the URL; do not re-upload. Link the client repo in the same block. The clip opens on **Sign in as demo**, then the job feed and the cover-letter modal (Q5, Q10, amended 2026-10-05).
 3. Three-line pitch, product-framed rather than pipeline-framed.
 4. Headline numbers — three or four figures, each a link to the report it came from, including the measured composed gate number from Phase 1b.
 5. Architecture diagram — the existing Mermaid flowchart at `README.md:42-69` already earns its place here.
@@ -100,7 +100,7 @@ Intended order of the landing section:
 
 No quick start on the landing page (Q8). Operator setup (`uv sync`, `.env.example`, compose) lives in `docs/architecture.md` with the collections table, env-var table, metrics table and service-component notes currently in `README.md`. That operator doc must not claim a working local Grafana stack (Q6).
 
-Optional second visual: a terminal recording of `uv run run-pipeline` (Q5), placed with the architecture diagram rather than above the fold.
+Optional second visual: a terminal recording of `uv run run-pipeline` (Q5). It was not recorded and does not block Phase 4. If it is added later, place it with the architecture diagram rather than above the fold.
 
 ### Evaluation section
 
@@ -115,7 +115,7 @@ Structure:
 
 Each table must state its operating point explicitly (`t=0.0` for screening, `cv_ats_match_score >= 80` for fit assessment, `K=150` for retrieval) because all three harnesses also publish sweeps, and a number lifted out of a sweep without its threshold is meaningless.
 
-Dashboard spotlight GIF sits in this section, under a subheading that ties it to the offline numbers — the benchmarks prove the gates work on a fixed dataset, the dashboard proves the same spend is tracked per agent and per model in production.
+The dashboard still sits in this section, under a subheading that ties it to the offline numbers — the benchmarks prove the gates work on a fixed dataset, the dashboard proves the same spend is tracked per agent and per model in production. Embed `docs/assets/llm-cost-accounting.png`.
 
 ### `docs/evals.md`
 
@@ -135,7 +135,7 @@ Honest caveats (dataset is one candidate, gold labels are historical production 
 
 ### Dashboard spotlight
 
-Recorded from Grafana Cloud against real pipeline data (Q6). Lives under `docs/assets/` (Q7), inside Evaluation. A ~15–20 second loop over the LLM Cost & Token Accounting dashboard, starting on the four stat panels, scrolling to the burn-rate timeseries and the prompt/completion donut, ending on the per-agent/model efficiency table, with one `$agent` variable change mid-way. Crop or pan off the Cloud org name if it appears in the chrome.
+The still `docs/assets/llm-cost-accounting.png`, captured from Grafana Cloud against real pipeline data (Q6, amended 2026-10-05). It lives in-repo (Q7) and is embedded in Evaluation. One frame already shows the four stat panels, the daily-burn chart, the prompt/completion donut, and the per-agent/model efficiency table, so there is no loop and no `$agent` variable change. The Cloud org name is not in the chrome. The models on the still are `gpt-5.6-luna`, matching the live env (Q4).
 
 ### Correctness fixes
 
@@ -205,6 +205,15 @@ Above-the-fold asset is a recording of the UI job feed → cover-letter modal, c
 
 **Consequence:** Phase 3 records from the live instance, not from a local `react-app/` checkout. Combined with Q10, pass 1 is the GIF; pass 2 is not a logged-in walkthrough.
 
+**Amended:** 2026-10-05
+The hero is the WebM already on `README.md`, uploaded by drag-and-drop. GitHub renders that user-attachment inline. Do not convert it to a GIF and do not re-upload it. Phase 4 moves this element into the landing flow, after the title, positioning line, and badge row:
+
+```markdown
+[job-aggregator-demo.webm](https://github.com/user-attachments/assets/825489a4-5cbe-425c-aaca-99a39820ad3a)
+```
+
+The clip includes the demo sign-in that [`demo-access-implementation-plan.md`](demo-access-implementation-plan.md) has since shipped. That recording is the accepted hero. The optional `uv run run-pipeline` terminal clip was not made and does not block.
+
 ### Q6 — Dashboard GIF is recorded from Grafana Cloud; local stack is not restored
 
 **Decided:** 2026-09-15
@@ -213,6 +222,9 @@ Record the LLM Cost & Token Accounting GIF from Grafana Cloud against real pipel
 **Rejected:** (b) restore provisioning and convert dashboards to a locally-provisionable schema — a real fix, and the original leaning, but out of scope here; it is a monitoring-stack task, not a README-asset task. (c) local stack plus synthetic Prometheus seed — extra generator this plan does not need. (d) public Grafana dashboard link instead of a GIF — interactive until the Cloud instance lapses, and a different artifact story from Q7's in-repo assets.
 
 **Consequence:** Phase 3 is recording-only. `docs/architecture.md` must not claim `docker compose up -d` brings up Grafana. The broken local mounts remain a known defect, to be fixed in a later plan if at all.
+
+**Amended:** 2026-10-05
+The spotlight is a still, not a 15–20 second loop. `docs/assets/llm-cost-accounting.png` (renamed from `Screenshot 2026-09-16 131248.png`) was captured from Grafana Cloud. The four stat panels, the daily-burn chart, the prompt/completion donut, and the efficiency table fit in one frame, so there is no scroll and no `$agent` change. The Cloud org name is not in the chrome. Leave the image as it is. The local Grafana stack stays unrestored.
 
 ### Q7 — Binary assets live in `docs/assets/`
 
@@ -223,10 +235,13 @@ Commit stills and GIFs under `docs/assets/`. Self-contained, works on any mirror
 
 **Consequence:** repo weight grows permanently with every re-record. Phase 3 should still crop and frame-cap so the hero loads before the fold (a 5 MB budget is a recording constraint, not a storage policy).
 
+**Amended:** 2026-10-05
+The hero stays the GitHub user-attachment above. Drag-and-drop is what makes the WebM play in the README; committing the same file under `docs/assets/` does not. The dashboard still stays in-repo at `docs/assets/llm-cost-accounting.png` — no spaces, so the markdown path needs no encoding. The attachment will not render on a mirror and disappears if the GitHub object is deleted. That tradeoff is accepted for the hero only, because GitHub is the surface reviewers open. The still is about 160 KB; the 5 MB hero budget does not apply to an attachment that is not in `.git`.
+
 ### Q8 — README splits; no quick start; lead with the live demo
 
 **Decided:** 2026-09-15
-Move `Service components`, `MongoDB collections`, env vars and the observability table into `docs/architecture.md`, leaving a README on the order of 120 lines. Do **not** ship a reviewer-facing quick start — too many external dependencies, not feasible that anyone will run it. The landing page's product proof is the hero GIF (Q10); a live URL is optional and secondary. Operator setup (including `.env.example`) remains in `docs/architecture.md` for the person who already operates the instance.
+Move `Service components`, `MongoDB collections`, env vars and the observability table into `docs/architecture.md`, leaving a README on the order of 120 lines. Do **not** ship a reviewer-facing quick start — too many external dependencies, not feasible that anyone will run it. The landing page's product proof is the hero WebM (Q5, Q10); a live URL is optional and secondary. Operator setup (including `.env.example`) remains in `docs/architecture.md` for the person who already operates the instance.
 
 **Rejected:** split (a) prepend and keep everything — one file, gets long, landing and reference keep competing. Split (c) architecture + operations — extra file without a second audience. Quick start (i) honest-but-still-a-quick-start — promises a path nobody will complete. Quick start (ii) lead with credential-free retrieval — killed twice, by this decision and by Q3 making the retrieval corpus private.
 
@@ -250,13 +265,17 @@ The GIF is what a reviewer without credentials sees. A link to the running insta
 
 **Consequence:** Phase 4 copy does not say "try it" or "sign in". Pass 1 is the GIF plus headline numbers. Pass 2 is whatever a motivated reviewer does with the URL on their own.
 
+**Amended:** 2026-10-05
+Demo access has shipped, and the accepted hero opens on **Sign in as demo** before the feed and the cover-letter modal. Phase 4 may name that path. It still must not publish a password, offer the author's own account, or frame the live URL as "try it". The URL stays a secondary link to the author's deployment. Pass 1 is the WebM plus headline numbers.
+
 ## Implementation phases
 
-All questions are closed. Phases are ordered and independently reviewable. Phase 3 can proceed in parallel with 1–2.
+All questions are closed. Phases are ordered and independently reviewable. All phases are done (2026-10-05). Phase 3's hero WebM stays the GitHub user-attachment; Phase 4 moved it under the title, positioning line, and badges. The dashboard still is `docs/assets/llm-cost-accounting.png`.
 
 ### Phase 1 — Harness and repo truthfulness
 
 **Depends on:** nothing remaining
+**Status:** Done 2026-10-05.
 **Reviewable when:** retrieval reports headline K=150 and are committed; datasets are untracked except `baseline.json`; `FIT_ASSESSMENT_MODEL` and `COVER_LETTER_MODEL` defaults are luna while `SCREENING_MODEL` stays glm; benchmark READMEs describe the private-dataset / public-results policy; the CI OpenSearch job no longer runs the corpus-backed retrieval smoke; `.env.example` exists for operator docs.
 **Touches:** `scripts/run_retrieval_benchmark.py` (headline only; ranked-uid emit is 1b), `.gitignore`, `benchmarks/*/README.md`, `benchmarks/retrieval/reports/`, `benchmarks/retrieval/dataset/` (untrack), `config.py` (fit-assessment and cover-letter defaults only), `docs/langgraph-orchestration.md`, `.env.example`, `.github/workflows/ci.yml`, `benchmarks/retrieval/test_retrieval_smoke.py` (skip without corpus)
 
@@ -265,23 +284,27 @@ Untrack and the CI change land together.
 ### Phase 1b — Composed gate measurement and CI floor
 
 **Depends on:** Phase 1
+**Status:** Done 2026-10-05. Report: `benchmarks/retrieval/reports/05082026_composed_gate.md`.
 **Reviewable when:** a committed report states the compounded reduction rate and good/fitting recall of retrieval + screening over corpus `05082026`, reproducible from the committed ranked-uid list and the stored screening predictions without any LLM call; CI unit tests assert that ranked-uid list against `baseline.json`.
 **Touches:** `scripts/run_retrieval_benchmark.py` (emit ranked uids), a new composition step, `benchmarks/retrieval/reports/`, `benchmarks/retrieval/test_retrieval_smoke.py` (artifact assertion), `.github/workflows/ci.yml` (run that assertion in the unit-test job)
 
 ### Phase 2 — Evaluation content
 
 **Depends on:** Phase 1, Phase 1b
+**Status:** Done 2026-10-05.
 **Reviewable when:** `docs/evals.md` and the README Evaluation section exist, every number links to the report it came from, every table states its operating point, and the artifact policy (private datasets, public results) is stated once.
 **Touches:** `docs/evals.md`, `README.md`
 
 ### Phase 3 — Assets
 
-**Depends on:** nothing remaining (Q5, Q6, Q7). Independent of Phases 1–2 except for where the GIF is captioned.
-**Reviewable when:** the UI hero (and optional pipeline terminal GIF) and the Grafana Cloud dashboard GIF exist under `docs/assets/` at a fold-friendly size. Org name is not visible in the dashboard recording.
-**Touches:** `docs/assets/` only
+**Depends on:** nothing remaining (Q5, Q6, Q7). Independent of Phases 1–2 except for where the still is captioned.
+**Status:** Done 2026-10-05.
+**Reviewable when:** the hero is the user-attachment already on `README.md`, and the dashboard still is `docs/assets/llm-cost-accounting.png` with the Cloud org name out of frame. The optional terminal recording was not made and does not block.
+**Touches:** `docs/assets/llm-cost-accounting.png` (rename only). The hero is not a file in this repo.
 
 ### Phase 4 — README landing page
 
 **Depends on:** Phases 2 and 3
-**Reviewable when:** the first screen carries pitch, badges, hero GIF and headline numbers; any live URL is secondary with no sign-in promise; nothing above the fold is unverifiable; reference material lives in `docs/architecture.md` and does not claim a working local Grafana.
+**Status:** Done 2026-10-05.
+**Reviewable when:** the first screen carries pitch, badges, the repositioned hero WebM, and headline numbers; the Evaluation section embeds `docs/assets/llm-cost-accounting.png`; any live URL is secondary and does not offer the author's account or a password; nothing above the fold is unverifiable; reference material lives in `docs/architecture.md` and does not claim a working local Grafana.
 **Touches:** `README.md`, `docs/architecture.md`

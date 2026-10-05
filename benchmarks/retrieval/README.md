@@ -5,6 +5,11 @@ The benchmark measures how effectively the search tier reduces the number of can
 
 All 300 corpus jobs are queried against a single candidate query (formulated from the candidate's `cv.pdf` as `query_text` and `query_vector`).
 
+The corpus, `candidate.json`, and `extracted_profile.json` are private.
+`baseline.json` stays committed. Reports, including the hybrid ranked-uid list,
+are public. A stranger can recompute recall from that list plus the screening
+`.results.jsonl`; they cannot re-index the corpus.
+
 ## Evaluation Objective & Ground Truth
 
 The dataset repurposes 300 stratified postings from the screening benchmark (`benchmarks/screening/dataset/05082026/`):
@@ -18,15 +23,13 @@ The dataset repurposes 300 stratified postings from the screening benchmark (`be
 ```text
 benchmarks/retrieval/
   dataset/
-    05082026/                  # Frozen gating benchmark (300 jobs + candidate query + precomputed 1536-d embeddings)
-      candidate.json           # UserProfile, query_text, and query_vector
-      corpus.jsonl             # 300 jobs with clean text, 1536-d embeddings, and gold labels
-      manifest.json            # Dataset metadata and stratification counts
-      baseline.json            # Regression floor values for CI gating
+    05082026/                  # Private corpus. Only baseline.json is committed.
+      baseline.json            # Regression floor. CI checks the ranked-uid list against it.
   metrics.py                   # Gating metrics (fitting recall, good recall, reduction rate, LLM calls saved, nDCG, MRR)
   dataset.py                   # Dataset loader and schema definitions
-  test_retrieval_smoke.py      # CI smoke test against OpenSearch service container
-  reports/                     # gitignored generated reports (.md and .json)
+  composition.py               # Replay of retrieval + stored screening predictions
+  test_retrieval_smoke.py      # Public ranked-uid assertion, plus a maintainer OpenSearch re-index
+  reports/                     # Public: markdown, JSON, ranked uids, composed-gate report
 ```
 
 ## Metrics
@@ -56,15 +59,24 @@ uv run generate-retrieval-benchmark-dataset --dataset-version 05082026
 uv run python scripts/generate_gating_benchmark_dataset.py --dataset-version test_offline --deterministic-vectors
 ```
 
+The generated corpus stays untracked. Only `baseline.json` is committed from a dataset directory.
+
 ## Running Benchmarks
 
+The headline table is hybrid / BM25 / k-NN at K=150, the cutoff
+`PIPELINE_RETRIEVAL_RATIO=0.5` selects on this 300-job corpus. Other cutoffs
+stay in the sweep.
+
 ```bash
-# Run candidate gating benchmark across BM25, k-NN, and Hybrid RRF (requires OpenSearch)
+# Run candidate gating benchmark across BM25, k-NN, and Hybrid RRF (requires OpenSearch and the private corpus)
 uv run python scripts/run_retrieval_benchmark.py --dataset-version 05082026
 
-# Or run against latest dataset version
-uv run run-retrieval-benchmark
+# Replay screening over the committed ranked-uid list (no OpenSearch, no model calls)
+uv run python scripts/compose_retrieval_screening_gate.py
 
-# CI smoke test (runs in GitHub Actions on PRs against OpenSearch container)
-uv run pytest benchmarks/retrieval/test_retrieval_smoke.py
+# CI floor: public ranked uids against baseline.json (no OpenSearch)
+uv run pytest benchmarks/retrieval/test_retrieval_smoke.py::test_committed_hybrid_ranking_meets_baseline
+
+# Maintainer re-index. Skips when the private corpus is absent.
+uv run pytest benchmarks/retrieval/test_retrieval_smoke.py::test_hybrid_gating_meets_baseline
 ```

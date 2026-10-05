@@ -5,7 +5,11 @@ how well the CV score gate reduces downstream cover-letter generation while
 retaining fitting jobs. Category agreement (exact / adjacent accuracy) remains
 as a diagnostic.
 
-Planning doc: [`docs/planning/fit-assessment-benchmark.md`](../../docs/planning/fit-assessment-benchmark.md)
+Planning doc: [`docs/planning/archive/fit-assessment-benchmark.md`](../../docs/planning/archive/fit-assessment-benchmark.md)
+
+The dataset under `dataset/` is private. Reports under `reports/` are public.
+There is no committed `baseline.json` for this harness. A stranger cannot
+re-run it.
 
 ## Evaluation Objective & Ground Truth
 
@@ -32,13 +36,14 @@ categories, which may differ slightly from the profile mix.
 
 ```text
 benchmarks/fit_assessment/
-  dataset/<DDMMYYYY>/   # git-tracked version (entries, manifest, profile, CV)
-  reports/              # gitignored — generated per run
+  dataset/<DDMMYYYY>/   # private: entries, manifest, profile, CV
+  reports/              # public: markdown (and .results.jsonl when a run writes one)
   metrics.py            # category agreement + cover-letter gating sweep
 ```
 
-New exports should be **committed** as a new (or same-day overwritten) version
-directory under `dataset/`.
+Do not commit a new export. The production-relevant published run is
+`reports/20260909_173301_gpt-5.6-luna.md`, which matches the live
+`FIT_ASSESSMENT_MODEL`.
 
 ## Metrics
 
@@ -74,12 +79,15 @@ uv run python scripts/export_fit_assessment_benchmark_dataset.py
 #   --username USER
 ```
 
-Then commit the new/updated `dataset/<DDMMYYYY>/` tree.
+Keep the export on the machine that already has the dataset. Commit the report,
+not the dataset.
 
 ## Run benchmark
 
 No Mongo at run time — only model API keys. Pass `--dataset-version` when more
-than one version exists. Default model is `grok-4.3`.
+than one version exists. The CLI default is still `grok-4.3`. The live
+environment and `config.py` both use `gpt-5.6-luna`; pass `--model gpt-5.6-luna`
+when the run should match production.
 
 ```bash
 uv run run-fit-assessment-benchmark --dataset-version 01082026

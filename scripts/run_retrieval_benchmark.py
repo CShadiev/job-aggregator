@@ -23,8 +23,9 @@ from benchmarks.retrieval.metrics import (
     naive_recall_at_k,
     ndcg_at_k,
 )
-from config import ConfigProvider
+from config import Config, ConfigProvider
 from logger_provider import LoggerProvider
+from orchestration.retrieval import retrieval_size
 from search.client import build_opensearch_client
 from search.models import IndexedJob, SearchFilters
 from search.search_service import SearchService
@@ -36,6 +37,20 @@ _DEFAULT_REPORTS_DIR = Path("benchmarks/retrieval/reports")
 _REPORT_TEMPLATE_PATH = Path(__file__).parent / "retrieval_benchmark_report.md"
 _MODES = ("bm25", "knn", "hybrid")
 _KS = (20, 50, 90, 100, 150)
+# Gold labels for the public ranked-uid artifact live in this luna run.
+_SCREENING_RESULTS = "benchmarks/screening/reports/20260915_125405_gpt-5.6-luna.results.jsonl"
+
+
+def production_operating_k(n_corpus: int) -> tuple[int, float]:
+    """Return (K, ratio) from code defaults, ignoring a local environment override.
+
+    The published operating point is the default ``PIPELINE_RETRIEVAL_RATIO`` applied
+    to this corpus, which is what production runs unless an operator sets the variable.
+    """
+    ratio = float(Config.model_fields["PIPELINE_RETRIEVAL_RATIO"].default)
+    min_k = int(Config.model_fields["PIPELINE_RETRIEVAL_MIN_K"].default)
+    max_k = int(Config.model_fields["PIPELINE_RETRIEVAL_MAX_K"].default)
+    return retrieval_size(n_corpus, ratio=ratio, min_k=min_k, max_k=max_k), ratio
 
 
 async def run_benchmark(
@@ -79,8 +94,11 @@ async def run_benchmark(
         fitting_uids = dataset.fitting_uids
         grades = dataset.grades()
         n_corpus = len(dataset.corpus)
+        operating_k, retrieval_ratio = production_operating_k(n_corpus)
+        ks = tuple(sorted(set(ks) | {operating_k}))
 
         mode_metrics: dict[str, dict] = {}
+        rankings: dict[str, list[str]] = {}
         for mode in _MODES:
             hits = await search.search_jobs(
                 query_text=query_text,
@@ -90,6 +108,7 @@ async def run_benchmark(
                 size=max(ks),
             )
             retrieved = [hit.uid for hit in hits.hits]
+            rankings[mode] = retrieved
             m = {
                 "mrr": mean_reciprocal_rank(retrieved, fitting_uids),
                 "retrieved_count": len(retrieved),
@@ -112,8 +131,11 @@ async def run_benchmark(
             "n_good": len(good_uids),
             "n_moderate": len(moderate_uids),
             "n_low": len(dataset.low_uids),
+            "operating_k": operating_k,
+            "retrieval_ratio": retrieval_ratio,
             "cutoffs": list(ks),
             "metrics": mode_metrics,
+            "rankings": rankings,
             "timestamp": datetime.now(UTC).strftime("%Y%m%d_%H%M%S"),
         }
         _write_reports(reports_dir, report)
@@ -150,15 +172,16 @@ async def _index_corpus(search: SearchService, dataset: RetrievalDataset) -> Non
 
 def _format_markdown_report(report: dict) -> str:
     """Format retrieval evaluation results into markdown tables."""
+    operating_k = int(report["operating_k"])
     headline_rows = []
     for mode in _MODES:
         m = report["metrics"][mode]
         headline_rows.append(
-            f"| {mode} | {m.get('good_recall@20', 0):.4f} | "
-            f"{m.get('fitting_recall@20', 0):.4f} | "
-            f"{m.get('naive_recall@20', 0):.4f} | "
-            f"{m.get('reduction_rate@20', 0):.1%} | "
-            f"{m.get('llm_calls_saved@20', 0)} | "
+            f"| {mode} | {m.get(f'good_recall@{operating_k}', 0):.4f} | "
+            f"{m.get(f'fitting_recall@{operating_k}', 0):.4f} | "
+            f"{m.get(f'naive_recall@{operating_k}', 0):.4f} | "
+            f"{m.get(f'reduction_rate@{operating_k}', 0):.1%} | "
+            f"{m.get(f'llm_calls_saved@{operating_k}', 0)} | "
             f"{m.get('mrr', 0):.4f} |"
         )
 
@@ -190,6 +213,7 @@ def _format_markdown_report(report: dict) -> str:
             n_good=report["n_good"],
             n_moderate=report["n_moderate"],
             n_low=report["n_low"],
+            operating_k=operating_k,
             headline_table="\n".join(headline_rows),
             cutoff_table="\n".join(cutoff_rows),
         )
@@ -201,7 +225,7 @@ def _format_markdown_report(report: dict) -> str:
         f"- Corpus: {report['n_corpus']}",
         f"- Fitting: {report['n_fitting']}",
         "",
-        "| Mode | Good Recall@20 | Fitting Recall@20 | Naive Recall@20 | Reduction Rate | LLM Calls Saved | MRR |",
+        f"| Mode | Good Recall@{operating_k} | Fitting Recall@{operating_k} | Naive Recall@{operating_k} | Reduction Rate | LLM Calls Saved | MRR |",
         "|---|---|---|---|---|---|---|",
         *headline_rows,
         "",
@@ -211,14 +235,37 @@ def _format_markdown_report(report: dict) -> str:
 
 
 def _write_reports(reports_dir: Path, report: dict) -> None:
-    """Write benchmark results as JSON and Markdown reports."""
+    """Write benchmark results as JSON and Markdown reports, plus the hybrid ranked-uid list."""
     reports_dir.mkdir(parents=True, exist_ok=True)
     stamp = report["timestamp"]
     json_path = reports_dir / f"{stamp}.json"
     md_path = reports_dir / f"{stamp}.md"
     json_path.write_text(json.dumps(report, indent=2), encoding="utf-8")
     md_path.write_text(_format_markdown_report(report), encoding="utf-8")
-    log.info("Wrote retrieval gating reports to {json} and {md}", json=json_path, md=md_path)
+    ranked_path = _write_ranked_uids(reports_dir, report)
+    log.info(
+        "Wrote retrieval gating reports to {json}, {md}, and {ranked}",
+        json=json_path,
+        md=md_path,
+        ranked=ranked_path,
+    )
+
+
+def _write_ranked_uids(reports_dir: Path, report: dict) -> Path:
+    """Write the hybrid ranking that CI and the composition step both consume."""
+    payload = {
+        "dataset_version": report["dataset_version"],
+        "mode": "hybrid",
+        "n_corpus": report["n_corpus"],
+        "operating_k": report["operating_k"],
+        "retrieval_ratio": report["retrieval_ratio"],
+        "ranked_uids": report["rankings"]["hybrid"],
+        "screening_results": _SCREENING_RESULTS,
+        "timestamp": report["timestamp"],
+    }
+    path = reports_dir / f"{report['dataset_version']}_hybrid_ranked_uids.json"
+    path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+    return path
 
 
 def main() -> None:
