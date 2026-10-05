@@ -1,3 +1,4 @@
+[job-aggregator-demo.webm](https://github.com/user-attachments/assets/825489a4-5cbe-425c-aaca-99a39820ad3a)
 # German IT Job Aggregation Service
 
 Aggregates job postings from multiple sources, normalizes them into a common schema, and supports candidate-job matching, ranking, and cover-letter generation.
