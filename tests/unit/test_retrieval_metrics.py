@@ -1,8 +1,5 @@
 """Unit tests for retrieval benchmark metrics, gating calculations, and ATS grade conversion."""
 
-from pathlib import Path
-
-from benchmarks.retrieval.dataset import load_dataset
 from benchmarks.retrieval.labels import ats_score_to_grade
 from benchmarks.retrieval.metrics import (
     aggregate_metrics,
@@ -102,4 +99,3 @@ def test_aggregate_metrics():
     """Test averaging per-query metric dictionaries."""
     assert aggregate_metrics([{"ndcg@10": 1.0}, {"ndcg@10": 0.5}]) == {"ndcg@10": 0.75}
     assert aggregate_metrics([]) == {}
-
