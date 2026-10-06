@@ -116,7 +116,7 @@ def _iter_cover_letter_keys(bucket: str, prefix: str):
     paginator = client.get_paginator("list_objects_v2")
     for page in paginator.paginate(Bucket=bucket, Prefix=prefix):
         for item in page.get("Contents", []):
-            key = item["Key"]
+            key = item.get("Key", "")
             if "/cover_letters/" in key and key.endswith(".json"):
                 yield key
 

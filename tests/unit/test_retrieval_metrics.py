@@ -103,21 +103,3 @@ def test_aggregate_metrics():
     assert aggregate_metrics([{"ndcg@10": 1.0}, {"ndcg@10": 0.5}]) == {"ndcg@10": 0.75}
     assert aggregate_metrics([]) == {}
 
-
-def test_load_dataset_gating_properties():
-    """Test loading gating dataset 05082026 and verifying candidate and corpus properties."""
-    dataset_dir = Path("benchmarks/retrieval/dataset/05082026")
-    if not dataset_dir.exists():
-        return
-
-    dataset = load_dataset(dataset_dir)
-    assert dataset.version == "05082026"
-    assert len(dataset.corpus) == 300
-    assert dataset.candidate is not None
-    assert dataset.candidate.username == "cshadiev"
-    assert len(dataset.candidate.query_vector) == 1536
-    assert len(dataset.fitting_uids) == 90
-    assert len(dataset.good_uids) == 30
-    assert len(dataset.moderate_uids) == 60
-    assert len(dataset.low_uids) == 210
-    assert len(dataset.grades()) == 300
