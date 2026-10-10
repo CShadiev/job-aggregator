@@ -3,6 +3,7 @@
 from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.graph import END, START, StateGraph
 from langgraph.graph.state import CompiledStateGraph
+from langgraph.types import RetryPolicy
 
 from orchestration.deps import PipelineDeps
 from orchestration.nodes.batch import make_batch_nodes
@@ -10,12 +11,21 @@ from orchestration.nodes.pair import make_pair_nodes
 from orchestration.state import PairState, PipelineState
 
 
+RETRY_POLICY = RetryPolicy(
+    max_attempts=5,
+    initial_interval=1,
+    backoff_factor=3,
+    max_interval=90,
+    jitter=True,
+    retry_on=(Exception,),
+)
+
 def build_pair_subgraph(deps: PipelineDeps) -> CompiledStateGraph:
     """Build and compile the per-(candidate, job) evaluation subgraph."""
     nodes = make_pair_nodes(deps)
     builder = StateGraph(PairState)
-    builder.add_node("screen", nodes["screen"])
-    builder.add_node("assess", nodes["assess"])
+    builder.add_node("screen", nodes["screen"], retry_policy=RETRY_POLICY)
+    builder.add_node("assess", nodes["assess"], retry_policy=RETRY_POLICY)
     builder.add_node("cover_letter", nodes["cover_letter"])
     builder.add_node("emit_pair_result", nodes["emit_pair_result"])
 

@@ -80,7 +80,7 @@ def build_collectors(client_session: ClientSession, config: Config) -> list:
         #     apify_parser=LinkedinApifyParser(source_tag="linkedin-us"),
         #     run_apify_task=False,
         # ),
-        ArbeitnowCollector(client=client_session),
+        # ArbeitnowCollector(client=client_session),
         HeadHunterCollector(client=client_session),
     ]
 
