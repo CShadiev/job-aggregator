@@ -124,6 +124,12 @@ job_descriptions_total = Counter(
     ["stage", "source"],
 )
 
+collector_entries_dropped_total = Counter(
+    "collector_entries_dropped_total",
+    "Vacancies dropped for good because an essential field could not be read.",
+    ["source", "reason"],
+)
+
 mongo_checkpoint_duration_seconds = Histogram(
     "mongo_checkpoint_duration_seconds",
     "Duration of LangGraph MongoDB checkpoint writes.",
@@ -293,6 +299,43 @@ def record_job_stage(
 
 
 record_job_descriptions = record_job_stage
+
+
+def record_collector_entries_dropped(
+    *,
+    source: str,
+    reason: str,
+    count: int,
+) -> None:
+    """Record vacancies dropped for good because they could not be parsed.
+
+    Call this only for a run that actually returns. A run discarded after a
+    failed request must not be counted: those vacancies are fetched again.
+
+    Args:
+        source: Origin data source (e.g. ``"headhunter"``).
+        reason: Why the vacancy was dropped (e.g. ``"parse"``).
+        count: Number of dropped vacancies. Zero and negative values are ignored.
+    """
+    try:
+        if count < 0:
+            log.warning(
+                "Negative count passed to record_collector_entries_dropped: {count}",
+                count=count,
+            )
+            return
+        if count == 0:
+            return
+        source_label = str(source).strip() if source and str(source).strip() else "unknown"
+        reason_label = str(reason).strip() if reason and str(reason).strip() else "unknown"
+        collector_entries_dropped_total.labels(source=source_label, reason=reason_label).inc(count)
+    except Exception as exc:
+        log.warning(
+            "Failed to record dropped collector entries for {source}/{reason}: {exc}",
+            source=source,
+            reason=reason,
+            exc=str(exc),
+        )
 
 
 def record_http_request(

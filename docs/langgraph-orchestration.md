@@ -93,7 +93,7 @@ Batch list channels are cleared at cycle start (`collect` uses `Overwrite([])` f
 | `fanout` | Returns `"finalize"` or a `Send("pair_pipeline", PairState)` list |
 | `finalize` | Logs cycle aggregates; clears batch channels with `Overwrite` for `pair_results` |
 
-Collectors wired in `build_collectors`: LinkedIn Apify tasks (DE / PL / UK, `run_apify_task=False`) plus Arbeitnow.
+Collectors wired in `build_collectors`: LinkedIn Apify tasks (DE / PL / UK, `run_apify_task=False`), Arbeitnow, and HeadHunter.
 
 ## Pair nodes
 

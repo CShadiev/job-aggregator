@@ -11,10 +11,9 @@ from agents.deduplication import DeduplicationAgent
 from agents.fit_assessment import FitAssessmentAgent
 from agents.model_factory import Model, ModelFactory
 from agents.screening import ScreeningAgent
-from collection_service.apify_collector import ApifyCollector
 from collection_service.arbeitnow_collector import ArbeitnowCollector
 from collection_service.collection_service import CollectionService
-from collection_service.linkedin_apify_parser import LinkedinApifyParser
+from collection_service.headhunter_collector import HeadHunterCollector
 from config import Config, ConfigProvider
 from repository.mongo_jobs_repository import MongoJobsRepository
 from repository.object_storage import ObjectStorage
@@ -59,29 +58,30 @@ def build_collectors(client_session: ClientSession, config: Config) -> list:
         List of configured ICollector implementations.
     """
     return [
-        ApifyCollector(
-            client_session=client_session,
-            task_id=config.APIFY_LINKEDIN_TASK_ID,
-            source_tag="linkedin",
-            apify_parser=LinkedinApifyParser(source_tag="linkedin"),
-            run_apify_task=False,
-        ),
-        ApifyCollector(
-            client_session=client_session,
-            task_id=config.APIFY_LINKEDIN_PL_TASK_ID,
-            source_tag="linkedin-poland",
-            apify_parser=LinkedinApifyParser(source_tag="linkedin-poland"),
-            run_apify_task=False,
-        ),
-        ApifyCollector(
-            client_session=client_session,
-            # hopeful_quarter~indeed-scraper-task
-            task_id=config.APIFY_LINKEDIN_US_TASK_ID,
-            source_tag="linkedin-us",
-            apify_parser=LinkedinApifyParser(source_tag="linkedin-us"),
-            run_apify_task=False,
-        ),
+        # ApifyCollector(
+        #     client_session=client_session,
+        #     task_id=config.APIFY_LINKEDIN_TASK_ID,
+        #     source_tag="linkedin",
+        #     apify_parser=LinkedinApifyParser(source_tag="linkedin"),
+        #     run_apify_task=False,
+        # ),
+        # ApifyCollector(
+        #     client_session=client_session,
+        #     task_id=config.APIFY_LINKEDIN_PL_TASK_ID,
+        #     source_tag="linkedin-poland",
+        #     apify_parser=LinkedinApifyParser(source_tag="linkedin-poland"),
+        #     run_apify_task=False,
+        # ),
+        # ApifyCollector(
+        #     client_session=client_session,
+        #     # hopeful_quarter~indeed-scraper-task
+        #     task_id=config.APIFY_LINKEDIN_US_TASK_ID,
+        #     source_tag="linkedin-us",
+        #     apify_parser=LinkedinApifyParser(source_tag="linkedin-us"),
+        #     run_apify_task=False,
+        # ),
         ArbeitnowCollector(client=client_session),
+        HeadHunterCollector(client=client_session),
     ]
 
 

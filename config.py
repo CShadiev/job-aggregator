@@ -24,6 +24,24 @@ class Config(BaseSettings):
     ARBEITNOW_BASE_URL: str = "https://www.arbeitnow.com/api/job-board-api"
     ARBEITNOW_MAX_PAGES: int = 10
 
+    # Public hh.ru HTML. ``order_by`` stays newest-first so the first posting
+    # is the checkpoint ``CollectionService`` stores.
+    HH_USER_AGENT: str = (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+        "(Windows NT 10.0; Win64; x64) Chrome/131.0.0.0 Safari/537.36"
+    )
+    HH_TEXT: str = "python разработчик"
+    HH_AREA: str = "1"
+    HH_EXPERIENCE: list[str] = ["between3And6", "moreThan6"]
+    HH_EMPLOYMENT_FORM: str = "FULL"
+    HH_LABEL: str = "accept_labor_contract"
+    HH_SEARCH_PERIOD: int = 7
+    HH_ACCEPT_TEMPORARY: str = "false"
+    HH_ORDER_BY: str = "publication_time"
+    HH_ORED_CLUSTERS: str = "true"
+    HH_MAX_PAGES: int = 10
+    HH_REQUEST_DELAY_SECONDS: float = 0.2
+
     APIFY_INDEED_TASK_ID: str = "hopeful_quarter~indeed-scraper-task"
     APIFY_STEPSTONE_TASK_ID: str = "hopeful_quarter~stepstone-job-scraper-task"
     APIFY_LINKEDIN_TASK_ID: str = "hopeful_quarter~linkedin-scraper-task"  # DE
@@ -95,7 +113,7 @@ class Config(BaseSettings):
     EMBEDDING_DIMENSIONS: int = 1536
     EMBEDDING_BATCH_SIZE: int = 64
 
-    PIPELINE_PAIR_MODE: Literal["topk", "cartesian"] = "topk"
+    PIPELINE_PAIR_MODE: Literal["topk", "cartesian"] = "cartesian"
     PIPELINE_RETRIEVAL_RATIO: float = Field(default=0.5, gt=0.0, le=1.0)
     PIPELINE_RETRIEVAL_MIN_K: int = Field(default=1, ge=1)
     PIPELINE_RETRIEVAL_MAX_K: int = Field(default=200, ge=1)

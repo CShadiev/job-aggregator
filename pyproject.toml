@@ -28,6 +28,8 @@ dependencies = [
     "opensearch-py>=2.8,<3",
     "prometheus-client>=0.26.0",
     "pymongo>=4.12,<4.17",
+    "selenium>=4.51.0",
+    "beautifulsoup4>=4.15.0",
 ]
 
 [project.scripts]

@@ -22,6 +22,7 @@ Operator reference for the pipeline, the API, and local dependencies. The produc
 | LinkedIn (Poland) | Apify | yes |
 | LinkedIn (United Kingdom) | Apify | yes |
 | Arbeitnow | Direct API | yes (Python-keyword filter) |
+| HeadHunter (hh.ru) | Public HTML | yes |
 | StepStone | Apify parser exists | no |
 | Indeed | Apify parser exists | no |
 
@@ -39,6 +40,7 @@ Source-specific adapters that handle the details of each provider's API.
 
 - `ApifyCollector` — retrieves Apify actor results (by default the last successful run's dataset, without triggering a new run). Used for LinkedIn DE / Poland / UK with `LinkedinApifyParser`.
 - `ArbeitnowCollector` — paginates the Arbeitnow REST API and keeps postings that mention Python in the description.
+- `HeadHunterCollector` — downloads hh.ru search pages and each vacancy page for the configured query.
 
 StepStone and Indeed Apify parsers remain in the repo but are not attached to the running collector list.
 
@@ -187,6 +189,7 @@ The API and the pipeline runner are separate processes, so each publishes its ow
 | `pipeline_node_duration_seconds` | histogram | `node` |
 | `pipeline_tasks_total` | counter | `node`, `status` (`success` / `failure`) |
 | `job_descriptions_total` | counter | `stage` (`collection` / `retrieval` / `screening` / `assessment`), `source` |
+| `collector_entries_dropped_total` | counter | `source`, `reason` (`parse`) |
 | `mongo_checkpoint_duration_seconds` | histogram | — |
 | `dependency_up` | gauge | `dependency` (published by `/readyz`) |
 | `http_requests_total` / `http_request_duration_seconds` | counter / histogram | `method`, `path` (route template), `status` |
@@ -245,7 +248,7 @@ Offline benchmarks need the private datasets. Entry points and the public report
 | `APIFY_LINKEDIN_PL_TASK_ID` | LinkedIn Poland Apify task |
 | `APIFY_LINKEDIN_UK_TASK_ID` | LinkedIn UK Apify task |
 
-Optional tuning variables: `DEDUPLICATION_BATCH_SIZE`, `DEDUPLICATION_MODEL`, `SCREENING_MODEL`, `FIT_ASSESSMENT_MODEL`, `COVER_LETTER_MODEL`, `COVER_LETTER_MIN_CV_SCORE`, `PIPELINE_PAIR_CONCURRENCY`, `PIPELINE_SCHEDULE_SECONDS`, `ARBEITNOW_MAX_PAGES`, `DEBUG_MODE`, `LOG_DIR`, `TEMP_DIR`, `METRICS_ENABLED`, `WORKER_METRICS_HOST`, `WORKER_METRICS_PORT`, `PRICING_CACHE_TTL_SECONDS`, and per-collection name overrides (`MONGODB_JOBS_COLLECTION`, `MONGODB_SCREENINGS_COLLECTION`, etc.). `LOG_DIR` and `TEMP_DIR` are resolved to absolute paths (relative values are interpreted against the application root) and may point outside the app directory in production.
+Optional tuning variables: `DEDUPLICATION_BATCH_SIZE`, `DEDUPLICATION_MODEL`, `SCREENING_MODEL`, `FIT_ASSESSMENT_MODEL`, `COVER_LETTER_MODEL`, `COVER_LETTER_MIN_CV_SCORE`, `PIPELINE_PAIR_CONCURRENCY`, `PIPELINE_SCHEDULE_SECONDS`, `ARBEITNOW_MAX_PAGES`, `HH_MAX_PAGES`, `DEBUG_MODE`, `LOG_DIR`, `TEMP_DIR`, `METRICS_ENABLED`, `WORKER_METRICS_HOST`, `WORKER_METRICS_PORT`, `PRICING_CACHE_TTL_SECONDS`, and per-collection name overrides (`MONGODB_JOBS_COLLECTION`, `MONGODB_SCREENINGS_COLLECTION`, etc.). `LOG_DIR` and `TEMP_DIR` are resolved to absolute paths (relative values are interpreted against the application root) and may point outside the app directory in production.
 
 Default models: deduplication, fit assessment, and cover letters use `gpt-5.6-luna`. `SCREENING_MODEL` defaults to `glm-5.3-flash`, the bake-off winner. The live environment still sets screening to `gpt-5.6-luna` until that switch is deployed.
 
