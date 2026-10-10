@@ -11,7 +11,6 @@ from agents.deduplication import DeduplicationAgent
 from agents.fit_assessment import FitAssessmentAgent
 from agents.model_factory import Model, ModelFactory
 from agents.screening import ScreeningAgent
-from collection_service.arbeitnow_collector import ArbeitnowCollector
 from collection_service.collection_service import CollectionService
 from collection_service.headhunter_collector import HeadHunterCollector
 from config import Config, ConfigProvider

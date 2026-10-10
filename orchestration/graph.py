@@ -10,7 +10,6 @@ from orchestration.nodes.batch import make_batch_nodes
 from orchestration.nodes.pair import make_pair_nodes
 from orchestration.state import PairState, PipelineState
 
-
 RETRY_POLICY = RetryPolicy(
     max_attempts=5,
     initial_interval=1,
@@ -19,6 +18,7 @@ RETRY_POLICY = RetryPolicy(
     jitter=True,
     retry_on=(Exception,),
 )
+
 
 def build_pair_subgraph(deps: PipelineDeps) -> CompiledStateGraph:
     """Build and compile the per-(candidate, job) evaluation subgraph."""
