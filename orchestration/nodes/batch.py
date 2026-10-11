@@ -1,5 +1,6 @@
-"""Batch spine nodes: collect → normalize → dedupe → persist → build pairs → finalize."""
+"""Batch spine nodes: collect, normalize, dedupe, persist, embed, requeue, then pair."""
 
+from datetime import UTC, datetime, timedelta
 from typing import Any
 from uuid import uuid4
 
@@ -8,7 +9,7 @@ from langgraph.types import Overwrite, Send
 from cv_text_service import ensure_cv_text
 from logger_provider import LoggerProvider
 from models.collection_service import JobPosting
-from models.failed_tasks import FailedTask
+from models.failed_tasks import FailedTask, NodeName
 from monitoring.metrics import instrument_nodes, record_job_stage
 from orchestration.deps import PipelineDeps
 from orchestration.retrieval import retrieval_size, retrieve_topk_pairs
@@ -22,6 +23,11 @@ from search.models import IndexedJob
 from search.text import job_embedding_text
 
 log = LoggerProvider.get_logger()
+
+# Pair-pipeline failures carry a job uid. Jobs that failed within this window are
+# added back onto the next cycle so a transient screening or assessment error is retried.
+FAILED_JOB_MAX_AGE = timedelta(hours=72)
+FAILED_JOB_NODES: tuple[NodeName, ...] = ("screen", "assess", "cover_letter")
 
 
 def make_batch_nodes(deps: PipelineDeps) -> dict[str, Any]:
@@ -192,6 +198,66 @@ def make_batch_nodes(deps: PipelineDeps) -> dict[str, Any]:
             raise
         return {}
 
+    async def requeue_failed_jobs(state: PipelineState) -> dict[str, Any]:
+        cycle_id = state["cycle_id"]
+        unique_jobs = state["unique_jobs"]
+        since = datetime.now(UTC) - FAILED_JOB_MAX_AGE
+        try:
+            failed_tasks = await repository.get_recent_failed_tasks(
+                since=since,
+                nodes=FAILED_JOB_NODES,
+            )
+            seen = {job.get("uid") for job in unique_jobs}
+            ordered_uids: list[str] = []
+            for task in failed_tasks:
+                uid = task.payload.get("job_uid")
+                if not isinstance(uid, str) or not uid or uid in seen:
+                    continue
+                seen.add(uid)
+                ordered_uids.append(uid)
+            if not ordered_uids:
+                log.info(
+                    "No failed jobs to requeue",
+                    event="pipeline_requeue_failed_jobs",
+                    cycle_id=cycle_id,
+                )
+                return {}
+            stored = await repository.get_jobs_by_uids(ordered_uids)
+            jobs_by_uid = {job.uid: job for job in stored}
+            extra = [
+                jobs_by_uid[uid].model_dump(mode="json")
+                for uid in ordered_uids
+                if uid in jobs_by_uid
+            ]
+            missing = [uid for uid in ordered_uids if uid not in jobs_by_uid]
+            if missing:
+                log.warning(
+                    "Skipping {n_missing} failed jobs that are no longer stored",
+                    event="pipeline_requeue_failed_jobs_missing",
+                    cycle_id=cycle_id,
+                    n_missing=len(missing),
+                )
+            log.info(
+                "Requeued {n_jobs} failed jobs from the last 72 hours",
+                event="pipeline_requeue_failed_jobs",
+                cycle_id=cycle_id,
+                n_jobs=len(extra),
+            )
+        except Exception as exc:
+            await repository.store_failed_task(
+                FailedTask(
+                    node="requeue_failed_jobs",
+                    thread_id=thread_id,
+                    cycle_id=cycle_id,
+                    error=str(exc),
+                    payload={"n_jobs": len(unique_jobs)},
+                )
+            )
+            raise
+        if not extra:
+            return {}
+        return {"unique_jobs": [*unique_jobs, *extra]}
+
     async def build_pairs(state: PipelineState) -> dict[str, Any]:
         cycle_id = state["cycle_id"]
         unique_jobs = state["unique_jobs"]
@@ -323,6 +389,7 @@ def make_batch_nodes(deps: PipelineDeps) -> dict[str, Any]:
             "dedupe": dedupe,
             "persist_jobs": persist_jobs,
             "embed_jobs": embed_jobs,
+            "requeue_failed_jobs": requeue_failed_jobs,
             "build_pairs": build_pairs,
             "fanout": fanout,
             "finalize": finalize,

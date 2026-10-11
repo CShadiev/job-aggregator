@@ -1,11 +1,12 @@
 """Unit tests for pair-building gating and embedding nodes in batch orchestration."""
 
 import hashlib
+from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from models.failed_tasks import FailedTask
+from models.failed_tasks import FailedTask, NodeName
 from models.users import (
     CareerGoals,
     Contact,
@@ -19,9 +20,10 @@ from models.users import (
     TechnicalSkills,
     UserProfile,
 )
-from orchestration.nodes.batch import make_batch_nodes
+from orchestration.nodes.batch import FAILED_JOB_MAX_AGE, FAILED_JOB_NODES, make_batch_nodes
 from orchestration.state import new_pipeline_state
 from search.models import SearchHit, SearchHits
+from tests.helpers.job_posting import make_job_posting
 
 
 def _profile(username: str = "ada") -> UserProfile:
@@ -211,6 +213,103 @@ async def test_embed_jobs_hard_fails_and_records_task():
         await nodes["embed_jobs"](new_pipeline_state(cycle_id="c1", unique_jobs=[job]))
     task = deps.repository.store_failed_task.await_args.args[0]
     assert task.node == "embed_jobs"
+
+
+def _failed_task(node: NodeName, job_uid: str | None) -> FailedTask:
+    """Build a failed-task envelope for requeue tests."""
+    payload = {"username": "ada"}
+    if job_uid is not None:
+        payload["job_uid"] = job_uid
+    return FailedTask(
+        node=node,
+        thread_id="old",
+        cycle_id="old-cycle",
+        error="llm down",
+        payload=payload,
+    )
+
+
+def test_pipeline_requeues_failed_jobs_between_embed_and_pairs():
+    """The batch spine inserts the requeue node after embedding and before pairing."""
+    from langgraph.checkpoint.memory import MemorySaver
+
+    from orchestration.graph import build_pair_subgraph, build_pipeline_graph
+
+    pair = build_pair_subgraph(MagicMock())
+    assert "__error_handler__screen" in pair.nodes
+
+    pipeline = build_pipeline_graph(MagicMock(), MemorySaver())
+    edges = {(edge.source, edge.target) for edge in pipeline.get_graph().edges}
+    assert ("embed_jobs", "requeue_failed_jobs") in edges
+    assert ("requeue_failed_jobs", "build_pairs") in edges
+
+
+@pytest.mark.asyncio
+async def test_requeue_failed_jobs_appends_recent_failures():
+    """Jobs that failed within 72 hours are added to unique_jobs before pairing."""
+    deps = _deps()
+    fresh = make_job_posting(uid="fresh")
+    failed = make_job_posting(uid="failed")
+    deps.repository.get_recent_failed_tasks.return_value = [
+        _failed_task("screen", "fresh"),
+        _failed_task("screen", "failed"),
+        _failed_task("assess", "failed"),
+        _failed_task("cover_letter", "gone"),
+        _failed_task("screen", None),
+    ]
+    deps.repository.get_jobs_by_uids.return_value = [failed]
+    nodes = make_batch_nodes(deps)
+
+    result = await nodes["requeue_failed_jobs"](
+        new_pipeline_state(
+            cycle_id="c1",
+            unique_jobs=[fresh.model_dump(mode="json")],
+        )
+    )
+
+    assert [job["uid"] for job in result["unique_jobs"]] == ["fresh", "failed"]
+    deps.repository.get_jobs_by_uids.assert_awaited_once_with(["failed", "gone"])
+    kwargs = deps.repository.get_recent_failed_tasks.await_args.kwargs
+    assert kwargs["nodes"] == FAILED_JOB_NODES
+    age = datetime.now(UTC) - kwargs["since"]
+    assert (
+        FAILED_JOB_MAX_AGE - timedelta(seconds=5)
+        <= age
+        <= FAILED_JOB_MAX_AGE + timedelta(seconds=5)
+    )
+
+
+@pytest.mark.asyncio
+async def test_requeue_failed_jobs_leaves_batch_unchanged_when_nothing_failed():
+    """An empty failure window does not rewrite unique_jobs."""
+    deps = _deps()
+    deps.repository.get_recent_failed_tasks.return_value = []
+    nodes = make_batch_nodes(deps)
+
+    result = await nodes["requeue_failed_jobs"](
+        new_pipeline_state(cycle_id="c1", unique_jobs=[{"uid": "fresh"}])
+    )
+
+    assert result == {}
+    deps.repository.get_jobs_by_uids.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_requeue_failed_jobs_records_task_and_reraises():
+    """A lookup failure aborts the cycle after it is recorded."""
+    deps = _deps()
+    deps.repository.get_recent_failed_tasks.side_effect = RuntimeError("mongo down")
+    nodes = make_batch_nodes(deps)
+
+    with pytest.raises(RuntimeError, match="mongo down"):
+        await nodes["requeue_failed_jobs"](
+            new_pipeline_state(cycle_id="c1", unique_jobs=[{"uid": "fresh"}])
+        )
+
+    task = deps.repository.store_failed_task.await_args.args[0]
+    assert isinstance(task, FailedTask)
+    assert task.node == "requeue_failed_jobs"
+    assert task.error == "mongo down"
 
 
 @pytest.mark.asyncio

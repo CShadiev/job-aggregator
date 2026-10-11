@@ -2,6 +2,9 @@
 
 from typing import Any
 
+from langgraph.errors import NodeError
+from langgraph.types import Command
+
 from cover_letter_service import generate_and_persist_cover_letter
 from logger_provider import LoggerProvider
 from models.collection_service import JobPosting
@@ -26,16 +29,13 @@ def make_pair_nodes(deps: PipelineDeps) -> dict[str, Any]:
     thread_id = deps.thread_id
     min_cv_score = deps.cover_letter_min_cv_score
 
-    async def _fail_pair(
+    async def _record_pair_failure(
         state: PairState,
         *,
         node: NodeName,
-        error: Exception,
+        error: BaseException,
         extra_payload: dict[str, Any] | None = None,
-    ) -> dict[str, Any]:
-        # Pair failures are absorbed into a skip reason rather than raised, so the node
-        # instrumentation has to be told the task failed.
-        mark_node_failed()
+    ) -> None:
         job = state["job"]
         username = state["username"]
         payload = {
@@ -52,13 +52,29 @@ def make_pair_nodes(deps: PipelineDeps) -> dict[str, Any]:
                 payload=payload,
             )
         )
-        log.exception(
+        log.opt(exception=error).error(
             "Pair node {node} failed for {username}/{job_uid}",
             event="pipeline_pair_error",
             node=node,
             username=username,
             job_uid=job.get("uid"),
-            exc_info=True,
+        )
+
+    async def _fail_pair(
+        state: PairState,
+        *,
+        node: NodeName,
+        error: Exception,
+        extra_payload: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        # These failures are absorbed into a skip reason rather than raised, so the node
+        # instrumentation has to be told the task failed.
+        mark_node_failed()
+        await _record_pair_failure(
+            state,
+            node=node,
+            error=error,
+            extra_payload=extra_payload,
         )
         return {"skipped_reason": f"{node}_error: {error}"}
 
@@ -73,22 +89,27 @@ def make_pair_nodes(deps: PipelineDeps) -> dict[str, Any]:
             record_job_stage(stage="screening", source=job.source)
             return {"screening": existing.model_dump(mode="json")}
 
-        try:
-            result = await screening_agent.screen(cv_text=state["cv_text"], job=job)
-            await repository.store_screening(
-                username=username,
-                job_uid=job.uid,
-                result=result,
-                model=screening_model,
-            )
-            _log.info(
-                "Screened job worth_full_assessment={worth}",
-                worth=result.worth_full_assessment,
-            )
-            record_job_stage(stage="screening", source=job.source)
-            return {"screening": result.model_dump(mode="json")}
-        except Exception as exc:
-            return await _fail_pair(state, node="screen", error=exc)
+        result = await screening_agent.screen(cv_text=state["cv_text"], job=job)
+        await repository.store_screening(
+            username=username,
+            job_uid=job.uid,
+            result=result,
+            model=screening_model,
+        )
+        _log.info(
+            "Screened job worth_full_assessment={worth}",
+            worth=result.worth_full_assessment,
+        )
+        record_job_stage(stage="screening", source=job.source)
+        return {"screening": result.model_dump(mode="json")}
+
+    async def handle_screen_failure(state: PairState, error: NodeError) -> Command:
+        """Record a screening failure after the graph retry policy is exhausted."""
+        await _record_pair_failure(state, node="screen", error=error.error)
+        return Command(
+            update={"skipped_reason": f"screen_error: {error.error}"},
+            goto="emit_pair_result",
+        )
 
     async def assess(state: PairState) -> dict[str, Any]:
         username = state["username"]
@@ -170,7 +191,7 @@ def make_pair_nodes(deps: PipelineDeps) -> dict[str, Any]:
     def route_assess(state: PairState) -> str:
         return route_after_assess(state, min_cv_score=min_cv_score)
 
-    return instrument_nodes(
+    nodes = instrument_nodes(
         {
             "screen": screen,
             "assess": assess,
@@ -180,3 +201,7 @@ def make_pair_nodes(deps: PipelineDeps) -> dict[str, Any]:
             "route_assess": route_assess,
         }
     )
+    # Leave the handler unwrapped so LangGraph can inject the NodeError argument.
+    # instrument_node only forwards graph state.
+    nodes["handle_screen_failure"] = handle_screen_failure
+    return nodes

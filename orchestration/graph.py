@@ -24,7 +24,14 @@ def build_pair_subgraph(deps: PipelineDeps) -> CompiledStateGraph:
     """Build and compile the per-(candidate, job) evaluation subgraph."""
     nodes = make_pair_nodes(deps)
     builder = StateGraph(PairState)
-    builder.add_node("screen", nodes["screen"], retry_policy=RETRY_POLICY)
+    # Exceptions must leave `screen` so this policy can retry. The handler runs
+    # only after the attempts are exhausted and records the pair as a failed task.
+    builder.add_node(
+        "screen",
+        nodes["screen"],
+        retry_policy=RETRY_POLICY,
+        error_handler=nodes["handle_screen_failure"],
+    )
     builder.add_node("assess", nodes["assess"], retry_policy=RETRY_POLICY)
     builder.add_node("cover_letter", nodes["cover_letter"])
     builder.add_node("emit_pair_result", nodes["emit_pair_result"])
@@ -59,6 +66,7 @@ def build_pipeline_graph(
     builder.add_node("dedupe", batch["dedupe"])
     builder.add_node("persist_jobs", batch["persist_jobs"])
     builder.add_node("embed_jobs", batch["embed_jobs"])
+    builder.add_node("requeue_failed_jobs", batch["requeue_failed_jobs"])
     builder.add_node("build_pairs", batch["build_pairs"])
     builder.add_node("pair_pipeline", pair_pipeline)
     builder.add_node("finalize", batch["finalize"])
@@ -68,7 +76,8 @@ def build_pipeline_graph(
     builder.add_edge("normalize", "dedupe")
     builder.add_edge("dedupe", "persist_jobs")
     builder.add_edge("persist_jobs", "embed_jobs")
-    builder.add_edge("embed_jobs", "build_pairs")
+    builder.add_edge("embed_jobs", "requeue_failed_jobs")
+    builder.add_edge("requeue_failed_jobs", "build_pairs")
     builder.add_conditional_edges(
         "build_pairs",
         batch["fanout"],

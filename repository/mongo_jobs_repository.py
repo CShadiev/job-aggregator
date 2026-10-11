@@ -423,6 +423,20 @@ class MongoJobsRepository:
             return None
         return JobPosting.model_validate(doc)
 
+    async def get_jobs_by_uids(self, uids: Sequence[str]) -> list[JobPosting]:
+        """Fetch stored job postings for the given unique IDs.
+
+        Args:
+            uids: Job posting unique identifiers. Missing IDs are omitted.
+
+        Returns:
+            Matching postings. Order is not guaranteed.
+        """
+        if not uids:
+            return []
+        cursor = self._jobs.find({"uid": {"$in": list(uids)}})
+        return [JobPosting.model_validate(doc) async for doc in cursor]
+
     async def get_recent_jobs(
         self,
         *,
@@ -530,6 +544,28 @@ class MongoJobsRepository:
             task: FailedTask instance containing failure envelope details.
         """
         await self._failed_tasks.insert_one(task.model_dump())
+
+    async def get_recent_failed_tasks(
+        self,
+        *,
+        since: datetime,
+        nodes: Sequence[str],
+    ) -> list[FailedTask]:
+        """Return failed tasks for *nodes* whose ``failed_at`` is at or after *since*.
+
+        Args:
+            since: Inclusive lower bound for ``failed_at`` (UTC).
+            nodes: Pipeline node names to include.
+
+        Returns:
+            Matching tasks, oldest first.
+        """
+        if not nodes:
+            return []
+        cursor = self._failed_tasks.find(
+            {"node": {"$in": list(nodes)}, "failed_at": {"$gte": since}}
+        ).sort("failed_at", 1)
+        return [FailedTask.model_validate(doc) async for doc in cursor]
 
     async def get_application_cover_letter_key(
         self,
@@ -799,6 +835,10 @@ class MongoJobsRepository:
         await self._failed_tasks.create_index(
             [("cycle_id", 1), ("node", 1)],
             name="cycle_id_node",
+        )
+        await self._failed_tasks.create_index(
+            [("node", 1), ("failed_at", 1)],
+            name="node_failed_at",
         )
 
     async def get_job_feed_items(

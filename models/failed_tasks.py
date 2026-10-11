@@ -11,6 +11,7 @@ NodeName = Literal[
     "dedupe",
     "persist_jobs",
     "embed_jobs",
+    "requeue_failed_jobs",
     "build_pairs",
     "screen",
     "assess",

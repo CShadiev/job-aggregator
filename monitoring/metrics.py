@@ -361,8 +361,10 @@ _node_failed: contextvars.ContextVar[bool] = contextvars.ContextVar(
 def mark_node_failed() -> None:
     """Flag the running node as failed when it handles the error instead of raising.
 
-    Pair nodes funnel exceptions through their own failure handler and return a skip
-    reason, so :func:`instrument_node` cannot see the failure from a raised exception.
+    Assess and cover-letter nodes funnel exceptions through their own failure handler
+    and return a skip reason, so :func:`instrument_node` cannot see the failure from a
+    raised exception. Screening lets the exception propagate so the graph retry policy
+    can retry the node.
     """
     _node_failed.set(True)
 
