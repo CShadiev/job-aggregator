@@ -75,8 +75,7 @@ def make_batch_nodes(deps: PipelineDeps) -> dict[str, Any]:
             record_job_stage(stage="collection", source=src, count=count)
 
         source_checkpoints = {
-            src: ts.isoformat()
-            for src, ts in getattr(result, "source_checkpoints", {}).items()
+            src: ts.isoformat() for src, ts in getattr(result, "source_checkpoints", {}).items()
         }
 
         # Overwrite batch channels at cycle start so prior checkpoint lists do not stick.

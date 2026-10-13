@@ -5,6 +5,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from langgraph.checkpoint.memory import MemorySaver
+from langgraph.graph.state import RunnableConfig
 
 from models.collection_service import CollectionResult
 from models.deduplication import NormalizationResult
@@ -43,7 +44,6 @@ async def test_concurrent_pairs_do_not_collide_on_cycle_id():
     deps.screening_agent.screen.return_value = ScreeningResult(
         worth_full_assessment=False,
         confidence=0.9,
-        reasoning="Not a fit",
     )
     deps.repository.store_screening = AsyncMock()
 
@@ -79,7 +79,7 @@ async def test_concurrent_pairs_do_not_collide_on_cycle_id():
     graph = build_pipeline_graph(deps, checkpointer)
 
     cycle_id = "test-cycle-uuid-1234"
-    config = {
+    config: RunnableConfig = {
         "configurable": {"thread_id": "test-thread"},
         "max_concurrency": 10,
     }
