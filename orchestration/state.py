@@ -13,6 +13,7 @@ class PipelineState(TypedDict):
     unique_jobs: list[dict[str, Any]]
     pairs: list[dict[str, Any]]
     pair_results: Annotated[list[dict[str, Any]], operator.add]
+    source_checkpoints: dict[str, str]
 
 
 class PairState(TypedDict):
@@ -29,6 +30,12 @@ class PairState(TypedDict):
     pair_results: Annotated[list[dict[str, Any]], operator.add]
 
 
+class PairOutput(TypedDict):
+    """Subgraph output schema emitting only reduced pair results to the parent graph."""
+
+    pair_results: Annotated[list[dict[str, Any]], operator.add]
+
+
 def new_pipeline_state(
     *,
     cycle_id: str = "",
@@ -37,6 +44,7 @@ def new_pipeline_state(
     unique_jobs: list[dict[str, Any]] | None = None,
     pairs: list[dict[str, Any]] | None = None,
     pair_results: list[dict[str, Any]] | None = None,
+    source_checkpoints: dict[str, str] | None = None,
 ) -> PipelineState:
     """Build a complete ``PipelineState`` with empty defaults for omitted fields."""
     return {
@@ -46,6 +54,7 @@ def new_pipeline_state(
         "unique_jobs": unique_jobs if unique_jobs is not None else [],
         "pairs": pairs if pairs is not None else [],
         "pair_results": pair_results if pair_results is not None else [],
+        "source_checkpoints": source_checkpoints if source_checkpoints is not None else {},
     }
 
 
@@ -93,6 +102,7 @@ def cleared_batch_state() -> dict[str, Any]:
         "unique_jobs": state["unique_jobs"],
         "pairs": state["pairs"],
         "pair_results": state["pair_results"],
+        "source_checkpoints": state["source_checkpoints"],
     }
 
 

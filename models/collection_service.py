@@ -115,3 +115,6 @@ class CollectionResult(BaseModel):
 
     invalid_entries: list[InvalidEntry]
     """List of invalid entries with validation error messages."""
+
+    source_checkpoints: dict[str, datetime] = Field(default_factory=dict)
+    """High-water mark timestamp per source to be committed downstream."""

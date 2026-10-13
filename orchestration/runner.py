@@ -42,21 +42,47 @@ async def run_once(
         "configurable": {"thread_id": config.PIPELINE_THREAD_ID},
         "max_concurrency": config.PIPELINE_PAIR_CONCURRENCY,
     }
-    cycle_id = str(uuid4())
+
+    snapshot = None
+    if hasattr(graph, "aget_state"):
+        try:
+            snapshot = await graph.aget_state(invoke_config)
+        except Exception:
+            snapshot = None
+
+    is_resume = bool(snapshot and snapshot.next)
+    if is_resume and snapshot and snapshot.values:
+        cycle_id = snapshot.values.get("cycle_id") or str(uuid4())
+    else:
+        cycle_id = str(uuid4())
+
     token = cycle_id_ctx.set(cycle_id)
     start = perf_counter()
     try:
         with tracer.start_as_current_span("pipeline.cycle") as span:
             span.set_attribute("pipeline.cycle_id", cycle_id)
             span.set_attribute("pipeline.thread_id", config.PIPELINE_THREAD_ID)
-            log.info(
-                "Starting pipeline cycle",
-                event="pipeline_cycle_start",
-                cycle_id=cycle_id,
-                thread_id=config.PIPELINE_THREAD_ID,
-            )
+            span.set_attribute("pipeline.resumed", is_resume)
+            if is_resume and snapshot:
+                log.info(
+                    "Resuming pipeline cycle from checkpoint",
+                    event="pipeline_cycle_resume",
+                    cycle_id=cycle_id,
+                    thread_id=config.PIPELINE_THREAD_ID,
+                    next_nodes=list(snapshot.next),
+                )
+            else:
+                log.info(
+                    "Starting pipeline cycle",
+                    event="pipeline_cycle_start",
+                    cycle_id=cycle_id,
+                    thread_id=config.PIPELINE_THREAD_ID,
+                )
             try:
-                await graph.ainvoke(new_pipeline_state(cycle_id=cycle_id), config=invoke_config)
+                if is_resume:
+                    await graph.ainvoke(None, config=invoke_config)
+                else:
+                    await graph.ainvoke(new_pipeline_state(cycle_id=cycle_id), config=invoke_config)
             except Exception:
                 record_pipeline_cycle(duration_seconds=perf_counter() - start, status="error")
                 raise
@@ -66,6 +92,7 @@ async def run_once(
                 event="pipeline_cycle_end",
                 cycle_id=cycle_id,
                 thread_id=config.PIPELINE_THREAD_ID,
+                resumed=is_resume,
             )
     finally:
         cycle_id_ctx.reset(token)

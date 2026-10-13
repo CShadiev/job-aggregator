@@ -74,6 +74,11 @@ def make_batch_nodes(deps: PipelineDeps) -> dict[str, Any]:
         for src, count in counts.items():
             record_job_stage(stage="collection", source=src, count=count)
 
+        source_checkpoints = {
+            src: ts.isoformat()
+            for src, ts in getattr(result, "source_checkpoints", {}).items()
+        }
+
         # Overwrite batch channels at cycle start so prior checkpoint lists do not stick.
         return {
             "cycle_id": cycle_id,
@@ -82,6 +87,7 @@ def make_batch_nodes(deps: PipelineDeps) -> dict[str, Any]:
             "unique_jobs": [],
             "pairs": [],
             "pair_results": Overwrite([]),
+            "source_checkpoints": source_checkpoints,
         }
 
     async def normalize(state: PipelineState) -> dict[str, Any]:
@@ -378,6 +384,26 @@ def make_batch_nodes(deps: PipelineDeps) -> dict[str, Any]:
             n_cover=n_cover,
             n_skipped=n_skipped,
         )
+        source_checkpoints = state.get("source_checkpoints") or {}
+        for source_name, ts_str in source_checkpoints.items():
+            try:
+                checkpoint_dt = datetime.fromisoformat(ts_str)
+                await repository.set_checkpoint(source_name, checkpoint_dt)
+                log.info(
+                    "Committed checkpoint for {source_name} to {checkpoint}",
+                    event="checkpoint_committed",
+                    cycle_id=cycle_id,
+                    source_name=source_name,
+                    checkpoint=checkpoint_dt,
+                )
+            except Exception as exc:
+                log.error(
+                    "Failed to commit checkpoint for {source_name}: {exc}",
+                    event="checkpoint_commit_failed",
+                    cycle_id=cycle_id,
+                    source_name=source_name,
+                    exc=str(exc),
+                )
         cleared = cleared_batch_state()
         cleared["pair_results"] = Overwrite([])
         return cleared

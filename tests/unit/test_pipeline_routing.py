@@ -139,6 +139,7 @@ class TestStateFactories:
             "unique_jobs": [],
             "pairs": [],
             "pair_results": [],
+            "source_checkpoints": {},
         }
 
     def test_new_pair_state_defaults(self):
@@ -169,6 +170,7 @@ class TestClearedBatchState:
             "unique_jobs": [],
             "pairs": [],
             "pair_results": [],
+            "source_checkpoints": {},
         }
 
 

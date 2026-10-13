@@ -51,7 +51,7 @@ flowchart TD
 ```
 
 - Parent graph: `build_pipeline_graph(deps, checkpointer)` — compiled with `MongoDBSaver`.
-- Pair subgraph: `build_pair_subgraph(deps)` — compiled without its own checkpointer; runs as the `pair_pipeline` node.
+- Pair subgraph: `build_pair_subgraph(deps)` — compiled with `output_schema=PairOutput` (emitting only `pair_results` to prevent concurrent `cycle_id` collisions); runs as the `pair_pipeline` node.
 - Fan-out after `build_pairs` uses LangGraph `Send` to `pair_pipeline` (or jumps straight to `finalize` when there are no pairs).
 - Pair concurrency is capped by invoke config `max_concurrency` (`PIPELINE_PAIR_CONCURRENCY`).
 
@@ -67,6 +67,7 @@ flowchart TD
 | `unique_jobs` | Post-dedupe survivors |
 | `pairs` | Cartesian product `{username, job_uid, job}` |
 | `pair_results` | Reducer (`operator.add`) — compact summaries from each pair |
+| `source_checkpoints` | Staged high-water mark timestamps per scraper source, committed in `finalize` |
 
 Batch list channels are cleared at cycle start (`collect` uses `Overwrite([])` for `pair_results`) and again in `finalize` so a long-lived thread checkpoint does not grow without bound.
 
@@ -81,17 +82,27 @@ Batch list channels are cleared at cycle start (`collect` uses `Overwrite([])` f
 | `skipped_reason` | Set on recoverable pair failure; forces early exit routing |
 | `pair_results` | Same reducer; `emit_pair_result` appends one summary |
 
+### `PairOutput` (subgraph output)
+
+| Channel | Meaning |
+|---|---|
+| `pair_results` | Reducer (`operator.add`) — isolated channel emitted to parent graph |
+
+Restricting subgraph output to `PairOutput` ensures child `cycle_id` values do not leak back to `PipelineState`, avoiding `InvalidUpdateError` on concurrent completion.
+
 ## Batch nodes
 
 | Node | Behavior |
 |---|---|
-| `collect` | `CollectionService.collect()`; stores invalid entries as `failed_tasks`; resets batch channels for the new cycle |
+| `collect` | `CollectionService.collect()`; stages source watermarks; stores invalid entries as `failed_tasks`; resets batch channels for the new cycle |
 | `normalize` | Validates → `collection_service.normalize`; failures → `failed_tasks` + `normalize_failed` |
 | `dedupe` | `collection_service.deduplicate` → `unique_jobs` |
 | `persist_jobs` | `repository.upsert_jobs`; on failure records `failed_tasks` and re-raises |
-| `build_pairs` | `get_user_profiles()` × `unique_jobs` via `build_pair_list` |
+| `embed_jobs` | Embeds and bulk-indexes unique postings into OpenSearch |
+| `requeue_failed_jobs` | Requeues jobs that encountered transient pair evaluation failures within 72 hours |
+| `build_pairs` | `get_user_profiles()` × `unique_jobs` via `build_pair_list` or semantic retrieval |
 | `fanout` | Returns `"finalize"` or a `Send("pair_pipeline", PairState)` list |
-| `finalize` | Logs cycle aggregates; clears batch channels with `Overwrite` for `pair_results` |
+| `finalize` | Logs cycle aggregates; commits `source_checkpoints` to MongoDB; clears batch channels with `Overwrite` for `pair_results` |
 
 Collectors wired in `build_collectors`: LinkedIn Apify tasks (DE / PL / UK, `run_apify_task=False`), Arbeitnow, and HeadHunter.
 
@@ -148,12 +159,13 @@ Index created at runner startup: `(cycle_id, node)` (`ensure_pipeline_indexes`).
 
 ### Crash resume (effective retry)
 
-1. Process dies mid-cycle → next `ainvoke` on the same `PIPELINE_THREAD_ID` resumes from the Mongo checkpointer.
-2. Pair nodes are **read-before-write**:
+1. Process dies mid-cycle → runner inspects `await graph.aget_state(...)`. If pending tasks remain (`snapshot.next`), `ainvoke(None, ...)` resumes in-flight work with the preserved `cycle_id`. If `snapshot.next` is empty, a new cycle starts with a fresh `cycle_id`.
+2. Collector high-water marks in the MongoDB `checkpoints` collection are only committed in `finalize`. If a crash occurs prior to `finalize`, watermarks remain unadvanced so raw job postings are not lost.
+3. Pair nodes are **read-before-write**:
    - `screen` / `assess`: reuse stored screening or assessment if present
    - `cover_letter`: reuse existing `job_applications.cover_letter_key`
-3. `upsert_jobs` is duplicate-safe by `uid` so overlapping collects do not crash persist.
-4. `store_screening` treats `DuplicateKeyError` on `(username, job_uid)` as success (unique index).
+4. `upsert_jobs` is duplicate-safe by `uid` so overlapping collects do not crash persist.
+5. `store_screening` treats `DuplicateKeyError` on `(username, job_uid)` as success (unique index).
 
 Completed pairs are not re-billed; unfinished pairs run again. Failed pairs from a prior attempt are **not** automatically re-queued — a later cycle only reprocesses them if the same `(username, job)` appears again and no successful domain record exists yet (e.g. no screening row after a screen failure).
 
@@ -170,7 +182,10 @@ Completed pairs are not re-billed; unfinished pairs run again. Failed pairs from
 1. Build async + sync Mongo clients.
 2. Create `MongoDBSaver` on the sync client (`langgraph_checkpoints` / `langgraph_checkpoint_writes`).
 3. `build_deps` → `ensure_pipeline_indexes` → `build_pipeline_graph`.
-4. `run_once`: `ainvoke(new_pipeline_state(cycle_id=…), config={thread_id, max_concurrency})`.
+4. `run_once`:
+   - Inspects `graph.aget_state(invoke_config)`:
+     - If `snapshot.next`: resumes existing cycle with `ainvoke(None, config=invoke_config)`.
+     - Else: starts fresh cycle with `ainvoke(new_pipeline_state(cycle_id=…), config=invoke_config)`.
 5. Sleep `PIPELINE_SCHEDULE_SECONDS` (default 12h).
 
 A single long-lived `PIPELINE_THREAD_ID` (default `job-pipeline`) is used so each scheduled invoke continues the same checkpoint thread. Domain side effects remain the source of truth for resume safety; pair nodes skip work already persisted.
@@ -182,7 +197,7 @@ A single long-lived `PIPELINE_THREAD_ID` (default `job-pipeline`) is used so eac
 | `screenings` | Screening results |
 | `assessments` / `job_applications` | Fit assessment + application row / cover letter key |
 | `failed_tasks` | Node failures (batch + pair) |
-| `checkpoints` | Per-source collector watermarks (unchanged `CollectionService`) |
+| `checkpoints` | Per-source collector watermarks (committed in `finalize`) |
 | Object storage | User CVs (read) and cover-letter JSON (write) |
 
 Sync `MongoClient` is required by `MongoDBSaver`; app I/O uses `AsyncMongoClient`.

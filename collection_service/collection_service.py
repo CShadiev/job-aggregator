@@ -68,14 +68,13 @@ class CollectionService:
                 event="collect",
             )
             if _result.postings:
-                await self.repo.set_checkpoint(
-                    collector.get_source_name(), _result.postings[0].posted_at
-                )
+                latest_posted = max(p.posted_at for p in _result.postings)
+                collection_result.source_checkpoints[collector.get_source_name()] = latest_posted
                 log.info(
-                    "set checkpoint for {source_name} to {checkpoint}",
-                    event="checkpoint_set",
+                    "staged checkpoint for {source_name} to {checkpoint}",
+                    event="checkpoint_staged",
                     source_name=collector.get_source_name(),
-                    checkpoint=_result.postings[0].posted_at,
+                    checkpoint=latest_posted,
                 )
         return collection_result
 

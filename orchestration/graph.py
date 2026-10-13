@@ -8,7 +8,7 @@ from langgraph.types import RetryPolicy
 from orchestration.deps import PipelineDeps
 from orchestration.nodes.batch import make_batch_nodes
 from orchestration.nodes.pair import make_pair_nodes
-from orchestration.state import PairState, PipelineState
+from orchestration.state import PairOutput, PairState, PipelineState
 
 RETRY_POLICY = RetryPolicy(
     max_attempts=5,
@@ -23,7 +23,7 @@ RETRY_POLICY = RetryPolicy(
 def build_pair_subgraph(deps: PipelineDeps) -> CompiledStateGraph:
     """Build and compile the per-(candidate, job) evaluation subgraph."""
     nodes = make_pair_nodes(deps)
-    builder = StateGraph(PairState)
+    builder = StateGraph(PairState, output_schema=PairOutput)
     # Exceptions must leave `screen` so this policy can retry. The handler runs
     # only after the attempts are exhausted and records the pair as a failed task.
     builder.add_node(
