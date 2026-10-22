@@ -31,7 +31,7 @@ class Config(BaseSettings):
         "(Windows NT 10.0; Win64; x64) Chrome/131.0.0.0 Safari/537.36"
     )
     HH_TEXT: str = "python разработчик"
-    HH_AREA: str = "1"
+    HH_AREAS: list[str] = ["1", "2759"]
     HH_EXPERIENCE: list[str] = ["between3And6", "moreThan6"]
     HH_EMPLOYMENT_FORM: str = "FULL"
     HH_LABEL: str = "accept_labor_contract"

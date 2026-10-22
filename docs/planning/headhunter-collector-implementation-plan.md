@@ -113,7 +113,7 @@ Add settings next to `ARBEITNOW_*` in `config.py`. Defaults are the query in Cur
 | --- | --- |
 | `HH_USER_AGENT` | the User-Agent string in Current state |
 | `HH_TEXT` | `python разработчик` |
-| `HH_AREA` | `1` |
+| `HH_AREAS` | `1`, `2759` (repeated query param) |
 | `HH_EXPERIENCE` | `between3And6`, `moreThan6` (repeated query param) |
 | `HH_EMPLOYMENT_FORM` | `FULL` |
 | `HH_LABEL` | `accept_labor_contract` |

@@ -165,10 +165,8 @@ class HeadHunterCollector:
 
 def _search_params(config: Config, page: int) -> list[tuple[str, str]]:
     """Build the search query. Page 0 omits ``page``; later pages are 0-based."""
-    params = [
-        ("text", config.HH_TEXT),
-        ("area", config.HH_AREA),
-    ]
+    params = [("text", config.HH_TEXT)]
+    params.extend(("area", area) for area in config.HH_AREAS)
     params.extend(("experience", experience) for experience in config.HH_EXPERIENCE)
     params.extend(
         [
